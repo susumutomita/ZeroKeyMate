@@ -1,3 +1,6 @@
+import Foundation
+
+#if canImport(DockKit) && !targetEnvironment(simulator)
 import DockKit
 
 /// All DockKit writes are called by MateModel's single reconciliation task.
@@ -12,9 +15,6 @@ final class DockService {
 
     func observe(onChange: @escaping @MainActor (String?) -> Void) {
         guard observationTask == nil else { return }
-        #if targetEnvironment(simulator)
-        onChange("Simulator：DockKitは実機で確認してください。")
-        #else
         observationTask = Task { [weak self] in
             do {
                 let changes = try DockAccessoryManager.shared.accessoryStateChanges
@@ -36,16 +36,39 @@ final class DockService {
             }
             self?.observationTask = nil
         }
-        #endif
     }
 
     func setTrackingEnabled(_ enabled: Bool) async throws {
-        #if !targetEnvironment(simulator)
         try await DockAccessoryManager.shared.setSystemTrackingEnabled(enabled)
-        #endif
     }
 
     deinit {
         observationTask?.cancel()
     }
 }
+#else
+/// DockKit is absent from the simulator SDK. Report that limitation explicitly;
+/// this adapter must never report a connection or fake an enabled motor.
+@MainActor
+final class DockService {
+    let isConnected = false
+    let trackingButtonEnabled = false
+
+    func observe(onChange: @escaping @MainActor (String?) -> Void) {
+        onChange("DockKit未対応の実行環境です。スタンドは実機で確認してください。")
+    }
+
+    func setTrackingEnabled(_ enabled: Bool) async throws {
+        guard !enabled else { throw DockUnavailable.unsupported }
+        // Disabling absent hardware is a no-op; enabling is never a success.
+    }
+}
+
+private enum DockUnavailable: LocalizedError {
+    case unsupported
+
+    var errorDescription: String? {
+        "この実行環境ではDockKitを利用できません。"
+    }
+}
+#endif
