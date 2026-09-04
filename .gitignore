@@ -1,0 +1,14 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+DerivedDataDevice/
+*.xcuserstate
+xcuserdata/
+apps/ios/*.xcodeproj/
+apps/ios/Generated/
+.env
+.env.*
+!.env.example
+*.p12
+*.mobileprovision
