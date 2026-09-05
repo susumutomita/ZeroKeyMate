@@ -8,11 +8,12 @@
     "test": "node --test services/api/test/*.test.mjs",
     "test:contracts": "node --test contracts/test/*.test.mjs",
     "compile:contracts": "node scripts/compile-contracts.mjs",
-    "api": "node --env-file-if-exists=.env services/api/server.mjs"
+    "api": "node --env-file-if-exists=.env services/api/server.mjs",
+    "provider": "node --env-file-if-exists=.env services/provider/server.mjs"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.4.0",
-    "viem": "2.21.54",
+    "viem": "2.56.3",
     "zod": "3.24.4"
   },
   "devDependencies": { "solc": "0.8.30" }
