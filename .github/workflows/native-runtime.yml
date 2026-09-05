@@ -1,0 +1,37 @@
+name: Native proving runtime
+on:
+  push:
+    branches: [feat/complete-companion]
+    paths: ['scripts/build-native-runtime.sh', '.github/workflows/native-runtime.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          key: native-provekit-4e011438-arm64-v1
+          path: |
+            .tools/provekit-source/target
+            ~/.cargo/registry
+            ~/.cargo/git
+      - name: Build the pinned upstream FFI for both Apple targets
+        run: bash scripts/build-native-runtime.sh
+      - name: Package public runtime and its source provenance
+        run: |
+          mkdir -p .build/runtime
+          tar -czf .build/runtime/Verity.xcframework.tar.gz -C .tools/verity/output Verity.xcframework
+          cp .tools/verity/output/Verity.xcframework/mate-runtime.json .build/runtime/
+          cp .tools/provekit-source/Cargo.lock .build/runtime/Cargo.lock
+          shasum -a 256 .build/runtime/Verity.xcframework.tar.gz > .build/runtime/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-proving-runtime
+          path: .build/runtime
+          retention-days: 7
