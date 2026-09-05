@@ -11,8 +11,7 @@ packages:
     url: https://github.com/privy-io/privy-ios.git
     exactVersion: 2.15.0
   Verity:
-    url: https://github.com/atheonxyz/verity.git
-    exactVersion: 0.3.2
+    path: ../../.tools/verity
 settings:
   base:
     SWIFT_VERSION: '5.0'

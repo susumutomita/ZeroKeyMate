@@ -13,9 +13,30 @@ jobs:
     timeout-minutes: 40
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
-      VERITY_SWIFT_SDK_MODE: release
+      VERITY_SWIFT_SDK_MODE: native
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: atheonxyz/verity
+          ref: eb4bcb38be3ee7ecf36b06b06a9a98b6e204f97d
+          path: .tools/verity
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '33947836684'
+          name: native-proving-runtime
+          path: .build/runtime
+      - name: Verify and install the source-built native runtime
+        run: |
+          python3 - <<'PY'
+          import hashlib,pathlib
+          root=pathlib.Path('.build/runtime')
+          expected=(root/'SHA256SUMS').read_text().split()[0]
+          assert hashlib.sha256((root/'Verity.xcframework.tar.gz').read_bytes()).hexdigest()==expected
+          PY
+          mkdir -p .tools/verity/output
+          tar -xzf .build/runtime/Verity.xcframework.tar.gz -C .tools/verity/output
       - uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
@@ -55,7 +76,7 @@ jobs:
           xcrun simctl boot "$id" || true
           xcrun simctl bootstatus "$id" -b
           xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination "platform=iOS Simulator,id=$id" -derivedDataPath DerivedData -resultBundlePath .build/native.xcresult ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM= test 2>&1 | tee .build/native-evidence/simulator-tests.log
-      - name: Preserve evidence even when an acceptance test fails
+      - name: Preserve actual proof bytes and screenshots
         if: always()
         run: |
           mkdir -p .build/native-evidence/screens
@@ -71,6 +92,7 @@ jobs:
               cp -R "$app/tmp/mate-native-evidence/." .build/native-evidence/
             fi
           fi
+          cp apps/ios/ZeroKeyMate/Resources/Proofs/mate_policy.pkv .build/native-evidence/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
