@@ -1,0 +1,33 @@
+name: Cryptographic acceptance
+on:
+  push:
+    branches: [feat/complete-companion, main]
+    paths: ['circuits/**', 'scripts/*proof*', 'services/verifier/**', '.github/workflows/proofs.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proofs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .tools
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: provekit-1.0.1-linux-v1
+      - name: Build real ProveKit circuit and reject invalid witnesses
+        run: bash scripts/build-proofs.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proof-evidence
+          path: .build/proofs
+          if-no-files-found: error
+  toolchains:
+    runs-on: macos-15
+    steps:
+      - run: ls -d /Applications/Xcode*; xcrun simctl list devices available; swift --version
