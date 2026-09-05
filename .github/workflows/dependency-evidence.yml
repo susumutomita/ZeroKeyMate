@@ -16,20 +16,31 @@ jobs:
         with:
           node-version: '22.16.0'
       - run: npm install --ignore-scripts
-      - run: npm audit --audit-level=low --json > audit.json
+      - name: Audit every installed dependency and preserve diagnostics
+        run: |
+          set +e
+          npm audit --audit-level=low --json > audit.json
+          result=$?
+          cat audit.json
+          exit "$result"
       - run: npm test && node scripts/compile-contracts.mjs --tests
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: v1.3.1
       - run: npm run test:contracts
-      - name: Save the dependency resolution actually tested
+      - name: Save exact dependency resolution, including failing audit diagnostics
+        if: always()
         run: |
           mkdir -p evidence
-          cp package-lock.json audit.json evidence/
-          tar -czf evidence/node-dependencies.tar.gz node_modules
-          sha256sum evidence/node-dependencies.tar.gz > evidence/SHA256SUMS
+          test ! -f package-lock.json || cp package-lock.json evidence/
+          test ! -f audit.json || cp audit.json evidence/
+          if [ -d node_modules ]; then
+            tar -czf evidence/node-dependencies.tar.gz node_modules
+            sha256sum evidence/node-dependencies.tar.gz > evidence/SHA256SUMS
+          fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: audited-dependencies
+          name: dependency-evidence
           path: evidence
           retention-days: 7
