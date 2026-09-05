@@ -1,49 +1,77 @@
 name: ZeroKeyMate
 options:
-  minimumXcodeGenVersion: 2.42.0
   bundleIdPrefix: com.zerokeymate
   deploymentTarget:
-    iOS: "18.0"
-  createIntermediateGroups: true
-settings:
-  base:
-    SWIFT_VERSION: "5.0"
-    SWIFT_STRICT_CONCURRENCY: complete
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 1
+    iOS: '26.0'
+  xcodeVersion: '26.3'
 packages:
   MateCore:
     path: ../..
+  Privy:
+    url: https://github.com/privy-io/privy-ios.git
+    exactVersion: 2.15.0
+  Verity:
+    url: https://github.com/atheonxyz/verity.git
+    exactVersion: 0.3.2
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    SWIFT_STRICT_CONCURRENCY: complete
+    IPHONEOS_DEPLOYMENT_TARGET: '26.0'
+    TARGETED_DEVICE_FAMILY: '1'
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: '$(MATE_DEVELOPMENT_TEAM)'
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    GENERATE_INFOPLIST_FILE: YES
+    MARKETING_VERSION: '0.2.0'
+    CURRENT_PROJECT_VERSION: '2'
 targets:
   ZeroKeyMate:
     type: application
     platform: iOS
     sources:
-      - ZeroKeyMate
+      - path: ZeroKeyMate
+        excludes: ['Info.plist']
     dependencies:
       - package: MateCore
+      - package: Privy
+      - package: Verity
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.app
-        TARGETED_DEVICE_FAMILY: "1"
-        CODE_SIGN_STYLE: Automatic
-        GENERATE_INFOPLIST_FILE: NO
+        PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.companion
+        INFOPLIST_KEY_CFBundleDisplayName: Mate
+        INFOPLIST_KEY_NSCameraUsageDescription: 周りの大まかな様子をこの端末内で認識し、DockKitの追尾に使います。映像は保存・外部送信しません。
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: 話すボタンを押したときだけ、端末内の音声認識に使います。
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: 音声を文字に変換します。端末内認識が使えない場合は文字入力に切り替えます。
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: あなたのMacで動く署名検証・専門サービスに、承認した依頼内容だけを送ります。
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: YES
     info:
       path: Generated/Info.plist
       properties:
-        CFBundleDisplayName: ZeroKey Mate
-        UILaunchScreen: {}
-        UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: false
-        UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
-        NSCameraUsageDescription: "Use the front camera for local DockKit tracking. Images are not saved or uploaded by this build."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  NativeAcceptance:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [NativeAcceptance]
+    dependencies:
+      - target: ZeroKeyMate
+      - package: MateCore
+      - package: Verity
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.native-acceptance
+        TEST_HOST: '$(BUILT_PRODUCTS_DIR)/ZeroKeyMate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ZeroKeyMate'
+        BUNDLE_LOADER: '$(TEST_HOST)'
 schemes:
   ZeroKeyMate:
     build:
       targets:
         ZeroKeyMate: all
-    run:
-      config: Debug
+        NativeAcceptance: [test]
+    test:
+      gatherCoverageData: true
+      targets: [NativeAcceptance]
