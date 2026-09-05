@@ -16,5 +16,6 @@
     "viem": "2.56.3",
     "zod": "3.24.4"
   },
-  "devDependencies": { "solc": "0.8.30" }
+  "devDependencies": { "solc": "0.8.30" },
+  "overrides": { "tmp": "0.2.6" }
 }

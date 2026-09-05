@@ -1,0 +1,35 @@
+name: Dependency acceptance
+on:
+  push:
+    branches: [feat/complete-companion]
+    paths: ['package.json', '.github/workflows/dependency-evidence.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dependencies:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - run: npm install --ignore-scripts
+      - run: npm audit --audit-level=low --json > audit.json
+      - run: npm test && node scripts/compile-contracts.mjs --tests
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.1
+      - run: npm run test:contracts
+      - name: Save the dependency resolution actually tested
+        run: |
+          mkdir -p evidence
+          cp package-lock.json audit.json evidence/
+          tar -czf evidence/node-dependencies.tar.gz node_modules
+          sha256sum evidence/node-dependencies.tar.gz > evidence/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audited-dependencies
+          path: evidence
+          retention-days: 7
