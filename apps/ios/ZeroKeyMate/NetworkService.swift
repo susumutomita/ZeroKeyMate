@@ -10,7 +10,7 @@ struct ServiceProvider: Codable, Identifiable, Equatable, Sendable {
     let ensName:String
     let feedback:Int
 }
-struct ProviderList:Decodable,Sendable { let providers:[ServiceProvider]; let indexedBlock:String; let observedAt:String }
+struct ProviderList:Decodable,Sendable {let providers:[ServiceProvider];let indexedBlock:String;let observedAt:String}
 struct AccountState:Decodable,Sendable {let nonce:String;let balance:String;let tokenBalance:String;let gasBalance:String}
 struct OnchainMandate:Decodable,Sendable {let owner:String;let agent:String;let policyHash:String;let validUntil:UInt64;let spent:String;let revoked:Bool}
 struct GrantReceipt:Decodable,Sendable {let mandateId:String;let transactionHash:String;let blockNumber:String}
@@ -26,6 +26,7 @@ struct ExecutionReceipt:Codable,Identifiable,Sendable {
 struct MateIdentity:Codable,Sendable {let name:String;let address:String;let owner:String;let description:String}
 
 actor NetworkService {
+    private struct Failure:Decodable {let error:String;let message:String}
     private let configuration:AppConfiguration
     private let session:URLSession
     init(configuration:AppConfiguration) {
@@ -37,9 +38,9 @@ actor NetworkService {
     }
     private func perform<Response:Decodable>(_ path:String,method:String="GET",body:Data?=nil) async throws -> Response {
         guard !configuration.apiToken.isEmpty,let base=URL(string:configuration.apiURL),
-              ["https","http"].contains(base.scheme ?? ""),
-              let url=URL(string:path,relativeTo:base)?.absoluteURL else {
-            throw ProductError.unavailable("外部サービスの接続設定がありません。設定画面で必要な項目を確認してください。")
+              base.scheme == "https" || (base.scheme == "http" && ["127.0.0.1","localhost","::1"].contains(base.host ?? "")),
+              let url=URL(string:path,relativeTo:base)?.absoluteURL,url.host == base.host else {
+            throw ProductError.unavailable("外部サービスはHTTPSで接続してください。Simulatorの同一Mac内通信だけはlocalhostを利用できます。")
         }
         var request=URLRequest(url:url)
         request.httpMethod=method;request.httpBody=body
@@ -49,15 +50,12 @@ actor NetworkService {
         let (data,response)=try await session.data(for:request)
         guard let http=response as? HTTPURLResponse,data.count < 2_000_000 else {throw ProductError.invalidResponse}
         guard (200..<300).contains(http.statusCode) else {
-            struct Failure:Decodable {let error:String;let message:String}
             if let failure=try? JSONDecoder().decode(Failure.self,from:data) {throw ProductError.unavailable(failure.message)}
             throw ProductError.unavailable("外部サービスに接続できませんでした（HTTP \(http.statusCode)）。")
         }
         return try JSONDecoder().decode(Response.self,from:data)
     }
-    func providers(service:MateService) async throws -> ProviderList {
-        try await perform("/v1/providers?service=\(service.rawValue)")
-    }
+    func providers(service:MateService) async throws -> ProviderList {try await perform("/v1/providers?service=\(service.rawValue)")}
     func account(owner:String) async throws -> AccountState {
         _=try CanonicalBytes.hex(owner,count:20)
         return try await perform("/v1/account?owner=\(owner)")
@@ -75,9 +73,15 @@ actor NetworkService {
         let request=Request(action:action,agentSignature:signature,proof:proof.base64EncodedString(),payload:payload,providerId:providerID)
         return try await perform("/v1/execute",method:"POST",body:JSONEncoder().encode(request))
     }
+    func receipt(actionHash:String) async throws -> ExecutionReceipt {
+        _=try CanonicalBytes.hex(actionHash,count:32)
+        return try await perform("/v1/receipts?actionHash=\(actionHash)")
+    }
     func identity(name:String) async throws -> MateIdentity {
-        guard let query=name.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) else {throw ProductError.invalidResponse}
-        return try await perform("/v1/names/resolve?name=\(query)")
+        var components=URLComponents();components.path="/v1/names/resolve"
+        components.queryItems=[URLQueryItem(name:"name",value:name)]
+        guard let path=components.string else {throw ProductError.invalidResponse}
+        return try await perform(path)
     }
     func claimName(label:String,owner:String,agent:String,signature:String,nonce:String,expiresAt:UInt64) async throws -> MateIdentity {
         struct Request:Encodable {let label:String;let owner:String;let agent:String;let signature:String;let nonce:String;let expiresAt:UInt64}
