@@ -235,7 +235,7 @@ final class CompanionModel:ObservableObject {
                   let spentBefore=UInt64(state.spent) else{throw ProductError.unavailable("委任が失効したか、所有者を確認できません。")}
             try stored.policy.check(spent:spentBefore,amount:amount,service:service)
             let action=MandateAction(mandateId:stored.id,recipient:provider.recipient,amount:amount,service:service,
-                nonce:CanonicalBytes.hexString(LocalSecrets.random32()),expiresAt:min(now+300,state.validUntil),
+                nonce:CanonicalBytes.hexString(try LocalSecrets.random32()),expiresAt:min(now+300,state.validUntil),
                 requestHash:LocalSecrets.hash(Data(payload.utf8)),spentBefore:spentBefore)
             executionStatus="このiPhoneで証明を生成しています"
             let proof=try await proofs.prove(policy:stored.policy,action:action,chainID:configuration.chainID,vault:configuration.vault)

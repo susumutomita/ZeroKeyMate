@@ -91,8 +91,9 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
     }
     func stop(){stopListening();synthesizer.stopSpeaking(at:.immediate);currentUtterance=nil;speaking=false}
     nonisolated func speechSynthesizer(_ synthesizer:AVSpeechSynthesizer,didFinish utterance:AVSpeechUtterance){
+        let identifier = ObjectIdentifier(utterance)
         Task{@MainActor [weak self] in
-            guard let self,self.currentUtterance===utterance else{return}
+            guard let self, let current = self.currentUtterance, ObjectIdentifier(current) == identifier else{return}
             self.currentUtterance=nil;self.speaking=false
             try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
         }
