@@ -43,7 +43,7 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: 周りの大まかな様子をこの端末内で認識し、DockKitの追尾に使います。映像は保存・外部送信しません。
         INFOPLIST_KEY_NSMicrophoneUsageDescription: 話すボタンを押したときだけ、端末内の音声認識に使います。
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: 音声を文字に変換します。端末内認識が使えない場合は文字入力に切り替えます。
-        INFOPLIST_KEY_NSLocalNetworkUsageDescription: あなたのMacで動く署名検証・専門サービスに、承認した依頼内容だけを送ります。
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: あなたのMacで動く専門サービスに、承認した依頼内容だけを送ります。
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
@@ -66,12 +66,23 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.native-acceptance
         TEST_HOST: '$(BUILT_PRODUCTS_DIR)/ZeroKeyMate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ZeroKeyMate'
         BUNDLE_LOADER: '$(TEST_HOST)'
+  ProductUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [ProductUITests]
+    dependencies:
+      - target: ZeroKeyMate
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.product-ui-tests
+        TEST_TARGET_NAME: ZeroKeyMate
 schemes:
   ZeroKeyMate:
     build:
       targets:
         ZeroKeyMate: all
         NativeAcceptance: [test]
+        ProductUITests: [test]
     test:
       gatherCoverageData: true
-      targets: [NativeAcceptance]
+      targets: [NativeAcceptance, ProductUITests]
