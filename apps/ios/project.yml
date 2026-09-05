@@ -1,0 +1,49 @@
+name: ZeroKeyMate
+options:
+  minimumXcodeGenVersion: 2.42.0
+  bundleIdPrefix: com.zerokeymate
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
+packages:
+  MateCore:
+    path: ../..
+targets:
+  ZeroKeyMate:
+    type: application
+    platform: iOS
+    sources:
+      - ZeroKeyMate
+    dependencies:
+      - package: MateCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.app
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+    info:
+      path: Generated/Info.plist
+      properties:
+        CFBundleDisplayName: ZeroKey Mate
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSCameraUsageDescription: "Use the front camera for local DockKit tracking. Images are not saved or uploaded by this build."
+schemes:
+  ZeroKeyMate:
+    build:
+      targets:
+        ZeroKeyMate: all
+    run:
+      config: Debug

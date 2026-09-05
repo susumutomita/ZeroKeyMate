@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+      - name: Test portable lifecycle logic
+        run: make test
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: make project
+      - name: Build simulator
+        run: xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
+      - name: Build device SDK without signing
+        run: xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath DerivedDataDevice CODE_SIGNING_ALLOWED=NO build
