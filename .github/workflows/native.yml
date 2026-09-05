@@ -38,9 +38,13 @@ jobs:
       - run: swift --version && xcodebuild -version && make test
       - run: brew install xcodegen && make project
       - name: Build native device code including DockKit
-        run: xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath DerivedDataDevice CODE_SIGNING_ALLOWED=NO build
+        run: |
+          set -o pipefail
+          mkdir -p .build/native-evidence
+          xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath DerivedDataDevice CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/native-evidence/device-build.log
       - name: Run native proof acceptance on Apple Silicon Simulator
         run: |
+          set -o pipefail
           python3 - <<'PY' > .build/simulator-id
           import json, subprocess
           devices=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','--json']))['devices']
@@ -51,9 +55,8 @@ jobs:
           id=$(cat .build/simulator-id)
           xcrun simctl boot "$id" || true
           xcrun simctl bootstatus "$id" -b
-          xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination "platform=iOS Simulator,id=$id" -derivedDataPath DerivedData -resultBundlePath .build/native.xcresult ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO test
+          xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination "platform=iOS Simulator,id=$id" -derivedDataPath DerivedData -resultBundlePath .build/native.xcresult ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO test 2>&1 | tee .build/native-evidence/simulator-tests.log
           app=$(xcrun simctl get_app_container "$id" com.zerokeymate.companion data)
-          mkdir -p .build/native-evidence
           if [ -d "$app/tmp/mate-native-evidence" ]; then cp -R "$app/tmp/mate-native-evidence/." .build/native-evidence/; fi
           xcrun simctl launch "$id" com.zerokeymate.companion
           sleep 3
