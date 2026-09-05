@@ -20,14 +20,13 @@ jobs:
         with:
           node-version: '22.16.0'
       - run: npm install --ignore-scripts && node scripts/generate-app-config.mjs
-      - name: Download independently verified circuit artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           run-id: '33935057069'
           name: proof-evidence
           path: .build/circuit-evidence
-      - name: Bundle the real circuit
+      - name: Bundle the independently verified circuit
         run: |
           mkdir -p apps/ios/ZeroKeyMate/Resources/Proofs
           for name in mate_policy.pkp mate_policy.pkv manifest.json; do
@@ -42,7 +41,7 @@ jobs:
           set -o pipefail
           mkdir -p .build/native-evidence
           xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath DerivedDataDevice CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/native-evidence/device-build.log
-      - name: Run native proof acceptance on Apple Silicon Simulator
+      - name: Run real native proofs, Keychain and UI acceptance
         run: |
           set -o pipefail
           python3 - <<'PY' > .build/simulator-id
@@ -55,18 +54,26 @@ jobs:
           id=$(cat .build/simulator-id)
           xcrun simctl boot "$id" || true
           xcrun simctl bootstatus "$id" -b
-          xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination "platform=iOS Simulator,id=$id" -derivedDataPath DerivedData -resultBundlePath .build/native.xcresult ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO test 2>&1 | tee .build/native-evidence/simulator-tests.log
-          app=$(xcrun simctl get_app_container "$id" com.zerokeymate.companion data)
-          if [ -d "$app/tmp/mate-native-evidence" ]; then cp -R "$app/tmp/mate-native-evidence/." .build/native-evidence/; fi
-          xcrun simctl launch "$id" com.zerokeymate.companion
-          sleep 3
-          xcrun simctl io "$id" screenshot .build/native-evidence/portrait.png
+          xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination "platform=iOS Simulator,id=$id" -derivedDataPath DerivedData -resultBundlePath .build/native.xcresult ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM= test 2>&1 | tee .build/native-evidence/simulator-tests.log
+      - name: Preserve evidence even when an acceptance test fails
+        if: always()
+        run: |
+          mkdir -p .build/native-evidence/screens
+          if [ -d .build/native.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path .build/native.xcresult > .build/native-evidence/summary.json
+            xcrun xcresulttool export attachments --path .build/native.xcresult --output-path .build/native-evidence/screens
+            cat .build/native-evidence/summary.json
+          fi
+          if [ -f .build/simulator-id ]; then
+            id=$(cat .build/simulator-id)
+            app=$(xcrun simctl get_app_container "$id" com.zerokeymate.companion data 2>/dev/null || true)
+            if [ -n "$app" ] && [ -d "$app/tmp/mate-native-evidence" ]; then
+              cp -R "$app/tmp/mate-native-evidence/." .build/native-evidence/
+            fi
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: native-evidence
-          path: |
-            .build/native-evidence
-            .build/native.xcresult
-            apps/ios/ZeroKeyMate.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          path: .build/native-evidence
           include-hidden-files: true
