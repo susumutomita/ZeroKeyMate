@@ -1,30 +1,40 @@
-name: CI
+name: Source and protocol checks
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: source-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  ios:
-    runs-on: macos-15
-    timeout-minutes: 20
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Toolchain
-        run: |
-          swift --version
-          xcodebuild -version
-      - name: Test portable lifecycle logic
-        run: make test
-      - name: Install project generator
-        run: brew install xcodegen
-      - name: Generate Xcode project
-        run: make project
-      - name: Build simulator
-        run: xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
-      - name: Build device SDK without signing
-        run: xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath DerivedDataDevice CODE_SIGNING_ALLOWED=NO build
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+      - run: npm run check:sources
+      - run: find services scripts contracts -name '*.mjs' -print0 | xargs -0 -n1 node --check
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.1
+      - run: node scripts/compile-contracts.mjs --tests
+      - run: npm run test:contracts
+  portable-swift:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: swift test --parallel

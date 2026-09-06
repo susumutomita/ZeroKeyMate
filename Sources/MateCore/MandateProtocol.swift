@@ -105,7 +105,9 @@ public struct MandateGrant: Codable, Equatable, Sendable {
     public init(owner: String, agent: String, policyHash: String, validUntil: UInt64, nonce: String) throws {
         _ = try CanonicalBytes.hex(owner, count: 20); _ = try CanonicalBytes.hex(agent, count: 20)
         _ = try CanonicalBytes.hex(policyHash, count: 32)
-        guard owner.lowercased() != agent.lowercased(), validUntil > 0, UInt64(nonce) != nil else { throw MandateError.invalidPolicy }
+        guard owner.lowercased() != agent.lowercased(), validUntil > 0, !nonce.isEmpty, nonce.utf8.allSatisfy({ (48...57).contains($0) }),
+              nonce.count == 1 || nonce.first != "0",
+              nonce.count < 78 || (nonce.count == 78 && nonce <= "115792089237316195423570985008687907853269984665640564039457584007913129639935") else { throw MandateError.invalidPolicy }
         self.owner = owner; self.agent = agent; self.policyHash = policyHash; self.validUntil = validUntil; self.nonce = nonce
     }
 }

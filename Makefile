@@ -1,4 +1,7 @@
-.PHONY: test project build-ios
+.PHONY: run test project build-ios check-sources verify
+
+run:
+	./mate
 
 test:
 	swift test --parallel
@@ -6,5 +9,11 @@ test:
 project:
 	cd apps/ios && xcodegen generate
 
-build-ios: project
-	xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
+build-ios:
+	./mate --simulator
+
+check-sources:
+	python3 scripts/check-source-integrity.py
+
+verify:
+	./mate --verify

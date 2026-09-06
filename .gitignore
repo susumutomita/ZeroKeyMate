@@ -18,3 +18,9 @@ apps/ios/ZeroKeyMate/Resources/Configuration.json
 !.env.example
 *.p12
 *.mobileprovision
+
+.provider-data/
+*.sealed
+*.sqlite*
+.env.new
+artifacts/

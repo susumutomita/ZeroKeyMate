@@ -1,0 +1,106 @@
+name: Native and cryptographic acceptance
+# Explicit opt-in: publishing source does not silently launch long-running builds.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proofs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/cache@v4
+        with:
+          key: proof-cli-1.0.1-${{ runner.os }}-v3
+          path: |
+            .tools/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/verifier/target
+      - run: bash scripts/build-proofs.sh
+      - name: Verify real proof with the independent statement extractor
+        run: |
+          cargo +nightly-2026-03-04 build --locked --release --manifest-path services/verifier/Cargo.toml
+          services/verifier/target/release/mate-verify .build/proofs/mate_policy.pkv .build/proofs/valid.np > .build/proofs/extracted.json
+          python3 - <<'PYCODE'
+          import json
+          from pathlib import Path
+          p=Path('.build/proofs')
+          assert json.loads((p/'extracted.json').read_text()) == json.loads((p/'statement.json').read_text())
+          data=bytearray((p/'valid.np').read_bytes());data[len(data)//2]^=1
+          (p/'tampered.np').write_bytes(data)
+          PYCODE
+          if services/verifier/target/release/mate-verify .build/proofs/mate_policy.pkv .build/proofs/tampered.np; then
+            echo 'Tampered proof accepted' >&2; exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proof-evidence
+          path: .build/proofs
+          include-hidden-files: true
+          retention-days: 7
+  native:
+    needs: proofs
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      VERITY_SWIFT_SDK_MODE: native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/cache@v4
+        with:
+          key: ios-provekit-4e011438-${{ runner.arch }}-v2
+          path: |
+            .tools/provekit-source/target
+            ~/.cargo/registry
+            ~/.cargo/git
+      - run: bash scripts/build-native-runtime.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: proof-evidence
+          path: .build/proofs
+      - name: Bundle this run's verified circuit, not an old workflow artifact
+        run: |
+          mkdir -p apps/ios/ZeroKeyMate/Resources/Proofs
+          cp .build/proofs/mate_policy.pkp .build/proofs/mate_policy.pkv .build/proofs/manifest.json apps/ios/ZeroKeyMate/Resources/Proofs/
+          python3 scripts/validate-native-runtime.py
+          python3 scripts/validate-proof-resources.py
+          npm install --ignore-scripts
+          node scripts/generate-app-config.mjs
+          brew install xcodegen
+          make project
+      - name: Compile the actual device target
+        run: |
+          mkdir -p .build/acceptance
+          set -o pipefail
+          xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -destination 'generic/platform=iOS' -derivedDataPath .build/NativeDevice CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/acceptance/device-build.log
+      - name: Native proofs, Keychain and real rendered UI
+        run: |
+          set -o pipefail
+          id=$(python3 scripts/select-simulator.py)
+          xcrun simctl boot "$id" || true
+          xcrun simctl bootstatus "$id" -b
+          xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -destination "platform=iOS Simulator,id=$id" -derivedDataPath .build/NativeSimulator -resultBundlePath .build/acceptance/native.xcresult ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM= test 2>&1 | tee .build/acceptance/tests.log
+      - name: Export actual evidence without changing failed test status
+        if: always()
+        run: |
+          if [ -d .build/acceptance/native.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path .build/acceptance/native.xcresult > .build/acceptance/summary.json
+            xcrun xcresulttool export attachments --path .build/acceptance/native.xcresult --output-path .build/acceptance/screens
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-evidence
+          path: .build/acceptance
+          include-hidden-files: true
+          retention-days: 7

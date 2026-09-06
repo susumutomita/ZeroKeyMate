@@ -15,6 +15,7 @@ final class MateModel:ObservableObject {
     @Published private(set) var dockMessage:String?
     @Published private(set) var captureRequested=false
     @Published private(set) var horizontalFocus=0.0
+    var onPrivacyStop: (() -> Void)?
     private var observation:FrameObservation?
     private let camera=CameraService()
     private let dock=DockService()
@@ -50,14 +51,14 @@ final class MateModel:ObservableObject {
             }
             self.lastTrackingButtonEnabled=self.dock.trackingButtonEnabled
             self.dockConnected=self.dock.isConnected;self.dockMessage=error
-            if wasConnected && !self.dockConnected{self.intent.requestStop()}
+            if wasConnected && !self.dockConnected{self.intent.requestStop();self.onPrivacyStop?()}
             self.scheduleReconciliation()
         }
         for name in [AVCaptureSession.wasInterruptedNotification,AVCaptureSession.runtimeErrorNotification] {
             NotificationCenter.default.publisher(for:name).receive(on:DispatchQueue.main).sink{[weak self] _ in
                 guard let self,self.cameraRunning || self.isTransitioning else{return}
                 self.message="カメラが中断されました。再開には開始ボタンを押してください。"
-                self.intent.requestStop();self.scheduleReconciliation()
+                self.intent.requestStop();self.onPrivacyStop?();self.scheduleReconciliation()
             }.store(in:&notifications)
         }
     }

@@ -13,6 +13,7 @@ struct VerifiedLocalProof: Sendable {
 
 /// Native proving is isolated from the UI and networking. Witnesses never leave this actor.
 actor ProofService {
+    static let shared = ProofService()
     struct Manifest: Decodable {
         let system: String
         let version: String
@@ -48,11 +49,11 @@ actor ProofService {
         let policyHash = LocalSecrets.hash(try policy.material())
         let actionHash = LocalSecrets.hash(try action.material(chainID: chainID, vault: vault))
         let values: [String:Any] = [
-            "policy_hash": Array(try CanonicalBytes.hex(policyHash,count:32)),
-            "action_hash": Array(try CanonicalBytes.hex(actionHash,count:32)),
+            "policy_hash": Array(try CanonicalBytes.hex(policyHash,count:32)).map { String($0) },
+            "action_hash": Array(try CanonicalBytes.hex(actionHash,count:32)).map { String($0) },
             "spent": String(spent), "amount": String(amount), "service": String(action.service),
-            "budget": String(policy.budget), "services": String(policy.services), "salt": Array(policy.salt),
-            "context": Array(try action.context(chainID: chainID,vault: vault))
+            "budget": String(policy.budget), "services": String(policy.services), "salt": Array(policy.salt).map { String($0) },
+            "context": Array(try action.context(chainID: chainID,vault: vault)).map { String($0) }
         ]
         let witness = try Witness(json: String(decoding: JSONSerialization.data(withJSONObject: values), as: UTF8.self))
         let runtime = try Verity(backend: .provekit)
@@ -60,11 +61,23 @@ actor ProofService {
         defer { prover.close() }
         let verifier = try runtime.loadVerifier(data: keys.1)
         defer { verifier.close() }
-        let start = Date()
+        let start = DispatchTime.now().uptimeNanoseconds
         let proof = try prover.prove(witness: witness)
         guard try verifier.verify(proof: proof) else { throw ProductError.invalidResponse }
         try Task.checkCancellation()
         return VerifiedLocalProof(bytes: proof.data, policyHash: policyHash, actionHash: actionHash,
-            elapsedMilliseconds: Int(Date().timeIntervalSince(start) * 1000))
+            elapsedMilliseconds: Int((DispatchTime.now().uptimeNanoseconds - start) / 1_000_000))
+    }
+    func rejectsTampering(proof: Data) throws -> Bool {
+        try prepare()
+        guard let keys = keyData, !proof.isEmpty else { throw ProductError.invalidResponse }
+        let runtime = try Verity(backend: .provekit)
+        let verifier = try runtime.loadVerifier(data: keys.1)
+        defer { verifier.close() }
+        guard try verifier.verify(proof: Proof(data: proof)) else { throw ProductError.invalidResponse }
+        var changed = proof
+        changed[changed.count / 2] ^= 1
+        do { return try !verifier.verify(proof: Proof(data: changed)) }
+        catch { return true }
     }
 }

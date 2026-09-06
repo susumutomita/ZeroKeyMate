@@ -3,7 +3,7 @@ import path from 'node:path';
 import solc from 'solc';
 
 const root = path.resolve(import.meta.dirname, '..');
-const inputFiles = ['contracts/src/MateVault.sol'];
+const inputFiles = ['contracts/src/MateVault.sol', 'contracts/src/MateNaming.sol'];
 if (process.argv.includes('--tests')) inputFiles.push('contracts/test/TestToken.sol');
 const sources = Object.fromEntries(inputFiles.map(p => [p, {content: fs.readFileSync(path.join(root, p), 'utf8')}]));
 const output = JSON.parse(solc.compile(JSON.stringify({
