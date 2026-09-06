@@ -12,6 +12,6 @@ const e=process.env;
 const config={apiURL:e.MATE_API_URL??'http://127.0.0.1:8787',apiToken:e.MATE_API_TOKEN??'',
   privyAppID:e.PRIVY_APP_ID??'',privyClientID:e.PRIVY_IOS_CLIENT_ID??'',
   rpcURL:e.SEPOLIA_RPC_URL??'https://ethereum-sepolia-rpc.publicnode.com',
-  vault:e.MATE_VAULT_ADDRESS??'',token:e.MATE_TOKEN_ADDRESS??'',chainID:11155111};
+  vault:e.MATE_VAULT_ADDRESS??'',token:'0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',ensParent:e.ENS_PARENT_NAME||'',chainID:11155111};
 fs.writeFileSync(path.join(directory,'Configuration.json'),JSON.stringify(config,null,2)+'\n',{mode:0o600});
 console.log('Generated native selectors and installation configuration; no server signing keys are embedded.');

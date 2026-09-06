@@ -9,6 +9,7 @@ struct AppConfiguration: Codable, Sendable {
     var rpcURL:String
     var vault:String
     var token:String
+    var ensParent:String = ""
     let chainID:UInt64
 
     static func load() -> AppConfiguration {
@@ -21,9 +22,9 @@ struct AppConfiguration: Codable, Sendable {
     }
     var walletConfigured:Bool { !privyAppID.isEmpty && !privyClientID.isEmpty }
     var paymentsConfigured:Bool {
-        chainID == 11_155_111 && !apiToken.isEmpty
-        && (try? CanonicalBytes.hex(vault,count:20)) != nil
-        && (try? CanonicalBytes.hex(token,count:20)) != nil
+        chainID == 11_155_111 && apiToken.count>=32
+        && (try? CanonicalBytes.hex(vault,count:20))?.contains(where:{$0 != 0}) == true
+        && token.lowercased()=="0x1c7d4b196cb0c7b01d743fbc6116a902379c7238"
         && URL(string:rpcURL)?.scheme == "https"
     }
 }

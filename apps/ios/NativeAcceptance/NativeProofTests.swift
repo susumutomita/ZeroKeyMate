@@ -7,6 +7,7 @@ import Verity
 
 final class NativeProofTests: XCTestCase {
     func testNativeProveKitProvesAndVerifiesTheActualMandateCircuit() async throws {
+        try XCTSkipUnless(Verity.runtimeMode == .native,"Native ProveKit is explicitly unavailable in a source-only build.")
         let policy=try PrivatePolicy(budget:5_000_000,services:3,salt:Data(0..<32))
         let action=MandateAction(mandateId:"0x"+String(repeating:"22",count:32),
             recipient:"0x"+String(repeating:"33",count:20),amount:3_000_000,service:.translation,

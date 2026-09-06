@@ -112,10 +112,11 @@ final class WalletService: ObservableObject {
     }
     func signName(label: String, nonce: String, expiresAt: UInt64) async throws -> String {
         guard let ownerWallet, let agentAddress, configuration.paymentsConfigured,
+              !configuration.ensParent.isEmpty,
               label.range(of: "^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$", options: .regularExpression) != nil else { throw ProductError.invalidResponse }
         _ = try CanonicalBytes.hex(nonce, count: 32)
         try await authenticateOwner(reason: "この名前をMateの公開アドレスとして登録します")
-        let message = "ZeroKey Mate name registration\nchain:11155111\nvault:\(configuration.vault.lowercased())\nlabel:\(label)\nowner:\(ownerWallet.address.lowercased())\nagent:\(agentAddress.lowercased())\nnonce:\(nonce.lowercased())\nexpires:\(expiresAt)"
+        let message = "ZeroKey Mate name registration\nchain:11155111\nvault:\(configuration.vault.lowercased())\nname:\(label).\(configuration.ensParent)\nowner:\(ownerWallet.address.lowercased())\nagent:\(agentAddress.lowercased())\nnonce:\(nonce.lowercased())\nexpires:\(expiresAt)"
         return try await ownerWallet.provider.request(.personalSign(message: CanonicalBytes.hexString(Data(message.utf8)), address: ownerWallet.address))
     }
     enum FundingOperation { case approve(UInt64), deposit(UInt64), withdraw(UInt64), revoke(String) }

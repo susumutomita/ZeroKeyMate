@@ -7,6 +7,7 @@ import path from 'node:path';
 export class Journal {
   #database;
   #key;
+  #closed=false;
   constructor(filename, key) {
     if (!/^[0-9a-fA-F]{64}$/.test(key)) throw new Error('MATE_JOURNAL_KEY must be 32 random bytes encoded as hex');
     this.#key = Buffer.from(key, 'hex');
@@ -54,5 +55,5 @@ export class Journal {
     return this.#database.prepare("SELECT id FROM entries WHERE state IN ('prepared','broadcast') AND id LIKE ?")
       .all(`${prefix}%`).map(row => ({id: row.id, ...this.get(row.id)}));
   }
-  close() {this.#database.close(); this.#key.fill(0);}
+  close() {if(this.#closed)return;this.#closed=true;this.#database.close();this.#key.fill(0);}
 }

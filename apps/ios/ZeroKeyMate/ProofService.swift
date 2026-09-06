@@ -22,11 +22,14 @@ actor ProofService {
     }
     private var keyData: (Data,Data)?
     func prepare() throws {
+        guard Verity.runtimeMode == .native else {
+            throw ProductError.unavailable("端末内の証明ランタイムは未導入です。make native-runtime と make proofs を実行して再ビルドしてください。")
+        }
         guard keyData == nil else { return }
         guard let manifestURL = Bundle.main.url(forResource: "manifest", withExtension: "json"),
               let proverURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkp"),
               let verifierURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkv") else {
-            throw ProductError.unavailable("証明用ファイルがありません。./mate を実行して正規の回路から生成してください。")
+            throw ProductError.unavailable("証明用ファイルがありません。make proofs を実行して再ビルドしてください。")
         }
         let manifest = try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: manifestURL))
         guard manifest.system == "ProveKit", manifest.version == "1.0.1",
@@ -37,6 +40,11 @@ actor ProofService {
             guard let expected = manifest.files[name], expected.count == 64,
                   String(LocalSecrets.hash(data).dropFirst(2)) == expected else { throw ProductError.invalidResponse }
         }
+        let runtime=try Verity(backend:.provekit)
+        let loadedProver=try runtime.loadProver(data:prover)
+        defer{loadedProver.close()}
+        let loadedVerifier=try runtime.loadVerifier(data:verifier)
+        loadedVerifier.close()
         keyData = (prover,verifier)
     }
     func prove(policy: PrivatePolicy, action: MandateAction, chainID: UInt64, vault: String) throws -> VerifiedLocalProof {

@@ -10,6 +10,8 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
     @Published private(set) var transcript=""
     @Published private(set) var errorMessage:String?
     var onFinal:((String)->Void)?
+    var onPlaybackFinished:(()->Void)?
+    var onInputInterrupted:(()->Void)?
     private let engine=AVAudioEngine()
     private let synthesizer=AVSpeechSynthesizer()
     private var recognizer:SFSpeechRecognizer?
@@ -30,6 +32,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             AVAudioApplication.requestRecordPermission{continuation.resume(returning:$0)}
         }
         guard generation==token else{return}
+        guard microphone else{errorMessage="マイクが許可されていません。文字入力でも会話できます。";return}
         let speech=await withCheckedContinuation{continuation in
             SFSpeechRecognizer.requestAuthorization{continuation.resume(returning:$0)}
         }
@@ -61,6 +64,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
                         if !completed.isEmpty{self.onFinal?(completed)}
                     }else if failed {
                         self.stopListening();self.errorMessage="音声入力が中断されました。文字入力でも続けられます。"
+                        self.onInputInterrupted?()
                     }
                 }
             }
@@ -96,6 +100,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             guard let self, let current = self.currentUtterance, ObjectIdentifier(current) == identifier else{return}
             self.currentUtterance=nil;self.speaking=false
             try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
+            self.onPlaybackFinished?()
         }
     }
 }
