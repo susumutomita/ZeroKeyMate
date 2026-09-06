@@ -1,21 +1,30 @@
 {
   "name": "zerokey-mate",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
-  "engines": { "node": ">=22.16.0 <23" },
+  "engines": {
+    "node": ">=22.16.0 <23"
+  },
   "scripts": {
     "test": "node --test services/api/test/*.test.mjs",
     "test:contracts": "node --test contracts/test/*.test.mjs",
     "compile:contracts": "node scripts/compile-contracts.mjs",
     "api": "node --env-file-if-exists=.env services/api/server.mjs",
-    "provider": "node --env-file-if-exists=.env services/provider/server.mjs"
+    "provider": "node --env-file-if-exists=.env services/provider/server.mjs",
+    "setup": "node --env-file-if-exists=.env scripts/setup-sepolia.mjs",
+    "register:provider": "node --env-file-if-exists=.env scripts/register-provider.mjs",
+    "check:sources": "python3 scripts/check-source-integrity.py"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.4.0",
     "viem": "2.56.3",
     "zod": "3.24.4"
   },
-  "devDependencies": { "solc": "0.8.30" },
-  "overrides": { "tmp": "0.2.6" }
+  "devDependencies": {
+    "solc": "0.8.30"
+  },
+  "overrides": {
+    "tmp": "0.2.7"
+  }
 }

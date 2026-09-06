@@ -1,0 +1,33 @@
+{
+  "project": "ZeroKey Mate",
+  "version": "0.3.0",
+  "deliveryDate": "2026-09-05",
+  "baselineRepository": "susumutomita/ZeroKeyMate",
+  "baselineBranch": "feat/complete-companion",
+  "baselineCommit": "44fa3c3c2490275526a9c32f6735780893bfeaeb",
+  "scope": "complete documented source paths; runtime-unverified",
+  "applicationExecuted": false,
+  "iOSBuildExecuted": false,
+  "testsExecuted": false,
+  "proofGeneratedDuringThisDelivery": false,
+  "transactionsSentDuringThisDelivery": false,
+  "externalAccountsInvented": false,
+  "privateProductCodeUsed": false,
+  "staticChecks": [
+    "Local file and module-import integrity",
+    "JavaScript syntax parsing",
+    "Swift source parsing",
+    "Portable MateCore static type-checking",
+    "Python, JSON, YAML, TOML and shell syntax parsing"
+  ],
+  "requiresActualEnvironment": [
+    "Xcode and compatible Apple device/Simulator",
+    "Apple development signing team for physical installation",
+    "On-device speech and Foundation Models availability",
+    "Privy project identifiers and user login",
+    "Graph API key and actual indexed provider registration",
+    "Owned ENSv2 Sepolia parent and testnet transaction funds",
+    "Funded testnet-only wallets and actual vault deployment",
+    "TLS endpoints and running actual specialist model"
+  ]
+}

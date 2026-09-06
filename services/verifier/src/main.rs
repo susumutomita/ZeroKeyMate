@@ -32,7 +32,19 @@ fn byte_hash(values: &[FieldElement]) -> Result<String> {
     Ok(result)
 }
 
+#[cfg(target_os = "linux")]
+fn constrain_process() -> Result<()> {
+    // A compressed proof is adversarial input. Resource limits apply before decode.
+    let memory = libc::rlimit { rlim_cur: 2 * 1024 * 1024 * 1024, rlim_max: 2 * 1024 * 1024 * 1024 };
+    let cpu = libc::rlimit { rlim_cur: 60, rlim_max: 60 };
+    // SAFETY: pointers refer to initialized rlimit values for this process only.
+    ensure!(unsafe { libc::setrlimit(libc::RLIMIT_AS, &memory) } == 0, "cannot limit verifier memory");
+    ensure!(unsafe { libc::setrlimit(libc::RLIMIT_CPU, &cpu) } == 0, "cannot limit verifier CPU");
+    Ok(())
+}
 fn run() -> Result<()> {
+    #[cfg(target_os = "linux")]
+    constrain_process()?;
     let args: Vec<_> = env::args_os().skip(1).collect();
     if args.len() != 2 { bail!("usage: mate-verify VERIFIER.pkv PROOF.np"); }
     let verifier_path = PathBuf::from(&args[0]);
