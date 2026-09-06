@@ -63,6 +63,7 @@ private struct CompanionHome:View {
                 HStack(alignment:.firstTextBaseline){
                     VStack(alignment:.leading,spacing:5){
                         Text("Mate.").font(.system(size:32,weight:.medium,design:.rounded)).tracking(-1.2)
+                            .accessibilityLabel("メイト").accessibilityAddTraits(.isHeader)
                         if let identity=model.identity{Text(identity.name).font(.system(size:11,weight:.medium)).foregroundStyle(Finish.secondary).lineLimit(1)}
                     }
                     Spacer(minLength:12)

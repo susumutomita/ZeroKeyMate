@@ -52,7 +52,15 @@ CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-devi
 
 `make proofs` の回路準備は、上流ProveKitが固定の `~/nargo` キャッシュに書き込む箇所で停止しました。代わりに、このリポジトリの既存CIから取得した準備ファイルを使用しました。回路とNargo.tomlが現在の公開ソースと同じことをGit blobハッシュで照合したうえで、新しい正常証明・6種類の拒否検査・API検査・ローカル統合検査を実行しています。回路をここで新規コンパイルできたとは報告していません。
 
-iOSのネイティブライブラリも、このリポジトリの公開ソースからビルドされたCI成果物を使用し、アーカイブと両ターゲットのライブラリハッシュを照合しました。取得元、ソースの固定リビジョン、SHA-256は [SOURCES](SOURCES.md#local-cryptographic-artifact-provenance) に記録しています。更新したCIは現在のソースをビルドしますが、今回の変更に対するリモートCIの実行・成功は未確認です。
+iOSのネイティブライブラリも、このリポジトリの公開ソースからビルドされたCI成果物を使用し、アーカイブと両ターゲットのライブラリハッシュを照合しました。取得元、ソースの固定リビジョン、SHA-256は [SOURCES](SOURCES.md#local-cryptographic-artifact-provenance) に記録しています。
+
+## Push後のCIとSimulator確認
+
+`addcbb1` に対する [暗号検査CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34037626377) は成功しました。現在の回路ソースを準備する処理もCI上では成功しています。[通常CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34037626382) のenforcementも成功し、iOSではSDKビルド後にSimulator上の7件を実行しました。
+
+iPhone 17 Pro / iOS Simulator 26.2で4件成功、1件失敗、2件skipです。Keychain、署名文書、会話・設定・履歴画面、横向きの操作確認は成功しました。証明ランタイムを含めないCI構成のため、ネイティブ証明の2件は明示的にskipしています。縦画面のアクセシビリティ検査は、上部のブランド名「Mate.」が `Label not human-readable` と判定されて失敗しました。xcresultの要素スクリーンショットで対象を確認し、読み上げ名を「メイト」にする修正を追加しました。この修正後のCI結果はまだ別途確認が必要です。
+
+ローカルではユーザーから起動の許可を受けて `open`、Simulator本体の直接起動、GUI操作ツールを試しました。`open` はLaunchServicesエラー、本体の直接起動は異常終了、GUI操作ツールは `Computer Use was not approved to use Simulator` を返しました。ローカルSimulatorは起動確認できていません。会話での許可と、操作ツール側のSimulator利用許可は別の状態でした。
 
 ## 外部接続と実機
 
