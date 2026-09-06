@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Builds and launches the real native application. No injected accounts or outcomes.
+set -euo pipefail
+umask 077
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+MODE=launch
+DEVICE="${MATE_DEVICE_UDID:-}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verify) MODE=verify; shift ;;
+    --readiness) MODE=readiness; shift ;;
+    --device)
+      [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo 'Usage: ./mate [--verify | --readiness] [--device UDID]' >&2; exit 2; }
+      DEVICE="$2"; shift 2 ;;
+    --simulator) DEVICE=""; shift ;;
+    --help)
+      printf '%s\n' './mate                   Build and launch the native app in Simulator.' \
+        './mate --device UDID     Build, sign, install and launch on an already paired iPhone.' \
+        './mate --verify          Run real native proof and UI tests; save the xcresult.' \
+        './mate --readiness       Report configuration and unverified product boundaries.'
+      exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+if [[ "$MODE" == readiness ]]; then
+  exec python3 scripts/readiness.py
+fi
+[[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 ]] || {
+  echo 'Native execution requires an Apple Silicon Mac. Portable tests can run with make test.' >&2; exit 1;
+}
+command -v xcodebuild >/dev/null || { echo 'Install Xcode 26 or newer and select its developer directory first.' >&2; exit 1; }
+XCODE_MAJOR="$(xcodebuild -version | awk '/^Xcode /{split($2,v,".");print v[1]}')"
+[[ "$XCODE_MAJOR" =~ ^[0-9]+$ && "$XCODE_MAJOR" -ge 26 ]] || { echo 'Xcode 26 or newer is required.' >&2; exit 1; }
+xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1 || {
+  echo 'Complete Xcode first launch and its license agreement before running ./mate.' >&2; exit 1;
+}
+if [[ -n "$DEVICE" ]]; then
+  [[ "${MATE_DEVELOPMENT_TEAM:-}" =~ ^[A-Z0-9]{10}$ ]] || {
+    echo 'Physical-device signing requires MATE_DEVELOPMENT_TEAM and a paired, unlocked iPhone with Developer Mode enabled.' >&2; exit 1;
+  }
+fi
+command -v brew >/dev/null || { echo 'Homebrew is required to install the build dependencies.' >&2; exit 1; }
+export HOMEBREW_NO_AUTO_UPDATE=1
+export VERITY_SWIFT_SDK_MODE=release
+if ! command -v node >/dev/null || [[ "$(node -p 'process.versions.node.split(".")[0]')" != 22 ]]; then
+  brew list --versions node@22 >/dev/null 2>&1 || brew install node@22
+  export PATH="$(brew --prefix node@22)/bin:$PATH"
+fi
+command -v xcodegen >/dev/null || brew install xcodegen
+command -v python3 >/dev/null || brew install python
+mkdir -p .build/native-evidence
+if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
+# Node parses .env as data; never source arbitrary shell code from it.
+node --env-file-if-exists=.env scripts/generate-app-config.mjs
+if ! python3 scripts/validate-proof-resources.py >/dev/null 2>&1; then
+  if ! command -v rustup >/dev/null; then
+    brew list --versions rustup >/dev/null 2>&1 || brew install rustup
+    export PATH="$(brew --prefix rustup)/bin:$HOME/.cargo/bin:$PATH"
+  fi
+  bash scripts/build-proofs.sh
+fi
+python3 scripts/validate-proof-resources.py
+swift test --parallel
+make project
+BUILD_ARGS=(-quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug)
+if [[ -n "$DEVICE" ]]; then
+  DERIVED="$ROOT/.build/NativeDevice"
+  xcodebuild "${BUILD_ARGS[@]}" -destination "id=$DEVICE" -derivedDataPath "$DERIVED" \
+    "DEVELOPMENT_TEAM=$MATE_DEVELOPMENT_TEAM" -allowProvisioningUpdates build 2>&1 | tee .build/native-evidence/device-build.log
+  APP="$DERIVED/Build/Products/Debug-iphoneos/ZeroKeyMate.app"
+  [[ -d "$APP" ]] || { echo 'The signed application was not produced.' >&2; exit 1; }
+  xcrun devicectl device install app --device "$DEVICE" "$APP"
+  xcrun devicectl device process launch --device "$DEVICE" com.zerokeymate.companion
+  echo 'Native application launched on the paired iPhone. Sensors remain off until explicitly enabled.'
+else
+  SIMULATOR_ID="$(python3 scripts/select-simulator.py)"
+  if ! xcrun simctl list devices booted | grep -Fq "$SIMULATOR_ID"; then xcrun simctl boot "$SIMULATOR_ID"; fi
+  xcrun simctl bootstatus "$SIMULATOR_ID" -b
+  DERIVED="$ROOT/.build/NativeSimulator"
+  if [[ "$MODE" == verify ]]; then
+    RESULT="$ROOT/.build/native-evidence/acceptance-$(date -u +%Y%m%dT%H%M%SZ).xcresult"
+    xcodebuild "${BUILD_ARGS[@]}" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+      -derivedDataPath "$DERIVED" -resultBundlePath "$RESULT" \
+      ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO test 2>&1 | tee .build/native-evidence/tests.log
+    echo "Native test evidence: $RESULT"
+  else
+    xcodebuild "${BUILD_ARGS[@]}" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+      -derivedDataPath "$DERIVED" ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build 2>&1 | tee .build/native-evidence/simulator-build.log
+  fi
+  APP="$DERIVED/Build/Products/Debug-iphonesimulator/ZeroKeyMate.app"
+  [[ -d "$APP" ]] || { echo 'The Simulator application was not produced.' >&2; exit 1; }
+  xcrun simctl install "$SIMULATOR_ID" "$APP"
+  xcrun simctl launch "$SIMULATOR_ID" com.zerokeymate.companion
+  if [[ "${CI:-}" != true ]]; then open -a Simulator --args -CurrentDeviceUDID "$SIMULATOR_ID"; fi
+  echo 'Real application launched in Simulator. This does not verify DockKit, microphone, Apple Intelligence or live financial integrations.'
+fi

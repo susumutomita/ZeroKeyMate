@@ -1,0 +1,56 @@
+name: Cryptographic acceptance
+on:
+  push:
+    branches: [feat/complete-companion, main]
+    paths: ['circuits/**', 'scripts/*proof*', 'services/verifier/**', '.github/workflows/proofs.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proofs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        id: tools
+        with:
+          path: |
+            .tools
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: provekit-1.0.1-linux-v2
+      - name: Build real ProveKit circuit and reject invalid witnesses
+        run: bash scripts/build-proofs.sh
+      - name: Build independent statement extractor
+        run: |
+          cargo +nightly-2026-03-04 build --release --manifest-path services/verifier/Cargo.toml
+          services/verifier/target/release/mate-verify .build/proofs/mate_policy.pkv .build/proofs/valid.np > .build/proofs/extracted.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('.build/proofs')
+          assert json.loads((p/'extracted.json').read_text()) == json.loads((p/'statement.json').read_text())
+          data=bytearray((p/'valid.np').read_bytes());data[len(data)//2]^=1
+          (p/'tampered.np').write_bytes(data)
+          PY
+          if services/verifier/target/release/mate-verify .build/proofs/mate_policy.pkv .build/proofs/tampered.np; then
+            echo 'Tampered proof accepted' >&2; exit 1
+          fi
+      - uses: actions/cache/save@v4
+        if: always() && steps.tools.outputs.cache-hit != 'true'
+        with:
+          path: |
+            .tools
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: provekit-1.0.1-linux-v2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proof-evidence
+          path: |
+            .build/proofs
+            services/verifier/Cargo.lock
+          if-no-files-found: error
+          include-hidden-files: true
