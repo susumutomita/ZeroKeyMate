@@ -27,8 +27,8 @@ export class Journal {
     const cipher = createCipheriv('aes-256-gcm', this.#key, nonce);
     cipher.setAAD(Buffer.from(`${id}\n${state}`));
     const bytes = Buffer.from(JSON.stringify(value));
-    return Buffer.concat([nonce, cipher.getAuthTag ? Buffer.alloc(0) : Buffer.alloc(0),
-      ...(() => {const encrypted=Buffer.concat([cipher.update(bytes),cipher.final()]);return [cipher.getAuthTag(),encrypted];})()]);
+    const encrypted = Buffer.concat([cipher.update(bytes), cipher.final()]);
+    return Buffer.concat([nonce, cipher.getAuthTag(), encrypted]);
   }
   #decrypt(id, state, bytes) {
     const packed = Buffer.from(bytes);
