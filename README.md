@@ -46,7 +46,9 @@ The proof keeps the policy's budget, allowed-service mask and salt out of the pu
 | Privy | Pinned iOS SDK and signing adapter compile | Live login and owner/agent signing |
 | ENSv2 + The Graph | Registration/resolution and discovery adapters implemented | Live registry, index schema, provider records and queries |
 
-**Current scope: a working local prototype, with hardware and live integration acceptance still open.** Anvil payments are simulations. Default local discovery and model responses are labeled fixtures; the optional Ollama mode generates a real response. No unavailable integration is replaced by a success screen. [Detailed results](docs/validation.md).
+**Current scope: a working local prototype, with further app implementation and hardware/live acceptance still open.** The [product backlog](https://github.com/susumutomita/ZeroKeyMate/issues/4) includes unified cancellation of pending operations, a full-stack launcher, runtime pairing, broader conversation actions and expressive stand motion. Basic continuous voice is implemented, but its full acceptance criteria are not closed. [Implementation status](docs/validation.md#remaining-product-implementation).
+
+Anvil payments are simulations. Default local discovery and model responses are labeled fixtures; the optional Ollama mode generates a real response. No unavailable integration is replaced by a success screen. [Detailed results](docs/validation.md).
 
 ## Run the app
 

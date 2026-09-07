@@ -12,6 +12,22 @@ The downloaded XCTest bundle confirms **5 passed, 0 failed, 2 skipped** on iPhon
 
 The earlier local acceptance covered 57 automated tests, real proofs, actual HTTP/contract execution and restart/retry recovery. An additional evaluation used a real installed Ollama model. Payments were simulated on Anvil; discovery used explicit fixtures. Physical DockKit, on-device proof performance and live Privy/ENS/The Graph/public-Sepolia acceptance are still unverified. Baseline iOS CI is source-only and skips native proof runtime tests. Local Simulator access was blocked, so CI UI evidence is identified separately.
 
+## Remaining product implementation
+
+The existing [parent issue #4](https://github.com/susumutomita/ZeroKeyMate/issues/4) defines a wider product than the local execution demonstration. Its child issues #5–#11 are still open as of 2026-09-07. Passing the current tests does not close those requirements. The following gaps were also checked against current source, rather than inferred only from open issue status:
+
+| Requirement | Current implementation and remaining work |
+| --- | --- |
+| [#5 source completion](https://github.com/susumutomita/ZeroKeyMate/issues/5) | Missing API entry points/naming/lock and the Rust lockfile were implemented in this branch. Fidelity to the referenced 94-file archive and every PR #3 integration criterion has not been established; no byte-identical archive recovery is claimed. |
+| [#6 operation cancellation](https://github.com/susumutomita/ZeroKeyMate/issues/6) | Signed retry, receipt recovery and persistent server cancellation exist. Discovery/proving/signing do not yet share a request generation across every stop/resume boundary. The current `findProviders` does not bind its result to a draft ID, and `execute` still derives the service from the selected provider. This remains implementation work. |
+| [#7 full-stack launch](https://github.com/susumutomita/ZeroKeyMate/issues/7) | `mate` builds/launches the app. API and specialist use separate npm commands. Automatic service orchestration, ownership-aware reuse/stop and an integrated device HTTPS path are not implemented. |
+| [#8 runtime pairing](https://github.com/susumutomita/ZeroKeyMate/issues/8) | Configuration is generated into the app bundle; connection changes require rebuilding. In-app pairing and resumable onboarding are not implemented. |
+| [#9 conversational actions](https://github.com/susumutomita/ZeroKeyMate/issues/9) | Translation/summary proposals exist. Conversation-to-rules, ENS naming, spend queries and revocation routing remain open. |
+| [#10 continuous voice](https://github.com/susumutomita/ZeroKeyMate/issues/10) | Opt-in reply/listen continuation and several stop paths are implemented. The complete session/interruption/approval criteria and physical behavior are not accepted. |
+| [#11 expression and stand motion](https://github.com/susumutomita/ZeroKeyMate/issues/11) | Eyes reflect rest/listening/thinking and face position; DockKit exposes tracking control. A shared approval/execution expression model and bounded nod/shake motion coordinator are not implemented. |
+
+Relevant source: [`mate`](../mate), [`CompanionModel.swift`](../apps/ios/ZeroKeyMate/CompanionModel.swift), [`AppConfiguration.swift`](../apps/ios/ZeroKeyMate/AppConfiguration.swift), [`ConversationService.swift`](../apps/ios/ZeroKeyMate/ConversationService.swift), [`DockService.swift`](../apps/ios/ZeroKeyMate/DockService.swift), and [`MateView.swift`](../apps/ios/ZeroKeyMate/MateView.swift). The local terminal demo does not exercise these unfinished mobile workflows.
+
 ## 実行した検査
 
 | 検査 | 結果と範囲 |

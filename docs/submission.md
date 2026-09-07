@@ -20,6 +20,8 @@ On Ethereum, MateVault checks the owner grant, agent signature, action binding, 
 
 The working local demonstration combines real cryptographic proofs, HTTP services, Solidity execution and an actual Ollama translation. Settlement runs on Anvil and discovery is a labeled fixture. Physical DockKit, mobile proof performance and live Privy/ENS/The Graph/public-Sepolia acceptance remain open. The proof is verified off chain by an attestor trusted by the vault; this prototype does not claim trustless on-chain ZK verification.
 
+Further app work includes unified cancellation across pending operations, full-stack startup, runtime pairing, conversational setup and expressive stand motion. This submission describes the currently demonstrated local protocol and native UI, not completion of the entire [product backlog](validation.md#remaining-product-implementation).
+
 ## How it is made
 
 The app uses SwiftUI, Foundation Models, on-device Speech, AVFoundation and DockKit. A shared Swift package defines the versioned mandate/action encoding and validates execution evidence. Sensor intent is separate from hardware state, so stopping during startup, backgrounding or detaching cannot silently restore capture.

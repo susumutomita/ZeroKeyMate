@@ -8,6 +8,8 @@ iPhoneとDockKitスタンドで使う、端末内で会話する相棒です。�
 
 現在はローカルで証明・実契約・HTTP・実モデル・復元を確認したプロトタイプです。ローカル決済はAnvilでのシミュレーションです。実機DockKitと外部サービスのライブ接続は未確認です。提出対象の実装は [PR #12のブランチ](https://github.com/susumutomita/ZeroKeyMate/tree/codex/complete-local-runtime) にあります。新規取得の手順は [English README](../README.md#run-the-app) を参照してください。
 
+製品全体の実装も完了ではありません。処理中止の統一、一括起動、アプリ内ペアリング、会話からの設定操作、スタンド演出などが [既存バックログ](validation.md#remaining-product-implementation) に残ります。
+
 ## 起動
 
 Apple Silicon Mac、Xcode 26以降、Node.js 22.16以降の22系または24系が必要です。XcodeGenと固定版Verityの公開ソースはプロジェクト内の `.tools/` に取得します。
