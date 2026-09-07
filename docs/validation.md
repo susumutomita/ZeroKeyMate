@@ -1,4 +1,4 @@
-# 検証記録 — 2026-09-07更新
+# 検証記録 — 2026-09-08更新
 
 APIと専門サービスの欠けていた実装、iOSの復元・停止操作、起動手順を補完しました。ローカルでの自動検査とiOS SDKビルドは成功しています。実機DockKitと外部サービスのライブ接続は未確認のため、製品全体の受け入れ完了とは扱いません。
 
@@ -10,7 +10,11 @@ The branch now implements an offline native proof/share screen, Arc settlement c
 
 A read-only Arc RPC check returned chain 5042002 and USDC ERC-20 decimals 6. The pinned Circle CLI runs, but its status command requires operator terms acceptance/login; no wallet or attestation has been fabricated. Circle adapter tests use a labeled transport fixture and real signature validation, not the live Circle service. Privy and The Graph credentials and a public vault remain unconfigured in this workspace.
 
-The `07e7a96` CI rerun confirmed the home hit region/accessibility fix. The remaining proof-preflight UI test tapped blank space in a full-width Switch row; it now taps the actual thumb and waits for value 0. Final branch CI must confirm that change. Physical-iPhone proof time/memory, exported proof verification, live sponsor integration and DockKit remain acceptance gates.
+English/Japanese switching, restart persistence and localized proof refusal passed Simulator UI acceptance in [CI run 34135788056](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34135788056), commit `60f945a` (9 passed, 0 failed, 2 explicit native skips). English is the app default; Settings → Language controls the app and speech locale. Changing language stops sensors and pending conversation. The earlier proof-preflight toggle hit-target failure is resolved.
+
+[Native acceptance run 34137071336](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34137071336), commit `71a30f4`, passed **11 tests with no failures or skips** on iPhone 17 Pro / iOS Simulator 26.2. It generated and verified a real native ProveKit proof and rejected a modified copy. The XCTest attachment was exported and independently accepted by the matching ProveKit CLI verifier on this Apple Silicon Mac. The proof is **629,694 bytes**, SHA-256 `5c9d2a0abf642f21025634df95f43c8a922ff7618412aa26080be4ed61f6b6e9`. Prepared-circuit manifest hashes were also checked. This verifies Simulator-to-Mac interoperability; it is not a physical-iPhone sharing or performance measurement.
+
+Physical-iPhone proof time/memory, phone share-sheet transfer, live sponsor integration and DockKit remain acceptance gates.
 
 ## Earlier verified baseline (English)
 

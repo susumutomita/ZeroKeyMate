@@ -85,8 +85,8 @@ The proof keeps the policy's budget, allowed-service mask and salt out of the pu
 
 | Component | Evidence | Remaining acceptance |
 | --- | --- | --- |
-| Native SwiftUI app | iOS Simulator/device SDK builds; CI exercises real screens and Keychain | Physical iPhone, camera, microphone, Foundation Models and DockKit |
-| ProveKit + Noir policy circuit | Real proof generation/verification, six invalid-witness rejections and API tamper tests | Proof generation latency and memory on the target iPhone |
+| Native SwiftUI app | iOS Simulator/device SDK builds; CI exercises real screens, Keychain and persistent English/Japanese switching | Physical iPhone, camera, microphone, Foundation Models and DockKit |
+| ProveKit + Noir policy circuit | Real native Simulator proof independently verified on Mac; modified-proof rejection, six invalid-witness rejections and API tamper tests | Proof generation latency and memory on the target iPhone |
 | MateVault | 12 contract tests on Anvil, including replay and authorization failures | Public Arc deployment and live receipts |
 | API + specialist + recovery | Real proof → HTTP → vault → result, including API restart and retry without duplicate spend | Complete mobile/live-service flow |
 | Local specialist model | Actual Ollama translation and recovery checked locally | A separately configured, license-reviewed deployment |
