@@ -8,7 +8,8 @@ SWIFT_TEST_FLAGS ?=
 
 test: test-swift test-api test-launcher
 
-start: start-device
+start:
+	@./mate --choose
 
 start-device:
 	./mate --device "$${MATE_DEVICE_UDID:-auto}"
@@ -17,7 +18,7 @@ start-simulator:
 	./mate --simulator
 
 help:
-	@printf '%s\n' 'make start            接続したiPhoneにビルド・インストール・起動' 'make start-simulator  iPhone Simulatorにビルド・インストール・起動' 'make test             自動テスト' '端末が複数ある場合: MATE_DEVICE_UDID=UDID make start' 'Teamが複数ある場合: MATE_DEVELOPMENT_TEAM=TEAM_ID make start'
+	@printf '%s\n' 'make start            Simulator / 実機iPhoneを選択して起動' 'make start-device     接続したiPhoneにビルド・インストール・起動' 'make start-simulator  iPhone Simulatorにビルド・インストール・起動' 'make test             自動テスト' '端末が複数ある場合: MATE_DEVICE_UDID=UDID make start' 'Teamが複数ある場合: MATE_DEVELOPMENT_TEAM=TEAM_ID make start'
 
 test-launcher:
 	python3 -m unittest discover -s scripts/tests -p 'test_device_launch.py' -v

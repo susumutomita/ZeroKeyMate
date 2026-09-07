@@ -30,7 +30,7 @@ Relevant source: [`mate`](../mate), [`CompanionModel.swift`](../apps/ios/ZeroKey
 
 ## Two launch modes — 2026-09-07
 
-`make start` now selects a connected iOS 26+ iPhone and a signing Team, builds/signs, installs and launches the native app. `make start-simulator` uses the existing Simulator path. `make start-device` is an alias for the phone mode. Multiple devices/Teams require explicit selection. The user-designated public TenkaCloudPassport workflow was consulted for the make entry points; provenance is in [SOURCES](SOURCES.md).
+`make start-device` selects a connected iOS 26+ iPhone and a signing Team, builds/signs, installs and launches the native app. `make start-simulator` uses the existing Simulator path. `make start` offers an interactive choice: `1` for Simulator, `2` for the phone, or `q` to cancel. Multiple devices/Teams require explicit selection. The user-designated public TenkaCloudPassport workflow was consulted for the make entry points; provenance is in [SOURCES](SOURCES.md).
 
 Local `make test SWIFT_TEST_FLAGS=--disable-sandbox` passed **46 tests: Swift 19, Node 22, launcher unit tests 5**. The launcher tests use labeled metadata fixtures to check ambiguous/offline/unpaired/old-OS device rejection and Team selection; they are not installation evidence. `CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios` passed. Shell syntax, `make help`, and dry-run dispatch for both start targets also passed.
 
@@ -117,3 +117,7 @@ iPhone 17 Pro / iOS Simulator 26.2で4件成功、1件失敗、2件skipでした
 - 正常証明・不正条件の拒否ログ: `.build/proofs/`
 
 成果物・ログ・ローカル設定はGitの無視対象です。アプリに含まれるペアリングトークンはこのインストール専用なので、そのまま一般配布する対象にはしません。
+
+### Interactive launch selection — 2026-09-07
+
+`make start` now asks for the launch destination before checking build or device services. Invalid input retries; cancellation and end-of-input do not launch anything. Menu parsing was checked for both destinations, invalid-input retry, cancellation and EOF without invoking device commands. `make test SWIFT_TEST_FLAGS=--disable-sandbox` passed (19 Swift, 22 Node, 5 Python tests), and `CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios` passed. These checks do not establish Simulator or physical-device launch; the previously recorded runtime/tool restrictions remain.

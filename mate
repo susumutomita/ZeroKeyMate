@@ -5,19 +5,37 @@ umask 077
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 MODE=launch
+CHOOSE=0
 DEVICE="${MATE_DEVICE_UDID:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --choose) CHOOSE=1; shift ;;
     --verify) MODE=verify; shift ;;
     --readiness) MODE=readiness; shift ;;
     --device)
       [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo 'A device UDID or auto is required.' >&2;exit 2; }
       DEVICE="$2";shift 2 ;;
     --simulator) DEVICE="";shift ;;
-    --help) printf '%s\n' 'make start: connected iPhone; make start-simulator: iPhone Simulator' './mate [--simulator | --device auto|UDID] [--verify | --readiness]';exit 0 ;;
+    --help) printf '%s\n' 'make start: choose Simulator or iPhone; make start-device: iPhone; make start-simulator: Simulator' './mate [--choose | --simulator | --device auto|UDID] [--verify | --readiness]';exit 0 ;;
     *) echo "Unknown argument: $1" >&2;exit 2 ;;
   esac
 done
+if [[ "$CHOOSE" == 1 ]]; then
+  printf '%s\n' '起動先を選んでください。' '  1) iPhone Simulator' '  2) 実機iPhone（USB接続）' '  q) キャンセル'
+  while true; do
+    printf '番号を入力 [1/2/q]: '
+    if ! IFS= read -r choice; then
+      printf '\n入力がないため起動を中止しました。直接起動する場合は make start-simulator / make start-device を使ってください。\n' >&2
+      exit 2
+    fi
+    case "$choice" in
+      1) DEVICE=""; break ;;
+      2) DEVICE="${MATE_DEVICE_UDID:-auto}"; break ;;
+      q|Q) echo '起動をキャンセルしました。'; exit 0 ;;
+      *) echo '1、2、q のいずれかを入力してください。' ;;
+    esac
+  done
+fi
 command -v node >/dev/null || { echo 'Install Node.js 22.16+ (22.x) or 24.x first.' >&2;exit 1; }
 if [[ "$MODE" == readiness ]]; then
   exec node --env-file-if-exists=.env scripts/readiness.mjs

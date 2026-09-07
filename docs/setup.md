@@ -6,12 +6,13 @@ Xcode 26以降をインストールして初回起動を完了し、Node.js 22.1
 
 | 起動先 | コマンド | 実行内容 |
 | --- | --- | --- |
-| 手元のiPhone | `make start` | 接続端末・Team選択 → ビルド・署名 → インストール → 起動 |
+| 選択メニュー | `make start` | `1`：Simulator、`2`：実機iPhone、`q`：キャンセル |
+| 手元のiPhone | `make start-device` | 接続端末・Team選択 → ビルド・署名 → インストール → 起動 |
 | iPhone Simulator | `make start-simulator` | ビルド → Simulator選択・起動 → インストール → 起動 |
 
 iPhoneはiOS 26以降が必要です。USB接続してロックを解除し、このMacを信頼してDeveloper Modeを有効にしてください。有効なApple Development証明書からTeam IDを取得します。証明書の名前の括弧内IDをTeam IDと推測せず、対応する証明書のOUを使います。Xcodeに署名用アカウント・証明書がない場合は先に設定してください。
 
-複数端末または複数Teamがある場合は、`MATE_DEVICE_UDID=UDID MATE_DEVELOPMENT_TEAM=TEAM_ID make start` で明示します。`make start-device` は `make start` と同じです。`./mate --device auto` / `./mate --device UDID` / `./mate --simulator` も使用できます。
+複数端末または複数Teamがある場合は、`MATE_DEVICE_UDID=UDID MATE_DEVELOPMENT_TEAM=TEAM_ID make start` で明示します。`make start-device` は選択メニューを省略して実機を起動します。`./mate --device auto` / `./mate --device UDID` / `./mate --simulator` も使用できます。
 
 端末一覧を取得できない場合、未接続の場合、署名やインストールが失敗した場合は起動成功と表示しません。別の端末やSimulatorへの自動切り替えはしません。CoreDeviceServiceに接続できない環境ではインストールを行えないため、XcodeのDevices and Simulatorsで端末接続を確認してください。これらはアプリの起動コマンドであり、API・専門サービスの起動は後述の別コマンドです。
 

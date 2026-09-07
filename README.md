@@ -64,16 +64,17 @@ npm run configure
 make test
 ```
 
-For your connected iPhone (build, sign, install and launch):
+Choose where to launch (enter `1` for Simulator, `2` for a connected iPhone, or `q` to cancel):
 
 ```sh
 make start
 ```
 
-For an iPhone Simulator instead:
+To launch directly without the menu:
 
 ```sh
-make start-simulator
+make start-simulator  # iPhone Simulator
+make start-device     # Connected iPhone: build, sign, install and launch
 ```
 
 For the physical phone, connect it over USB, unlock it, trust this Mac and enable Developer Mode. The launcher selects a single connected, paired iPhone running iOS 26+ and a single signing Team from the Mac's valid Apple Development identities. If there is more than one, specify `MATE_DEVICE_UDID=UDID make start` and/or `MATE_DEVELOPMENT_TEAM=TEAM_ID make start`. `make help` lists both modes. It never silently switches from a phone to a Simulator.

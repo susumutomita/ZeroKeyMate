@@ -20,16 +20,17 @@ npm run configure          # 既存の .env は上書きしません
 make test
 ```
 
-手元のiPhoneへビルド・インストール・起動する場合：
+起動先を選ぶ場合（`1`：Simulator、`2`：実機iPhone、`q`：キャンセル）：
 
 ```sh
 make start
 ```
 
-Simulatorで起動する場合：
+選択メニューを省略して直接起動する場合：
 
 ```sh
-make start-simulator
+make start-simulator  # Simulator
+make start-device     # 実機iPhone
 ```
 
 画面・会話・カメラの開始にウォレットや決済の設定は不要です。会話にはApple Intelligence対応端末と利用可能な端末内モデルが必要です。カメラは設定の「開始」、マイクは「話す」で初めて起動します。「続けて話す」は個別に有効化した場合だけ、開始後の返答に続いて音声入力を再開します。
