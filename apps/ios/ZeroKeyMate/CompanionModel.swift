@@ -36,7 +36,7 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var financialBusy=false
     @Published private(set) var executionStatus:String?
     @Published private(set) var modelUnavailable:String?
-    @Published private(set) var proofUnavailable:String? = "証明ランタイムを確認しています。"
+    @Published private(set) var proofUnavailable:String? = "Checking proof runtime."
     @Published private(set) var mandate:StoredMandate?
     @Published private(set) var spent:UInt64=0
     @Published private(set) var account:AccountState?
@@ -116,14 +116,14 @@ final class CompanionModel:ObservableObject {
     func rest(){sleeping=true;stopVoice();sensors.stopCapture();cancelConversation()}
     func wake(){sleeping=false}
     func saveNotes() {
-        guard localNotes.utf8.count<=2_000 else{errorMessage="メモは2,000バイト以内にしてください。";return}
+        guard localNotes.utf8.count<=2_000 else{errorMessage="Keep notes within 2,000 bytes.";return}
         do{try LocalSecrets.write(localNotes,key:"local-notes")}catch{errorMessage=error.localizedDescription}
     }
     func clearConversation(){cancelConversation();stopVoice();messages=[];draft=nil}
     func send(_ text:String) {
         let input=text.trimmingCharacters(in:.whitespacesAndNewlines)
         guard !thinking,!financialBusy,!input.isEmpty,foreground else{return}
-        guard input.count<=2_200 else{errorMessage="一度のメッセージは2,200文字以内にしてください。";return}
+        guard input.count<=2_200 else{errorMessage="Keep each message within 2,200 characters.";return}
         sleeping=false;voice.stop();thinking=true
         conversationGeneration &+= 1
         let generation=conversationGeneration
@@ -175,7 +175,7 @@ final class CompanionModel:ObservableObject {
             let response=try await network.providers(service:service)
             guard response.providers.allSatisfy({$0.service==service.rawValue && UInt64($0.price) != nil}) else{throw ProductError.invalidResponse}
             providers=response.providers;discoveryEvidence="The Graph · block \(response.indexedBlock)"
-            if providers.isEmpty{throw ProductError.unavailable("条件に合う稼働中の提供者が見つかりません。固定の代替候補には切り替えません。")}
+            if providers.isEmpty{throw ProductError.unavailable("No active provider meets these requirements. No preset alternative will be substituted.")}
         }catch{errorMessage=error.localizedDescription}
     }
     func refreshAccount() async {
@@ -196,14 +196,14 @@ final class CompanionModel:ObservableObject {
     }
     func authorize(budget:String,translation:Bool,summary:Bool,hours:Int) async {
         guard !financialBusy else{return}
-        guard mandate == nil else{errorMessage="新しい条件に変更する前に、現在の委任を失効させてください。";return}
+        guard mandate == nil else{errorMessage="Revoke the current mandate before changing its terms.";return}
         guard let owner=wallet.ownerAddress,let agent=wallet.agentAddress,configuration.paymentsConfigured else{
-            errorMessage="先にウォレットとSepoliaの接続を設定してください。";return
+            errorMessage="Set up your wallet and Sepolia connection first.";return
         }
         financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
         do {
             guard try LocalSecrets.read(PendingGrant.self,key:"pending-grant") == nil else{
-                throw ProductError.unavailable("確認待ちの委任があります。先に復元して状態を確認してください。")
+                throw ProductError.unavailable("A mandate is awaiting confirmation. Recover it and check its status first.")
             }
             guard (1...24).contains(hours) else{throw MandateError.invalidPolicy}
             let policy=try PrivatePolicy(budget:TokenAmount(decimal:budget).units,
@@ -211,11 +211,11 @@ final class CompanionModel:ObservableObject {
             let state=try await network.account(owner:owner)
             let grant=try MandateGrant(owner:owner,agent:agent,policyHash:LocalSecrets.hash(policy.material()),
                 validUntil:UInt64(Date().timeIntervalSince1970)+UInt64(hours*3600),nonce:state.nonce)
-            executionStatus="所有者の承認を確認しています"
+            executionStatus="Verifying owner approval"
             let signature=try await wallet.signGrant(grant)
             let pending=PendingGrant(grant:grant,policy:policy,signature:signature)
             try LocalSecrets.write(pending,key:"pending-grant")
-            executionStatus="委任をSepoliaに登録しています"
+            executionStatus="Registering the mandate on Sepolia"
             try await finishGrant(pending)
         }catch{errorMessage=error.localizedDescription}
     }
@@ -234,7 +234,7 @@ final class CompanionModel:ObservableObject {
         guard !financialBusy else{return};financialBusy=true;defer{financialBusy=false}
         do {
             guard let pending=try LocalSecrets.read(PendingGrant.self,key:"pending-grant") else{
-                throw ProductError.unavailable("確認待ちの委任はありません。")
+                throw ProductError.unavailable("There is no pending mandate.")
             }
             try await finishGrant(pending)
         }catch{errorMessage=error.localizedDescription}
@@ -243,9 +243,9 @@ final class CompanionModel:ObservableObject {
         guard !financialBusy else{return}
         financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
         do {
-            executionStatus="署名を確認しています"
+            executionStatus="Verifying signature"
             let hash=try await wallet.send(operation)
-            executionStatus="Sepoliaでの確定を確認しています"
+            executionStatus="Waiting for Sepolia confirmation"
             _=try await rpc.confirm(hash:hash)
             if case .revoke=operation{try LocalSecrets.delete("active-mandate");mandate=nil}
             await refreshAccount()
@@ -253,36 +253,36 @@ final class CompanionModel:ObservableObject {
     }
     func execute(payload:String,provider:ServiceProvider) async {
         guard !financialBusy else{return}
-        guard foreground,!sleeping else{errorMessage="Mateを起こしてから依頼してください。";return}
+        guard foreground,!sleeping else{errorMessage="Wake Mate before making a request.";return}
         if let reason=proofUnavailable{errorMessage=reason;return}
-        guard pendingExecution == nil else{errorMessage="確認待ちの取引があります。履歴から結果を確認し、二重実行を避けてください。";return}
+        guard pendingExecution == nil else{errorMessage="A transaction is awaiting confirmation. Check Activity before retrying to avoid duplicate execution.";return}
         guard let stored=mandate,let service=MateService(rawValue:provider.service),let amount=UInt64(provider.price),
               providers.contains(provider),!payload.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,
-              payload.utf8.count<=8_000 else{errorMessage="委任・提供者・送信する文章を確認してください。";return}
+              payload.utf8.count<=8_000 else{errorMessage="Check the mandate, provider and text to share.";return}
         financialBusy=true;stopVoice();defer{financialBusy=false;executionStatus=nil}
         do {
-            executionStatus="承認済みの条件を確認しています"
+            executionStatus="Checking approved terms"
             let state=try await network.mandate(id:stored.id)
             let now=UInt64(Date().timeIntervalSince1970)
             guard !state.revoked,state.validUntil>now+15,state.policyHash.lowercased()==stored.grant.policyHash.lowercased(),
                   state.owner.lowercased()==wallet.ownerAddress?.lowercased(),state.agent.lowercased()==wallet.agentAddress?.lowercased(),
-                  let spentBefore=UInt64(state.spent) else{throw ProductError.unavailable("委任が失効したか、所有者を確認できません。")}
+                  let spentBefore=UInt64(state.spent) else{throw ProductError.unavailable("The mandate was revoked or its owner could not be verified.")}
             try stored.policy.check(spent:spentBefore,amount:amount,service:service)
             let action=MandateAction(mandateId:stored.id,recipient:provider.recipient,amount:amount,service:service,
                 nonce:CanonicalBytes.hexString(try LocalSecrets.random32()),expiresAt:min(now+300,state.validUntil),
                 requestHash:LocalSecrets.hash(Data(payload.utf8)),spentBefore:spentBefore)
-            executionStatus="このiPhoneで証明を生成しています"
+            executionStatus="Generating a proof on this iPhone"
             let proof=try await proofs.prove(policy:stored.policy,action:action,chainID:configuration.chainID,vault:configuration.vault)
             guard foreground,!sleeping else{throw ProductError.cancelled}
             lastProofMilliseconds=proof.elapsedMilliseconds
             guard proof.policyHash.lowercased()==stored.grant.policyHash.lowercased() else{throw ProductError.invalidResponse}
-            executionStatus="限定された実行キーで署名しています"
+            executionStatus="Signing with the restricted execution key"
             let signature=try await wallet.signAction(hash:proof.actionHash)
             guard foreground,!sleeping else{throw ProductError.cancelled}
             let submission=ExecutionSubmission(action:action,agentSignature:signature,proof:proof.bytes.base64EncodedString(),payload:payload,providerId:provider.id)
             let pending=PendingExecution(actionHash:proof.actionHash,proofHash:proof.proofHash,createdAt:Date(),submission:submission)
             try LocalSecrets.write(pending,key:"pending-execution");pendingExecution=pending
-            executionStatus="承認した文章を送信し、実行を確認しています"
+            executionStatus="Sending approved text and confirming execution"
             let receipt=try await network.execute(action:action,signature:signature,proof:proof.bytes,payload:payload,providerID:provider.id)
             try await accept(receipt,pending:pending)
             messages.append(ConversationMessage(isUser:false,text:receipt.result));draft=nil;sheet = .activity
@@ -303,7 +303,7 @@ final class CompanionModel:ObservableObject {
             do{receipt=try await network.receipt(actionHash:pending.actionHash)}
             catch let failure as NetworkFailure where failure.code=="execution_not_found" {
                 guard let submission=pending.submission else{
-                    throw ProductError.unavailable("送信内容を復元できません。未送金の取り消しを確認してください。")
+                    throw ProductError.unavailable("Could not restore the request. Check whether it can be cancelled before payment.")
                 }
                 receipt=try await network.submit(submission)
             }

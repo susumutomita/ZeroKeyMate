@@ -32,7 +32,7 @@ final class DockService {
             } catch {
                 self?.accessory = nil
                 self?.trackingButtonEnabled = false
-                onChange("DockKit：\(error.localizedDescription)")
+                onChange("DockKit: \(error.localizedDescription)")
             }
             self?.observationTask = nil
         }
@@ -55,7 +55,7 @@ final class DockService {
     let trackingButtonEnabled = false
 
     func observe(onChange: @escaping @MainActor (String?) -> Void) {
-        onChange("DockKit未対応の実行環境です。スタンドは実機で確認してください。")
+        onChange("DockKit is unavailable in this environment. Test the stand on a physical iPhone.")
     }
 
     func setTrackingEnabled(_ enabled: Bool) async throws {
@@ -68,7 +68,7 @@ private enum DockUnavailable: LocalizedError {
     case unsupported
 
     var errorDescription: String? {
-        "この実行環境ではDockKitを利用できません。"
+        "DockKit is unavailable in this environment."
     }
 }
 #endif

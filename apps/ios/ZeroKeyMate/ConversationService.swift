@@ -26,10 +26,10 @@ actor ConversationService {
     func availability() -> String? {
         switch SystemLanguageModel.default.availability {
         case .available:return nil
-        case .unavailable(.deviceNotEligible):return "この端末はオンデバイス会話に対応していません。Apple Intelligence対応のiPhoneで実行してください。"
-        case .unavailable(.appleIntelligenceNotEnabled):return "設定でApple Intelligenceを有効にしてください。会話をクラウドへ切り替えることはありません。"
-        case .unavailable(.modelNotReady):return "端末内の会話モデルを準備中です。モデルのダウンロード後に利用できます。"
-        case .unavailable:return "オンデバイス会話モデルを利用できません。クラウドへの自動送信は行いません。"
+        case .unavailable(.deviceNotEligible):return "This device does not support on-device conversation. Use an Apple Intelligence-compatible iPhone."
+        case .unavailable(.appleIntelligenceNotEnabled):return "Enable Apple Intelligence in Settings. Conversation will not fall back to the cloud."
+        case .unavailable(.modelNotReady):return "The on-device conversation model is being prepared. Try again after the model download finishes."
+        case .unavailable:return "The on-device conversation model is unavailable. Nothing is automatically sent to the cloud."
         }
     }
     func reply(to text:String,history:String,observations:String,notes:String) async throws -> ConversationReply {

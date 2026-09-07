@@ -32,15 +32,15 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             AVAudioApplication.requestRecordPermission{continuation.resume(returning:$0)}
         }
         guard generation==token else{return}
-        guard microphone else{errorMessage="マイクが許可されていません。文字入力でも会話できます。";return}
+        guard microphone else{errorMessage="Microphone access is not allowed. You can still type a message.";return}
         let speech=await withCheckedContinuation{continuation in
             SFSpeechRecognizer.requestAuthorization{continuation.resume(returning:$0)}
         }
         guard generation==token else{return}
-        guard microphone,speech == .authorized else {errorMessage="音声入力にはマイクと音声認識の許可が必要です。入力ボタンから文字でも会話できます。";return}
-        guard let recognizer=SFSpeechRecognizer(locale:Locale(identifier:"ja-JP")),recognizer.isAvailable,
+        guard microphone,speech == .authorized else {errorMessage="Voice input requires microphone and speech recognition permissions. You can still use the keyboard.";return}
+        guard let recognizer=SFSpeechRecognizer(locale:Locale(identifier:"en-US")),recognizer.isAvailable,
               recognizer.supportsOnDeviceRecognition else {
-            errorMessage="日本語の端末内音声認識を利用できません。音声をクラウドへ送らず、文字入力で続けてください。";return
+            errorMessage="English on-device speech recognition is unavailable. Continue with the keyboard; audio will not be sent to the cloud.";return
         }
         do {
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord,mode:.measurement,options:[.defaultToSpeaker,.allowBluetoothHFP])
@@ -49,7 +49,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             request.requiresOnDeviceRecognition=true;request.shouldReportPartialResults=true
             self.recognizer=recognizer;self.request=request
             let input=engine.inputNode;let format=input.outputFormat(forBus:0)
-            guard format.sampleRate>0,format.channelCount>0 else {throw ProductError.unavailable("マイクの入力形式を取得できません。")}
+            guard format.sampleRate>0,format.channelCount>0 else {throw ProductError.unavailable("Could not read the microphone input format.")}
             input.installTap(onBus:0,bufferSize:1024,format:format){buffer,_ in request.append(buffer)}
             tapInstalled=true
             recognition=recognizer.recognitionTask(with:request){[weak self] result,error in
@@ -63,7 +63,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
                         let completed=self.transcript;self.stopListening()
                         if !completed.isEmpty{self.onFinal?(completed)}
                     }else if failed {
-                        self.stopListening();self.errorMessage="音声入力が中断されました。文字入力でも続けられます。"
+                        self.stopListening();self.errorMessage="Voice input was interrupted. You can continue with the keyboard."
                         self.onInputInterrupted?()
                     }
                 }
@@ -89,9 +89,9 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             try AVAudioSession.sharedInstance().setCategory(.playback,mode:.spokenAudio)
             try AVAudioSession.sharedInstance().setActive(true)
             let utterance=AVSpeechUtterance(string:text)
-            utterance.voice=AVSpeechSynthesisVoice(language:"ja-JP");utterance.rate=0.49
+            utterance.voice=AVSpeechSynthesisVoice(language:"en-US");utterance.rate=0.49
             currentUtterance=utterance;speaking=true;synthesizer.speak(utterance)
-        }catch{errorMessage="読み上げを開始できませんでした。"}
+        }catch{errorMessage="Could not start reading aloud."}
     }
     func stop(){stopListening();synthesizer.stopSpeaking(at:.immediate);currentUtterance=nil;speaking=false}
     nonisolated func speechSynthesizer(_ synthesizer:AVSpeechSynthesizer,didFinish utterance:AVSpeechUtterance){

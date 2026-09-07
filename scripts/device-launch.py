@@ -13,7 +13,7 @@ import tempfile
 
 def choose_device(document, requested="auto"):
     if document.get("info", {}).get("outcome") != "success":
-        raise ValueError("iPhoneの端末一覧を取得できませんでした。CoreDeviceServiceとXcodeの接続状態を確認してください。")
+        raise ValueError("Could not list iPhones. Check CoreDeviceService and the connection in Xcode.")
     candidates = []
     for device in document.get("result", {}).get("devices", []):
         hardware = device.get("hardwareProperties", {})
@@ -34,22 +34,22 @@ def choose_device(document, requested="auto"):
         candidates.append(udid)
     candidates = sorted(set(candidates))
     if not candidates:
-        raise ValueError("接続済みのiOS 26以降のiPhoneが見つかりません。USB接続・ロック解除・Macの信頼・Developer Modeを確認してください。")
+        raise ValueError("No connected iPhone running iOS 26 or later was found. Check USB, unlock the phone, trust this Mac and enable Developer Mode.")
     if len(candidates) != 1:
-        raise ValueError("iPhoneが複数接続されています。MATE_DEVICE_UDID=対象のUDID make start で指定してください。")
+        raise ValueError("Multiple iPhones are connected. Select one with MATE_DEVICE_UDID=UDID make start-device.")
     return candidates[0]
 
 
 def choose_team(teams, requested=""):
     if requested:
         if not re.fullmatch(r"[A-Z0-9]{10}", requested):
-            raise ValueError("MATE_DEVELOPMENT_TEAMには10文字のTeam IDを指定してください。")
+            raise ValueError("MATE_DEVELOPMENT_TEAM must contain a 10-character Team ID.")
         return requested
     teams = set(teams)
     if not teams:
-        raise ValueError("Apple Developmentの署名用Teamが見つかりません。XcodeでApple Accountと開発用証明書を設定してください。")
+        raise ValueError("No Apple Development signing team was found. Set up your Apple Account and development certificate in Xcode.")
     if len(teams) != 1:
-        raise ValueError("署名用Teamが複数あります。MATE_DEVELOPMENT_TEAM=対象のTEAM_ID make start で指定してください。")
+        raise ValueError("Multiple signing teams were found. Select one with MATE_DEVELOPMENT_TEAM=TEAM_ID make start-device.")
     return next(iter(teams))
 
 
@@ -90,7 +90,7 @@ def main():
         try:
             run(["xcrun", "devicectl", "--timeout", "20", "list", "devices", "--json-output", str(output)])
         except subprocess.SubprocessError as error:
-            raise ValueError("CoreDeviceServiceへ接続できず、iPhoneを選択できませんでした。XcodeのDevices and Simulatorsで接続を確認してください。インストールは実行していません。") from error
+            raise ValueError("Could not connect to CoreDeviceService to select an iPhone. Check the connection in Xcode Devices and Simulators. Nothing was installed.") from error
         print(choose_device(json.loads(output.read_text()), sys.argv[2] if len(sys.argv) > 2 else "auto"))
 
 

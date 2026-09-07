@@ -40,7 +40,7 @@ enum LocalSecrets {
 
 enum SecretError: Error, LocalizedError {
     case storage(OSStatus), random
-    var errorDescription:String? { "端末内の安全な保存領域を利用できません。端末のロックを解除して再試行してください。" }
+    var errorDescription:String? { "Secure storage is unavailable. Unlock your device and try again." }
 }
 
 struct StoredMandate: Codable, Sendable {

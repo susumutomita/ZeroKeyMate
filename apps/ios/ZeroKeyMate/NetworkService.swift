@@ -58,7 +58,7 @@ actor NetworkService {
         guard !configuration.apiToken.isEmpty,let base=URL(string:configuration.apiURL),
               base.scheme == "https" || (base.scheme == "http" && ["127.0.0.1","localhost","::1"].contains(base.host ?? "")),
               let url=URL(string:path,relativeTo:base)?.absoluteURL,url.host == base.host else {
-            throw ProductError.unavailable("外部サービスはHTTPSで接続してください。Simulatorの同一Mac内通信だけはlocalhostを利用できます。")
+            throw ProductError.unavailable("Use HTTPS for external services. Localhost is allowed only for Simulator connections to this Mac.")
         }
         var request=URLRequest(url:url)
         request.httpMethod=method;request.httpBody=body
@@ -69,7 +69,7 @@ actor NetworkService {
         guard let http=response as? HTTPURLResponse,data.count < 2_000_000 else {throw ProductError.invalidResponse}
         guard (200..<300).contains(http.statusCode) else {
             if let failure=try? JSONDecoder().decode(Failure.self,from:data) {throw NetworkFailure(code:failure.error,message:failure.message)}
-            throw ProductError.unavailable("外部サービスに接続できませんでした（HTTP \(http.statusCode)）。")
+            throw ProductError.unavailable("Could not connect to the external service (HTTP \(http.statusCode)).")
         }
         return try JSONDecoder().decode(Response.self,from:data)
     }
@@ -126,7 +126,7 @@ actor EthereumRPC {
     private struct RPCError:Decodable {let code:Int;let message:String}
     private struct Response<T:Decodable>:Decodable {let jsonrpc:String;let id:Int;let result:T?;let error:RPCError?}
     private func call<T:Decodable>(method:String,params:[Any]) async throws -> T? {
-        guard let url,url.scheme == "https" else {throw ProductError.unavailable("Sepolia RPCの設定がありません。")}
+        guard let url,url.scheme == "https" else {throw ProductError.unavailable("Sepolia RPC is not configured.")}
         var request=URLRequest(url:url);request.httpMethod="POST";request.timeoutInterval=20
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.httpBody=try JSONSerialization.data(withJSONObject:["jsonrpc":"2.0","id":1,"method":method,"params":params])
@@ -134,12 +134,12 @@ actor EthereumRPC {
         guard let http=response as? HTTPURLResponse,http.statusCode == 200,data.count < 1_000_000 else {throw ProductError.invalidResponse}
         let decoded=try JSONDecoder().decode(Response<T>.self,from:data)
         guard decoded.jsonrpc=="2.0",decoded.id==1 else{throw ProductError.invalidResponse}
-        guard decoded.error == nil else {throw ProductError.unavailable("Sepolia RPCで操作を確認できませんでした。")}
+        guard decoded.error == nil else {throw ProductError.unavailable("Could not verify the operation through Sepolia RPC.")}
         return decoded.result
     }
     func ensureSepolia() async throws {
         let chain:String?=try await call(method:"eth_chainId",params:[])
-        guard chain?.lowercased() == "0xaa36a7" else {throw ProductError.unavailable("接続先はSepoliaではありません。署名・送金を停止しました。")}
+        guard chain?.lowercased() == "0xaa36a7" else {throw ProductError.unavailable("The connected network is not Sepolia. Signing and payment have been stopped.")}
     }
     func confirm(hash:String) async throws -> Receipt {
         _=try CanonicalBytes.hex(hash,count:32)
@@ -148,7 +148,7 @@ actor EthereumRPC {
             try Task.checkCancellation()
             if let receipt:Receipt=try await call(method:"eth_getTransactionReceipt",params:[hash]) {
                 guard receipt.transactionHash.lowercased() == hash.lowercased(),receipt.status == "0x1" else {
-                    throw ProductError.unavailable("取引は取り消されました。実行成功として記録していません。")
+                    throw ProductError.unavailable("The transaction reverted. It has not been recorded as successful.")
                 }
                 let latest:String?=try await call(method:"eth_blockNumber",params:[])
                 guard let height=UInt64(receipt.blockNumber.dropFirst(2),radix:16),height<UInt64.max,
@@ -161,7 +161,7 @@ actor EthereumRPC {
             }
             try await Task.sleep(for:.seconds(2))
         }
-        throw ProductError.unavailable("取引は送信済みですが、まだ確定を確認できません。再送せず、取引履歴を確認してください。")
+        throw ProductError.unavailable("The transaction was submitted, but confirmation is pending. Check its history before sending again.")
     }
     func confirmExecution(_ result:ExecutionReceipt,pending:PendingExecution,vault:String) async throws {
         let receipt=try await confirm(hash:result.transactionHash)

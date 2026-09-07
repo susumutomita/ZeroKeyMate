@@ -20,7 +20,7 @@ npm run configure          # 既存の .env は上書きしません
 make test
 ```
 
-起動先を選ぶ場合（`1`：Simulator、`2`：実機iPhone、`q`：キャンセル）：
+起動先を選ぶ場合（`1`：Simulator、`2`：実機iPhone、`q`：キャンセル（メニュー表示は英語））：
 
 ```sh
 make start
@@ -33,7 +33,7 @@ make start-simulator  # Simulator
 make start-device     # 実機iPhone
 ```
 
-画面・会話・カメラの開始にウォレットや決済の設定は不要です。会話にはApple Intelligence対応端末と利用可能な端末内モデルが必要です。カメラは設定の「開始」、マイクは「話す」で初めて起動します。「続けて話す」は個別に有効化した場合だけ、開始後の返答に続いて音声入力を再開します。
+画面・会話・カメラの開始にウォレットや決済の設定は不要です。会話にはApple Intelligence対応端末と利用可能な端末内モデルが必要です。アプリ表示と音声入出力は英語です。カメラは Settings の Start camera、マイクは Talk で初めて起動します。Continuous conversationは個別に有効化した場合だけ、開始後の返答に続いて音声入力を再開します。
 
 実機はUSB接続・ロック解除・Macの信頼・Developer Modeの有効化が必要です。接続済みiPhoneと署名用Teamが1つずつなら自動選択します。複数ある場合は `MATE_DEVICE_UDID=UDID MATE_DEVELOPMENT_TEAM=チームID make start` で指定します。署名用証明書がない場合は `make project` 後に `apps/ios/ZeroKeyMate.xcodeproj` を開き、XcodeでApple AccountとSigning Teamを設定してください。DockKitの接続・追尾は実機でのみ検証できます。APIと専門サービスは別途起動します。
 

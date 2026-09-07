@@ -121,3 +121,9 @@ iPhone 17 Pro / iOS Simulator 26.2で4件成功、1件失敗、2件skipでした
 ### Interactive launch selection — 2026-09-07
 
 `make start` now asks for the launch destination before checking build or device services. Invalid input retries; cancellation and end-of-input do not launch anything. Menu parsing was checked for both destinations, invalid-input retry, cancellation and EOF without invoking device commands. `make test SWIFT_TEST_FLAGS=--disable-sandbox` passed (19 Swift, 22 Node, 5 Python tests), and `CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios` passed. These checks do not establish Simulator or physical-device launch; the previously recorded runtime/tool restrictions remain.
+
+### English hackathon interface — 2026-09-07
+
+App-owned UI, accessibility labels, permission descriptions, errors, service titles and launcher output now use English. Speech recognition and synthesis use en-US; on-device-only recognition and explicit permission/start/stop behavior are unchanged. The UI tests now select English and assert English labels. `make test SWIFT_TEST_FLAGS=--disable-sandbox` passed all 46 tests and `CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios` passed. Local runtime UI tests remain unavailable because CoreSimulatorService refuses the connection. Earlier committed screenshots are explicitly marked as the Japanese build until new CI images are available.
+
+Start/stop, DockKit tracking prerequisites and an optional user-created Shortcuts charger automation are documented. The charger automation and physical stand operation have not been exercised on a device. No automation is silently installed, and charging/docking does not authorize camera or microphone capture.

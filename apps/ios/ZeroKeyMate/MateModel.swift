@@ -6,7 +6,7 @@ import MateCore
 @MainActor
 final class MateModel:ObservableObject {
     enum CameraPhase:String {
-        case off="カメラ OFF",starting="カメラ起動中",on="カメラ ON・端末内",stopping="カメラ停止中"
+        case off="Camera OFF",starting="Camera starting",on="Camera ON · On-device",stopping="Camera stopping"
     }
     @Published private(set) var cameraPhase:CameraPhase = .off
     @Published private(set) var dockConnected=false
@@ -57,7 +57,7 @@ final class MateModel:ObservableObject {
         for name in [AVCaptureSession.wasInterruptedNotification,AVCaptureSession.runtimeErrorNotification] {
             NotificationCenter.default.publisher(for:name).receive(on:DispatchQueue.main).sink{[weak self] _ in
                 guard let self,self.cameraRunning || self.isTransitioning else{return}
-                self.message="カメラが中断されました。再開には開始ボタンを押してください。"
+                self.message="The camera was interrupted. Tap Start camera to resume."
                 self.intent.requestStop();self.scheduleReconciliation()
             }.store(in:&notifications)
         }
@@ -89,7 +89,7 @@ final class MateModel:ObservableObject {
                 let allowed=await CameraService.requestPermission()
                 guard intent.shouldCapture else{cameraPhase = .off;continue}
                 if !allowed {
-                    message="カメラへのアクセスが許可されていません。iPhoneの設定で変更できます。"
+                    message="Camera access is not allowed. You can change this in iPhone Settings."
                     intent.requestStop();captureRequested=false;cameraPhase = .off
                 }else{
                     do {
@@ -110,7 +110,7 @@ final class MateModel:ObservableObject {
             if lastTrackingRequest != wantsTracking {
                 lastTrackingRequest=wantsTracking
                 do{try await dock.setTrackingEnabled(wantsTracking);trackingEnabled=wantsTracking}
-                catch{trackingEnabled=nil;dockMessage="追尾設定を確認できません：\(error.localizedDescription)"}
+                catch{trackingEnabled=nil;dockMessage="Could not verify tracking settings: \(error.localizedDescription)"}
             }
         }while processedRevision != revision
     }

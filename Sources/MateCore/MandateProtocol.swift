@@ -4,12 +4,12 @@ public enum MandateError: Error, LocalizedError, Equatable, Sendable {
     case invalidAmount, invalidHex, invalidPolicy, invalidAction, overBudget, serviceNotAllowed
     public var errorDescription: String? {
         switch self {
-        case .invalidAmount: return "金額は正の数で、小数点以下6桁までにしてください。"
-        case .invalidHex: return "アドレスまたは識別子の形式が正しくありません。"
-        case .invalidPolicy: return "委任条件が正しくありません。"
-        case .invalidAction: return "実行内容が正しくありません。"
-        case .overBudget: return "この依頼は、承認済みの利用上限を超えます。"
-        case .serviceNotAllowed: return "この種類の依頼は許可されていません。"
+        case .invalidAmount: return "Enter a positive amount with up to six decimal places."
+        case .invalidHex: return "The address or identifier format is invalid."
+        case .invalidPolicy: return "The mandate terms are invalid."
+        case .invalidAction: return "The execution details are invalid."
+        case .overBudget: return "This request exceeds the approved spending limit."
+        case .serviceNotAllowed: return "This service is not allowed."
         }
     }
 }
@@ -72,7 +72,7 @@ public struct TokenAmount: Equatable, Sendable {
 public enum MateService: UInt8, CaseIterable, Codable, Sendable {
     case translation = 0
     case summary = 1
-    public var title: String { self == .translation ? "翻訳" : "要約" }
+    public var title: String { self == .translation ? "Translation" : "Summary" }
     public var bit: UInt8 { 1 << rawValue }
 }
 

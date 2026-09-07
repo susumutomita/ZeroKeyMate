@@ -23,13 +23,13 @@ actor ProofService {
     private var keyData: (Data,Data)?
     func prepare() throws {
         guard Verity.runtimeMode == .native else {
-            throw ProductError.unavailable("端末内の証明ランタイムは未導入です。make native-runtime と make proofs を実行して再ビルドしてください。")
+            throw ProductError.unavailable("The on-device proof runtime is not installed. Run make native-runtime and make proofs, then rebuild.")
         }
         guard keyData == nil else { return }
         guard let manifestURL = Bundle.main.url(forResource: "manifest", withExtension: "json"),
               let proverURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkp"),
               let verifierURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkv") else {
-            throw ProductError.unavailable("証明用ファイルがありません。make proofs を実行して再ビルドしてください。")
+            throw ProductError.unavailable("Proof resources are missing. Run make proofs, then rebuild.")
         }
         let manifest = try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: manifestURL))
         guard manifest.system == "ProveKit", manifest.version == "1.0.1",

@@ -34,9 +34,9 @@ enum ProductError: Error, LocalizedError {
     var errorDescription:String? {
         switch self {
         case .unavailable(let message):return message
-        case .invalidResponse:return "応答を検証できませんでした。操作は完了扱いにしていません。"
-        case .busy:return "実行中の操作が終わってから再試行してください。"
-        case .cancelled:return "操作を中止しました。"
+        case .invalidResponse:return "The response could not be verified. The operation has not been marked complete."
+        case .busy:return "Wait for the current operation to finish, then try again."
+        case .cancelled:return "The operation was cancelled."
         }
     }
 }

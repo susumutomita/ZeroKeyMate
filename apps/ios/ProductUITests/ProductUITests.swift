@@ -7,7 +7,7 @@ final class ProductUITests: XCTestCase {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["talk-button"].isHittable)
@@ -44,11 +44,11 @@ final class ProductUITests: XCTestCase {
     func testPortraitHomeDoesNotStartSensorsAndControlsRemainAccessible() throws {
         let app = launch()
         assertVisibleControls(app)
-        XCTAssertTrue(app.staticTexts["カメラ停止中"].exists)
+        XCTAssertTrue(app.staticTexts["Camera off"].exists)
         capture("01-home-portrait")
         try app.performAccessibilityAudit(for: [.contrast, .elementDetection, .hitRegion, .sufficientElementDescription])
         app.buttons["rest-button"].tap()
-        XCTAssertTrue(app.staticTexts["ひと休みしています。"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Taking a rest."].waitForExistence(timeout: 3))
         capture("02-resting")
     }
     func testConversationSettingsAndEmptyActivityAreRealScreens() throws {
@@ -66,7 +66,7 @@ final class ProductUITests: XCTestCase {
         capture("04-settings")
         closeSheet(app)
         tapPadding(app.buttons["open-activity"])
-        XCTAssertTrue(app.staticTexts["まだ、何も実行していません。"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No executions yet."].waitForExistence(timeout: 5))
         capture("05-activity-empty")
     }
     func testLandscapeControlsAreNotClipped() {

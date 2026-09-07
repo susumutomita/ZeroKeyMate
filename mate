@@ -21,18 +21,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 if [[ "$CHOOSE" == 1 ]]; then
-  printf '%s\n' '起動先を選んでください。' '  1) iPhone Simulator' '  2) 実機iPhone（USB接続）' '  q) キャンセル'
+  printf '%s\n' 'Choose where to launch Mate.' '  1) iPhone Simulator' '  2) Physical iPhone (USB)' '  q) Cancel'
   while true; do
-    printf '番号を入力 [1/2/q]: '
+    printf 'Enter a choice [1/2/q]: '
     if ! IFS= read -r choice; then
-      printf '\n入力がないため起動を中止しました。直接起動する場合は make start-simulator / make start-device を使ってください。\n' >&2
+      printf '\nNo input received. Launch cancelled. Use make start-simulator or make start-device to launch directly.\n' >&2
       exit 2
     fi
     case "$choice" in
       1) DEVICE=""; break ;;
       2) DEVICE="${MATE_DEVICE_UDID:-auto}"; break ;;
-      q|Q) echo '起動をキャンセルしました。'; exit 0 ;;
-      *) echo '1、2、q のいずれかを入力してください。' ;;
+      q|Q) echo 'Launch cancelled.'; exit 0 ;;
+      *) echo 'Enter 1, 2 or q.' ;;
     esac
   done
 fi
@@ -53,7 +53,7 @@ if [[ "$MODE" == verify ]]; then
   exit 0
 fi
 if [[ -n "$DEVICE" ]]; then
-  echo '接続中のiPhoneと署名用Teamを確認しています。'
+  echo 'Checking the connected iPhone and signing team.'
   # Keep assignment separate from export so a failed selector stops this script.
   MATE_DEVELOPMENT_TEAM="$(python3 scripts/device-launch.py team)"
   export MATE_DEVELOPMENT_TEAM
@@ -65,16 +65,16 @@ if [[ -n "$DEVICE" ]]; then
   if [[ "${MATE_NESTED_SANDBOX:-0}" == 1 ]]; then
     extra=(-IDEPackageSupportDisableManifestSandbox=YES 'OTHER_SWIFT_FLAGS=$(inherited) -disable-sandbox')
   fi
-  echo 'iPhone用アプリをビルド・署名しています。'
+  echo 'Building and signing the iPhone app.'
   xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug \
     -destination "id=$DEVICE" -derivedDataPath .build/NativeDevice \
     -clonedSourcePackagesDirPath "$ROOT/.build/SourcePackages" \
     -packageCachePath "$ROOT/.build/PackageCache" -disablePackageRepositoryCache "${extra[@]}" \
     "DEVELOPMENT_TEAM=$MATE_DEVELOPMENT_TEAM" -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
   APP="$ROOT/.build/NativeDevice/Build/Products/Debug-iphoneos/ZeroKeyMate.app"
-  echo 'iPhoneへインストールしています。'
+  echo 'Installing on iPhone.'
   xcrun devicectl --timeout 120 device install app --device "$DEVICE" "$APP"
-  echo 'iPhoneでMateを起動しています。'
+  echo 'Launching Mate on iPhone.'
   xcrun devicectl --timeout 30 device process launch --device "$DEVICE" com.zerokeymate.companion
 else
   make build-ios

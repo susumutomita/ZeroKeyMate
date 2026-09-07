@@ -9,9 +9,11 @@ Mate is designed to keep everyday conversation on your iPhone. When you ask a sp
 [日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
 
 <p align="center">
-  <img src="docs/assets/home-simulator.png" width="260" alt="Mate's actual Japanese home screen: conversation, talk and rest controls, with the camera stopped.">
+  <img src="docs/assets/home-simulator.png" width="260" alt="Earlier Japanese build of Mate: conversation, talk and rest controls, with the camera stopped.">
   <img src="docs/assets/rest-simulator.png" width="260" alt="Mate resting after the Rest control is pressed, with the camera stopped.">
 </p>
+
+The screenshots above show the earlier Japanese build. The current UI is English; updated runtime screenshots are pending.
 
 <p align="center"><em>Actual iOS Simulator captures: home → Rest. These screens do not demonstrate live conversation, DockKit tracking or a payment. <a href="docs/assets/README.md">Capture provenance</a>.</em></p>
 
@@ -81,7 +83,7 @@ For the physical phone, connect it over USB, unlock it, trust this Mac and enabl
 
 `configure` creates an ignored `.env` containing local pairing/journal keys and preserves an existing file. It does not create wallets, fund an account or deploy contracts. A fresh clone can open the UI without payment credentials. Source-only builds explicitly disable proving and paid execution until the real runtime and circuit are built.
 
-The UI is currently Japanese. Keyboard opens conversation, microphone starts speech, moon stops camera/microphone and rests, sliders open settings, and clock opens activity. On-device conversation requires an eligible Apple Intelligence device/model; unavailable models are reported without a cloud fallback.
+The UI, permission prompts and launch menu are in English. Voice input and read-aloud use English (US); typed conversation can respond in the user’s language. Keyboard opens conversation, microphone starts speech, moon stops camera/microphone and rests, sliders open settings, and clock opens activity. On-device conversation requires an eligible Apple Intelligence device/model; unavailable models are reported without a cloud fallback.
 
 If a signing identity is missing, run `make project`, open `apps/ios/ZeroKeyMate.xcodeproj`, and configure your Apple Account/Signing Team in Xcode before retrying. DockKit requires compatible physical hardware. These make targets launch the native app; API/provider startup is still separate. Detailed configuration is in [setup (日本語)](docs/setup.md) and [`.env.example`](.env.example).
 
@@ -148,3 +150,19 @@ No audio recordings, camera frames or conversation history are uploaded. Approve
 For ETHGlobal review: [submission copy and open fields](docs/submission.md), [demo script](docs/demo.md), and [development history / AI assistance](docs/development-history.md). Event, track, prize eligibility and the final demo video are still to be confirmed. Existing commits are disclosed rather than represented as work from an unconfirmed event window.
 
 Original project code is licensed under [Apache-2.0](LICENSE). Public sources and reviewed dependency licenses are in [SOURCES](docs/SOURCES.md) and [third-party notices](docs/THIRD_PARTY_NOTICES.txt). This provenance record is not a formal clean-room audit.
+
+### Start and stop
+
+Run `make start`, then enter `1` for Simulator or `2` for a connected iPhone. In the app, tap **Talk** for voice input, or the keyboard for text. Start the camera separately in **Settings → Start camera**.
+
+Tap the moon (**Rest**) to stop the camera and microphone and pause conversation. **Settings → Stop camera** stops only the camera. Backgrounding the app or detaching a connected DockKit stand stops capture and voice; returning or reattaching does not restart them. Wait for **Camera off** before treating capture as stopped. Rest does not revoke a spending mandate or undo a submitted transaction; revoke mandates in **Your rules** and inspect pending transactions in **Activity**.
+
+A compatible DockKit stand is optional. Mounting the phone alone does not launch Mate or start capture. With Mate open, explicitly start the camera; system tracking is requested only while capture is active, a stand is connected and its tracking button is enabled. Physical stand connection and tracking remain unverified.
+
+The launcher exits after opening the app: Ctrl+C after that does not stop Mate. To close it, use the iPhone app switcher or quit Simulator with Command-Q.
+
+### Open Mate when charging
+
+After installing Mate on your iPhone, create a personal automation in **Shortcuts → Automation → + → Charger → Is Connected**. Choose **Run Immediately** (or disable **Ask Before Running** on versions that use that setting), add the **Open App** action, select **Mate**, and save. Test with the iPhone unlocked by disconnecting and reconnecting power. If iOS asks you to unlock, do so; unattended launch while locked is not verified.
+
+Apple documents the [charger connection trigger](https://support.apple.com/guide/shortcuts/apde31e9638b/ios) and [automatic execution of charger automations](https://support.apple.com/guide/shortcuts/apd602971e63/ios). This trigger is not specific to Belkin: other chargers also activate it. Create and verify the automation on your own phone; the repository does not install it automatically. It opens the app only. Start camera and voice explicitly inside Mate. To stop automatic opening, disable or delete this automation in Shortcuts.

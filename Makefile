@@ -18,7 +18,7 @@ start-simulator:
 	./mate --simulator
 
 help:
-	@printf '%s\n' 'make start            Simulator / 実機iPhoneを選択して起動' 'make start-device     接続したiPhoneにビルド・インストール・起動' 'make start-simulator  iPhone Simulatorにビルド・インストール・起動' 'make test             自動テスト' '端末が複数ある場合: MATE_DEVICE_UDID=UDID make start' 'Teamが複数ある場合: MATE_DEVELOPMENT_TEAM=TEAM_ID make start'
+	@printf '%s\n' 'make start            Choose Simulator or physical iPhone' 'make start-device     Build, install and launch on a connected iPhone' 'make start-simulator  Build, install and launch on iPhone Simulator' 'make test             Run automated tests' 'Multiple devices: MATE_DEVICE_UDID=UDID make start' 'Multiple signing teams: MATE_DEVELOPMENT_TEAM=TEAM_ID make start'
 
 test-launcher:
 	python3 -m unittest discover -s scripts/tests -p 'test_device_launch.py' -v

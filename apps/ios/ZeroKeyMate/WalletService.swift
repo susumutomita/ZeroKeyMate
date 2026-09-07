@@ -22,7 +22,7 @@ final class WalletService: ObservableObject {
     }
     private func client() throws -> any Privy {
         guard configuration.walletConfigured else {
-            throw ProductError.unavailable("PrivyのApp IDとiOS Client IDを設定してください。ウォレットはまだ作成されていません。")
+            throw ProductError.unavailable("Configure your Privy App ID and iOS Client ID. No wallet has been created yet.")
         }
         if let privy { return privy }
         let value = PrivySdk.initialize(config: PrivyConfig(appId: configuration.privyAppID,
@@ -52,13 +52,13 @@ final class WalletService: ObservableObject {
     func prepareWallets() async throws {
         guard !busy else { throw ProductError.busy }
         busy = true; defer { busy = false }
-        guard let user = await (try client()).getUser() else { throw ProductError.unavailable("先にメールアドレスでログインしてください。") }
+        guard let user = await (try client()).getUser() else { throw ProductError.unavailable("Sign in with your email first.") }
         isAuthenticated = true
         var roles = try LocalSecrets.read(WalletRoles.self, key: "wallet-roles")
         if roles?.userID != user.id { roles = nil }
         if let roles {
             guard let wallet = user.embeddedEthereumWallets.first(where: { $0.address.lowercased() == roles.owner.lowercased() }) else {
-                throw ProductError.unavailable("登録済みの所有者ウォレットが見つかりません。鍵の自動置換は行いません。")
+                throw ProductError.unavailable("The registered owner wallet could not be found. Its key will not be replaced automatically.")
             }
             ownerWallet = wallet
         } else {
@@ -70,7 +70,7 @@ final class WalletService: ObservableObject {
         }
         if let address = roles?.agent {
             guard let wallet = user.embeddedEthereumWallets.first(where: { $0.address.lowercased() == address.lowercased() }) else {
-                throw ProductError.unavailable("登録済みの実行キーが見つかりません。委任を失効させてから再設定してください。")
+                throw ProductError.unavailable("The registered execution key could not be found. Revoke the mandate before setting it up again.")
             }
             agentWallet = wallet
         } else {
@@ -84,7 +84,7 @@ final class WalletService: ObservableObject {
     private func authenticateOwner(reason: String) async throws {
         let context = LAContext(); var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
-            throw ProductError.unavailable("所有者の承認には端末のパスコードまたはFace IDが必要です。")
+            throw ProductError.unavailable("Owner approval requires your device passcode or Face ID.")
         }
         guard try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) else { throw ProductError.cancelled }
     }
@@ -95,7 +95,7 @@ final class WalletService: ObservableObject {
         guard let ownerWallet, ownerWallet.address.lowercased() == grant.owner.lowercased(),
               grant.agent.lowercased() == agentAddress?.lowercased(), configuration.paymentsConfigured else { throw ProductError.invalidResponse }
         try await rpc.ensureSepolia()
-        try await authenticateOwner(reason: "表示した条件でMateに実行権限を与えます")
+        try await authenticateOwner(reason: "Authorize Mate to act under the displayed terms")
         let typed = EthereumRpcRequest.EIP712TypedData(domain: signingDomain, primaryType: "Grant", types: ["Grant": [
             .init("owner", type: "address"), .init("agent", type: "address"), .init("policyHash", type: "bytes32"),
             .init("validUntil", type: "uint64"), .init("nonce", type: "uint256")
@@ -104,7 +104,7 @@ final class WalletService: ObservableObject {
         return try await ownerWallet.provider.request(.ethSignTypedDataV4(address: ownerWallet.address, typedData: typed))
     }
     func signAction(hash: String) async throws -> String {
-        guard let agentWallet, configuration.paymentsConfigured else { throw ProductError.unavailable("実行用ウォレットが未設定です。") }
+        guard let agentWallet, configuration.paymentsConfigured else { throw ProductError.unavailable("The execution wallet is not configured.") }
         _ = try CanonicalBytes.hex(hash, count: 32)
         let typed = EthereumRpcRequest.EIP712TypedData(domain: signingDomain, primaryType: "Execution",
             types: ["Execution": [.init("actionHash", type: "bytes32")]], message: ["actionHash": hash])
@@ -115,13 +115,13 @@ final class WalletService: ObservableObject {
               !configuration.ensParent.isEmpty,
               label.range(of: "^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$", options: .regularExpression) != nil else { throw ProductError.invalidResponse }
         _ = try CanonicalBytes.hex(nonce, count: 32)
-        try await authenticateOwner(reason: "この名前をMateの公開アドレスとして登録します")
+        try await authenticateOwner(reason: "Register this name for Mate's public address")
         let message = "ZeroKey Mate name registration\nchain:11155111\nvault:\(configuration.vault.lowercased())\nname:\(label).\(configuration.ensParent)\nowner:\(ownerWallet.address.lowercased())\nagent:\(agentAddress.lowercased())\nnonce:\(nonce.lowercased())\nexpires:\(expiresAt)"
         return try await ownerWallet.provider.request(.personalSign(message: CanonicalBytes.hexString(Data(message.utf8)), address: ownerWallet.address))
     }
     enum FundingOperation { case approve(UInt64), deposit(UInt64), withdraw(UInt64), revoke(String) }
     func send(_ operation: FundingOperation) async throws -> String {
-        guard let ownerWallet, configuration.paymentsConfigured else { throw ProductError.unavailable("署名とSepoliaの接続設定を完了してください。") }
+        guard let ownerWallet, configuration.paymentsConfigured else { throw ProductError.unavailable("Complete signing and Sepolia connection setup first.") }
         guard let url = Bundle.main.url(forResource: "Selectors", withExtension: "json"),
               let selectors = try? JSONDecoder().decode([String:String].self, from: Data(contentsOf: url)) else { throw ProductError.invalidResponse }
         let name: String, to: String, parameters: String, reason: String
@@ -131,16 +131,16 @@ final class WalletService: ObservableObject {
             guard amount > 0 else { throw MandateError.invalidAmount }
             name = "approve(address,uint256)"; to = configuration.token
             parameters = String(repeating: "0", count: 24) + configuration.vault.dropFirst(2).lowercased() + word(amount)
-            reason = "表示したテストUSDCの預入額だけを承認します"
+            reason = "Approve only the displayed test USDC deposit amount"
         case .deposit(let amount):
             guard amount > 0 else { throw MandateError.invalidAmount }
-            name = "deposit(uint256)"; to = configuration.vault; parameters = word(amount); reason = "テストUSDCを実行用口座に預けます"
+            name = "deposit(uint256)"; to = configuration.vault; parameters = word(amount); reason = "Deposit test USDC into the execution account"
         case .withdraw(let amount):
             guard amount > 0 else { throw MandateError.invalidAmount }
-            name = "withdraw(uint256)"; to = configuration.vault; parameters = word(amount); reason = "テストUSDCを所有者のウォレットへ戻します"
+            name = "withdraw(uint256)"; to = configuration.vault; parameters = word(amount); reason = "Return test USDC to the owner's wallet"
         case .revoke(let id):
             _ = try CanonicalBytes.hex(id, count: 32)
-            name = "revoke(bytes32)"; to = configuration.vault; parameters = String(id.dropFirst(2)); reason = "Mateへの委任をオンチェーンで失効させます"
+            name = "revoke(bytes32)"; to = configuration.vault; parameters = String(id.dropFirst(2)); reason = "Revoke Mate's mandate on-chain"
         }
         guard let selector = selectors[name], selector.utf8.count == 10 else { throw ProductError.invalidResponse }
         try await rpc.ensureSepolia()

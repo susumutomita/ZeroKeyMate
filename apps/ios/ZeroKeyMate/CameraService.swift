@@ -51,8 +51,8 @@ enum CameraError:Error,LocalizedError {
     case noFrontCamera,unavailable
     var errorDescription:String? {
         switch self {
-        case .noFrontCamera:return "フロントカメラを利用できません。SimulatorではなくiPhoneで確認してください。"
-        case .unavailable:return "カメラを起動できませんでした。ほかのアプリの利用や端末の状態を確認してください。"
+        case .noFrontCamera:return "The front camera is unavailable. Try a physical iPhone."
+        case .unavailable:return "Could not start the camera. Check whether another app is using it and try again."
         }
     }
 }
