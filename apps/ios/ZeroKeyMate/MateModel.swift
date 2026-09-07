@@ -110,7 +110,7 @@ final class MateModel:ObservableObject {
             if lastTrackingRequest != wantsTracking {
                 lastTrackingRequest=wantsTracking
                 do{try await dock.setTrackingEnabled(wantsTracking);trackingEnabled=wantsTracking}
-                catch{trackingEnabled=nil;dockMessage="Could not verify tracking settings: \(error.localizedDescription)"}
+                catch{trackingEnabled=nil;dockMessage=L10n.format("Could not verify tracking settings: %@",error.localizedDescription)}
             }
         }while processedRevision != revision
     }

@@ -11,9 +11,13 @@ private enum Finish {
 struct MateView:View {
     @StateObject private var model=CompanionModel()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(L10n.preferenceKey) private var language = AppLanguage.english.rawValue
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         CompanionHome(model:model,sensors:model.sensors,voice:model.voice)
             .task{model.setForeground(scenePhase == .active);await model.start()}
+            .onChange(of:language){_,_ in model.rest();model.errorMessage=nil}
             .onChange(of:scenePhase){_,value in
                 if value == .background{model.setForeground(false)}
                 else if value == .active{model.setForeground(true)}
@@ -40,7 +44,7 @@ struct MateView:View {
             }
             .alert("Please check",isPresented:Binding(get:{model.errorMessage != nil},set:{if !$0{model.errorMessage=nil}})){
                 Button("Close",role:.cancel){model.errorMessage=nil}
-            }message:{Text(model.errorMessage ?? "")}
+            }message:{Text(L10n.text(model.errorMessage ?? ""))}
     }
 }
 
@@ -58,7 +62,9 @@ private struct CompanionHome:View {
         if voice.speaking{return "Speaking."}
         return "I'm here."
     }
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         GeometryReader{geometry in
             let landscape=geometry.size.width>geometry.size.height
             VStack(spacing:0){
@@ -79,10 +85,10 @@ private struct CompanionHome:View {
                          focus:sensors.horizontalFocus,reduceMotion:reduceMotion)
                     .frame(width:landscape ? min(geometry.size.width*0.34,310):geometry.size.width*0.67,
                            height:landscape ? min(geometry.size.height*0.30,140):min(geometry.size.height*0.25,185))
-                    .accessibilityElement(children:.ignore).accessibilityLabel("Mate's expression").accessibilityValue(status)
+                    .accessibilityElement(children:.ignore).accessibilityLabel("Mate's expression").accessibilityValue(L10n.text(status))
                 Spacer(minLength:landscape ? 8:24)
                 VStack(spacing:10){
-                    Text(status).font(.system(size:landscape ? 19:23,weight:.regular)).tracking(-0.4)
+                    Text(L10n.text(status)).font(.system(size:landscape ? 19:23,weight:.regular)).tracking(-0.4)
                         .multilineTextAlignment(.center).accessibilityIdentifier("companion-status")
                     if voice.listening,!voice.transcript.isEmpty {
                         Text(voice.transcript).font(.system(size:15)).foregroundStyle(Finish.secondary).lineLimit(2)
@@ -98,7 +104,7 @@ private struct CompanionHome:View {
                             .accessibilityIdentifier("open-local-proof")
                     }
                     if let draft=model.draft,!model.financialBusy {
-                        Button{model.sheet = .disclosure}label:{Label("Review \(draft.service.title.lowercased()) request",systemImage:"arrow.up.right").font(.system(size:14,weight:.medium)).padding(.vertical,10)}
+                        Button{model.sheet = .disclosure}label:{Label(L10n.format("Review %@ request",L10n.text(draft.service.title)),systemImage:"arrow.up.right").font(.system(size:14,weight:.medium)).padding(.vertical,10)}
                     }
                 }.padding(.horizontal,30).frame(minHeight:landscape ? 42:112)
                 Spacer(minLength:landscape ? 6:18)
@@ -112,18 +118,18 @@ private struct CompanionHome:View {
                             .font(.system(size:25,weight:.medium)).foregroundStyle(Finish.paper)
                             .frame(width:76,height:76).background(Finish.ink,in:Circle())
                     }.disabled((model.thinking && !model.voiceSessionActive) || model.financialBusy)
-                        .accessibilityLabel(model.sleeping ? "Wake Mate":model.voiceSessionActive ? "Stop continuous conversation":voice.requestingPermission ? "Cancel voice startup":voice.listening ? "Finish voice input":"Talk")
+                        .accessibilityLabel(L10n.text(model.sleeping ? "Wake Mate":model.voiceSessionActive ? "Stop continuous conversation":voice.requestingPermission ? "Cancel voice startup":voice.listening ? "Finish voice input":"Talk"))
                         .accessibilityIdentifier("talk-button")
                     Button{model.rest()}label:{Image(systemName:"moon").font(.system(size:21,weight:.regular)).frame(width:52,height:52).contentShape(Rectangle())}
                         .accessibilityLabel("Rest and stop camera and microphone").accessibilityIdentifier("rest-button")
                 }
                 HStack(spacing:7){
                     Image(systemName:sensors.cameraPhase == .on ? "eye":"eye.slash").font(.system(size:11))
-                    Text(sensors.cameraPhase == .on ? "Camera on · On-device processing":sensors.cameraPhase == .starting ? "Camera starting":sensors.cameraPhase == .stopping ? "Camera stopping":"Camera off")
+                    Text(L10n.text(sensors.cameraPhase == .on ? "Camera on · On-device processing":sensors.cameraPhase == .starting ? "Camera starting":sensors.cameraPhase == .stopping ? "Camera stopping":"Camera off"))
                     if sensors.dockConnected{Text("·");Text("Dock connected")}
                 }.font(.system(size:11,weight:.medium)).foregroundStyle(Finish.secondary)
                     .padding(.top,landscape ? 10:21).padding(.bottom,landscape ? 8:18)
-                if let error=voice.errorMessage{Text(error).font(.footnote).foregroundStyle(Finish.secondary).padding(.horizontal,24).padding(.bottom,8)}
+                if let error=voice.errorMessage{Text(L10n.text(error)).font(.footnote).foregroundStyle(Finish.secondary).padding(.horizontal,24).padding(.bottom,8)}
             }.frame(maxWidth:.infinity,maxHeight:.infinity).foregroundStyle(Finish.ink)
         }.background(Finish.paper.ignoresSafeArea()).preferredColorScheme(.light)
     }
@@ -135,7 +141,9 @@ private struct MateEyes:View {
     let thinking:Bool
     let focus:Double
     let reduceMotion:Bool
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         TimelineView(.animation(minimumInterval:1.0/30,paused:reduceMotion || resting)){timeline in
             let time=timeline.date.timeIntervalSinceReferenceDate
             let phase=time.truncatingRemainder(dividingBy:5.7)
@@ -159,14 +167,17 @@ private struct MateEyes:View {
 
 private struct SectionNote:View {
     let text:String
-    var body:some View{Text(text).font(.system(size:13)).foregroundStyle(Finish.secondary).lineSpacing(4).fixedSize(horizontal:false,vertical:true)}
+    @Environment(\.locale) private var locale
+    var body:some View{Text(L10n.text(text,language:AppLanguage(rawValue:locale.identifier))).font(.system(size:13)).foregroundStyle(Finish.secondary).lineSpacing(4).fixedSize(horizontal:false,vertical:true)}
 }
 private struct PrimaryAction:View {
     let title:String
     var disabled=false
     let action:()->Void
+    @Environment(\.locale) private var locale
     var body:some View {
-        Button(action:action){Text(title).font(.system(size:16,weight:.semibold)).frame(maxWidth:.infinity,minHeight:52)}
+        let _ = locale.identifier
+        Button(action:action){Text(L10n.text(title)).font(.system(size:16,weight:.semibold)).frame(maxWidth:.infinity,minHeight:52)}
             .buttonStyle(.plain).foregroundStyle(Finish.paper).background(Finish.ink.opacity(disabled ? 0.35:1),in:RoundedRectangle(cornerRadius:16))
             .disabled(disabled)
     }
@@ -175,7 +186,9 @@ private struct PrimaryAction:View {
 private struct ConversationSheet:View {
     @ObservedObject var model:CompanionModel
     @State private var input=""
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         VStack(spacing:0){
             ScrollViewReader{proxy in
                 ScrollView{
@@ -188,7 +201,7 @@ private struct ConversationSheet:View {
                         }
                         ForEach(model.messages){message in
                             VStack(alignment:.leading,spacing:8){
-                                Text(message.isUser ? "You":"Mate").font(.system(size:11,weight:.semibold)).foregroundStyle(Finish.secondary)
+                                Text(L10n.text(message.isUser ? "You":"Mate")).font(.system(size:11,weight:.semibold)).foregroundStyle(Finish.secondary)
                                 Text(message.text).font(.system(size:17)).lineSpacing(5).textSelection(.enabled)
                             }.frame(maxWidth:.infinity,alignment:.leading).id(message.id)
                         }
@@ -211,11 +224,20 @@ private struct ConversationSheet:View {
 private struct SettingsSheet:View {
     @ObservedObject var model:CompanionModel
     @ObservedObject var sensors:MateModel
+    @AppStorage(L10n.preferenceKey) private var language = AppLanguage.english.rawValue
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
+            Section("Language"){
+                Picker("App language",selection:$language){
+                    ForEach(AppLanguage.allCases){Text(verbatim:$0.name).tag($0.rawValue)}
+                }.pickerStyle(.segmented).accessibilityIdentifier("app-language")
+                SectionNote(text:"Changing language stops voice and camera. Tap Talk or Start camera when you are ready to resume.")
+            }
             Section("Senses"){
-                HStack{Label("Camera",systemImage:"eye");Spacer();Text(sensors.cameraPhase.rawValue).font(.footnote).foregroundStyle(.secondary)}
-                Button(sensors.captureRequested ? "Stop camera":sensors.isTransitioning ? "Waiting for camera to stop":"Start camera"){
+                HStack{Label("Camera",systemImage:"eye");Spacer();Text(L10n.text(sensors.cameraPhase.rawValue)).font(.footnote).foregroundStyle(.secondary)}
+                Button(L10n.text(sensors.captureRequested ? "Stop camera":sensors.isTransitioning ? "Waiting for camera to stop":"Start camera")){
                     if sensors.captureRequested{sensors.stopCapture()}else{sensors.startCapture()}
                 }.disabled(!sensors.captureRequested && sensors.isTransitioning).accessibilityIdentifier("toggle-camera")
                 SectionNote(text:"Detects broad object categories and face positions, not identity. Video is never saved or sent externally.")
@@ -242,12 +264,12 @@ private struct SettingsSheet:View {
             }
             Section("Connections"){
                 Button("Configure connection"){model.sheet = .connection}.disabled(model.financialBusy)
-                LabeledContent("Conversation",value:model.modelUnavailable == nil ? "On-device":"Check availability")
+                LabeledContent("Conversation",value:L10n.text(model.modelUnavailable == nil ? "On-device":"Check availability"))
                 if let unavailable=model.modelUnavailable{SectionNote(text:unavailable)}
-                LabeledContent("Payment network",value:model.configuration.networkName)
-                LabeledContent("Wallet setup",value:model.configuration.walletConfigured ? "Configured":"Not configured")
-                LabeledContent("External execution setup",value:model.configuration.paymentsConfigured ? "Configured":"Not configured")
-                LabeledContent("On-device proving",value:model.proofUnavailable == nil ? "Available":"Unavailable")
+                LabeledContent("Payment network",value:L10n.text(model.configuration.networkName))
+                LabeledContent("Wallet setup",value:L10n.text(model.configuration.walletConfigured ? "Configured":"Not configured"))
+                LabeledContent("External execution setup",value:L10n.text(model.configuration.paymentsConfigured ? "Configured":"Not configured"))
+                LabeledContent("On-device proving",value:L10n.text(model.proofUnavailable == nil ? "Available":"Unavailable"))
                 if let reason=model.proofUnavailable{SectionNote(text:reason)}
                 SectionNote(text:"Voice input starts only when you tap Talk and is transcribed on-device. Tap again to cancel, even while permissions are being requested.")
                 SectionNote(text:"ZK verifies private spending rules. Payment recipients and amounts are public. The current settlement design trusts the signature of the server that verifies the proof.")
@@ -263,7 +285,9 @@ private struct RulesSheet:View {
     @State private var translation=true
     @State private var summary=true
     @State private var hours=8
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
             Section{
                 Text("You set\nthe boundaries.").font(.system(size:29,weight:.regular)).tracking(-0.8).padding(.vertical,12)
@@ -273,7 +297,7 @@ private struct RulesSheet:View {
                 Section("Current mandate"){
                     LabeledContent("Spending limit",value:TokenAmount(units:mandate.policy.budget).display+" USDC")
                     LabeledContent("Spent",value:TokenAmount(units:model.spent).display+" USDC")
-                    LabeledContent("Expires",value:Date(timeIntervalSince1970:Double(mandate.grant.validUntil)).formatted(date:.abbreviated,time:.shortened))
+                    LabeledContent("Expires",value:Date(timeIntervalSince1970:Double(mandate.grant.validUntil)).formatted(.dateTime.year().month().day().hour().minute().locale(locale)))
                     Button("Refresh spending"){Task{await model.refreshAccount()}}
                     Button("Revoke this mandate",role:.destructive){Task{await model.fund(.revoke(mandate.id))}}.disabled(model.financialBusy)
                 }
@@ -289,7 +313,7 @@ private struct RulesSheet:View {
                 }
                 Section{Button("Recover pending mandate"){Task{await model.recoverGrant()}}}
             }
-            if let status=model.executionStatus{Section{ProgressView(status)}}
+            if let status=model.executionStatus{Section{ProgressView(L10n.text(status))}}
         }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Your rules").navigationBarTitleDisplayMode(.inline)
             .task{await model.refreshAccount()}
     }
@@ -303,9 +327,11 @@ private struct WalletSheet:View {
     @State private var codeSent=false
     @State private var amount="20"
     private func run(_ operation:@escaping () async throws -> Void){Task{do{try await operation()}catch{model.errorMessage=error.localizedDescription}}}
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
-            Section{SectionNote(text:"\(model.configuration.networkName) test USDC only. Do not send real funds. Your owner wallet and Mate's execution key are separate.")}
+            Section{SectionNote(text:L10n.format("%@ test USDC only. Do not send real funds. Your owner wallet and Mate's execution key are separate.",L10n.text(model.configuration.networkName)))}
             if !wallet.isAuthenticated {
                 Section("Connect with Privy"){
                     TextField("Email address",text:$email).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -342,7 +368,7 @@ private struct WalletSheet:View {
                     SectionNote(text:"Deposits are public and separate from your private spending limit. For example, deposit 20 USDC and set a spending limit of 5 USDC.")
                 }
             }
-            if let status=model.executionStatus{Section{ProgressView(status)}}
+            if let status=model.executionStatus{Section{ProgressView(L10n.text(status))}}
         }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Wallet").navigationBarTitleDisplayMode(.inline)
             .task{await model.refreshAccount()}
     }
@@ -351,7 +377,9 @@ private struct WalletSheet:View {
 private struct IdentitySheet:View {
     @ObservedObject var model:CompanionModel
     @State private var label=""
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
             Section{
                 Text("Give your companion a name.").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
@@ -383,7 +411,9 @@ private struct DisclosureSheet:View {
     @State private var payload=""
     @State private var selectedID:String?
     private var selected:ServiceProvider?{model.providers.first{$0.id==selectedID}}
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
             Section{
                 Text("Only this text\nleaves your device.").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
@@ -439,8 +469,8 @@ private struct DisclosureSheet:View {
                     if model.mandate == nil{SectionNote(text:"Complete the setup steps above, then return to review this saved request.")}
                 }
             }
-            if let status=model.executionStatus{Section{ProgressView(status)}}
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle(model.draft?.service.title ?? "External request").navigationBarTitleDisplayMode(.inline)
+            if let status=model.executionStatus{Section{ProgressView(L10n.text(status))}}
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle(L10n.text(model.draft?.service.title ?? "External request")).navigationBarTitleDisplayMode(.inline)
             .onAppear{payload=model.draft?.text ?? ""}
             .interactiveDismissDisabled(model.financialBusy)
     }
@@ -448,7 +478,9 @@ private struct DisclosureSheet:View {
 
 private struct ActivitySheet:View {
     @ObservedObject var model:CompanionModel
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         List{
             if let pending=model.pendingExecution {
                 Section("Awaiting confirmation"){

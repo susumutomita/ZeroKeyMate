@@ -101,7 +101,7 @@ final class WalletService: ObservableObject {
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
             throw ProductError.unavailable("Owner approval requires your device passcode or Face ID.")
         }
-        guard try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) else { throw ProductError.cancelled }
+        guard try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: L10n.text(reason)) else { throw ProductError.cancelled }
     }
     private var signingDomain: EthereumRpcRequest.EIP712TypedData.EIP712Domain {
         .init(name: "ZeroKey Mate", version: "1", chainId: Int(configuration.chainID), verifyingContract: configuration.vault)

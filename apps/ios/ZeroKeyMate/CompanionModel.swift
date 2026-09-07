@@ -183,7 +183,7 @@ final class CompanionModel:ObservableObject {
             }
             do {
                 let response=try await self.conversation.reply(to:input,history:history,
-                    observations:self.sensors.currentObservation,notes:notes)
+                    observations:self.sensors.currentObservation,notes:notes,replyLanguage:L10n.language.name)
                 try Task.checkCancellation()
                 guard self.foreground,self.conversationGeneration==generation else{return}
                 self.messages.append(ConversationMessage(isUser:false,text:response.text))
@@ -219,7 +219,7 @@ final class CompanionModel:ObservableObject {
             let response=try await network.providers(service:service)
             guard draft?.id==draftID, foreground, !sleeping else{return}
             guard response.providers.allSatisfy({$0.service==service.rawValue && UInt64($0.price) != nil}) else{throw ProductError.invalidResponse}
-            providers=response.providers;discoveryEvidence="The Graph · block \(response.indexedBlock)"
+            providers=response.providers;discoveryEvidence=L10n.format("The Graph · block %@",response.indexedBlock)
             if providers.isEmpty{throw ProductError.unavailable("No active provider meets these requirements. No preset alternative will be substituted.")}
         }catch{if draft?.id==draftID,foreground,!sleeping{errorMessage=error.localizedDescription}}
     }
@@ -263,7 +263,7 @@ final class CompanionModel:ObservableObject {
             let signature=try await wallet.signGrant(grant,validateApproval:validateApproval)
             let pending=PendingGrant(grant:grant,policy:policy,signature:signature)
             try LocalSecrets.write(pending,key:configuration.stateKey("pending-grant"))
-            executionStatus="Registering the mandate on \(configuration.networkName)"
+            executionStatus=L10n.format("Registering the mandate on %@",L10n.text(configuration.networkName))
             try await finishGrant(pending)
         }catch{errorMessage=error.localizedDescription}
     }
@@ -296,7 +296,7 @@ final class CompanionModel:ObservableObject {
         do {
             executionStatus="Verifying signature"
             let hash=try await wallet.send(operation,validateApproval:validateApproval)
-            executionStatus="Waiting for \(configuration.networkName) confirmation"
+            executionStatus=L10n.format("Waiting for %@ confirmation",L10n.text(configuration.networkName))
             _=try await rpc.confirm(hash:hash)
             if case .revoke=operation{try LocalSecrets.delete(configuration.stateKey("active-mandate"));mandate=nil}
             await refreshAccount()

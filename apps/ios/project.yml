@@ -1,6 +1,7 @@
 name: ZeroKeyMate
 options:
   bundleIdPrefix: com.zerokeymate
+  developmentLanguage: en
   deploymentTarget:
     iOS: '26.0'
   xcodeVersion: '26.3'

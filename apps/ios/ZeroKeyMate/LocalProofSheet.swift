@@ -44,8 +44,8 @@ struct LocalProofSheet: View {
                 Section("Verified on this device") {
                     Label("Original proof accepted", systemImage: "checkmark.shield")
                     Label("Modified proof rejected", systemImage: "xmark.shield")
-                    LabeledContent("Prove + verify", value: "\(evidence.proof.elapsedMilliseconds) ms")
-                    LabeledContent("Proof size", value: "\(evidence.proof.bytes.count) bytes")
+                    LabeledContent("Prove + verify", value: L10n.format("%lld ms",evidence.proof.elapsedMilliseconds))
+                    LabeledContent("Proof size", value: L10n.format("%lld bytes",evidence.proof.bytes.count))
                     Text("Measured on this device for this run. Modified-proof checking is excluded from the time above.").font(.footnote)
                 }.accessibilityIdentifier("local-proof-evidence")
                 Section("Verify independently") {
@@ -89,7 +89,7 @@ struct LocalProofSheet: View {
                     Text("Discarding hides the result. A native call already in progress must finish.").font(.caption)
                 }
                 if let message = model.message {
-                    Text(message).font(.footnote).accessibilityIdentifier("local-proof-message")
+                    Text(L10n.text(message)).font(.footnote).accessibilityIdentifier("local-proof-message")
                 }
             }
             .frame(maxWidth: .infinity).padding().background(.regularMaterial)

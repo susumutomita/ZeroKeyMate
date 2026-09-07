@@ -86,6 +86,36 @@ final class ProductUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Original proof accepted"].exists)
         capture("07-local-proof-preflight")
     }
+    func testLanguageSwitchPersistsAndLocalProofRefusalIsTranslated() {
+        let app=launch()
+        app.buttons["open-settings"].tap()
+        let picker=app.segmentedControls["app-language"]
+        XCTAssertTrue(picker.waitForExistence(timeout:5))
+        picker.buttons["日本語"].tap()
+        XCTAssertTrue(app.navigationBars["設定"].waitForExistence(timeout:5))
+        closeSheet(app)
+        XCTAssertTrue(app.staticTexts["休憩しています。"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["カメラ停止"].exists)
+        tapPadding(app.buttons["open-local-proof"])
+        let permission=app.switches["翻訳を許可"]
+        XCTAssertTrue(permission.waitForExistence(timeout:5))
+        permission.coordinate(withNormalizedOffset:CGVector(dx:0.9,dy:0.5)).tap()
+        expectation(for:NSPredicate(format:"value == %@","0"),evaluatedWith:permission)
+        waitForExpectations(timeout:5)
+        app.buttons["generate-local-proof"].tap()
+        XCTAssertTrue(app.staticTexts["証明は生成していません。このサービスは許可されていません。"].waitForExistence(timeout:5))
+        capture("08-japanese-proof-refusal")
+        closeSheet(app)
+        app.terminate();app.launch()
+        XCTAssertTrue(app.staticTexts["カメラ停止"].waitForExistence(timeout:15))
+        app.buttons["open-settings"].tap()
+        XCTAssertTrue(app.navigationBars["設定"].waitForExistence(timeout:5))
+        app.segmentedControls["app-language"].buttons["English"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout:5))
+        closeSheet(app)
+        XCTAssertTrue(app.staticTexts["Taking a rest."].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["Camera off"].exists)
+    }
     func testLandscapeControlsAreNotClipped() {
         let app = launch()
         XCUIDevice.shared.orientation = .landscapeLeft

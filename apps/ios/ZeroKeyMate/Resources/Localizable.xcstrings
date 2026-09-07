@@ -1,0 +1,4630 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Language": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語"
+          }
+        }
+      }
+    },
+    "App language": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App language"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリの言語"
+          }
+        }
+      }
+    },
+    "Changing language stops voice and camera. Tap Talk or Start camera when you are ready to resume.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changing language stops voice and camera. Tap Talk or Start camera when you are ready to resume."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語を変更すると音声とカメラが停止します。再開するときは「話す」または「カメラを開始」を押してください。"
+          }
+        }
+      }
+    },
+    "Activity": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activity"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行履歴"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閉じる"
+          }
+        }
+      }
+    },
+    "Please check": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please check"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認してください"
+          }
+        }
+      }
+    },
+    "Taking a rest.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taking a rest."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休憩しています。"
+          }
+        }
+      }
+    },
+    "Thinking.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thinking."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "考えています。"
+          }
+        }
+      }
+    },
+    "Thinking": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thinking"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "考えています"
+          }
+        }
+      }
+    },
+    "Listening.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聞いています。"
+          }
+        }
+      }
+    },
+    "Preparing voice input.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing voice input."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力を準備しています。"
+          }
+        }
+      }
+    },
+    "Speaking.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speaking."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話しています。"
+          }
+        }
+      }
+    },
+    "I'm here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I'm here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここにいるよ。"
+          }
+        }
+      }
+    },
+    "Mate's expression": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mate's expression"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateの表情"
+          }
+        }
+      }
+    },
+    "Try private rules on this device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try private rules on this device"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末で秘密のルールを証明"
+          }
+        }
+      }
+    },
+    "Review %@ request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review %@ request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@の依頼を確認"
+          }
+        }
+      }
+    },
+    "Type a message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type a message"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字で入力"
+          }
+        }
+      }
+    },
+    "Wake Mate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wake Mate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateを起こす"
+          }
+        }
+      }
+    },
+    "Stop continuous conversation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop continuous conversation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連続会話を停止"
+          }
+        }
+      }
+    },
+    "Cancel voice startup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel voice startup"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声の開始をキャンセル"
+          }
+        }
+      }
+    },
+    "Finish voice input": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish voice input"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力を終了"
+          }
+        }
+      }
+    },
+    "Talk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話す"
+          }
+        }
+      }
+    },
+    "Rest and stop camera and microphone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rest and stop camera and microphone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "休憩してカメラとマイクを停止"
+          }
+        }
+      }
+    },
+    "Camera on · On-device processing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera on · On-device processing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラ動作中・端末内で処理"
+          }
+        }
+      }
+    },
+    "Camera starting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera starting"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラを開始中"
+          }
+        }
+      }
+    },
+    "Camera stopping": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera stopping"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラを停止中"
+          }
+        }
+      }
+    },
+    "Camera off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera off"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラ停止"
+          }
+        }
+      }
+    },
+    "Camera OFF": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera OFF"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラ停止"
+          }
+        }
+      }
+    },
+    "Camera ON · On-device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera ON · On-device"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラ動作中・端末内で処理"
+          }
+        }
+      }
+    },
+    "Dock connected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock connected"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンド接続中"
+          }
+        }
+      }
+    },
+    "Where shall we start?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where shall we start?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "何から始めましょう？"
+          }
+        }
+      }
+    },
+    "This conversation stays on your iPhone. Before asking an external service, review the text and price.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This conversation stays on your iPhone. Before asking an external service, review the text and price."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会話はiPhone内に留まります。外部サービスへ依頼する前に、送る文章と料金を確認します。"
+          }
+        }
+      }
+    },
+    "You": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなた"
+          }
+        }
+      }
+    },
+    "Message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Message"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メッセージ"
+          }
+        }
+      }
+    },
+    "Send": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信"
+          }
+        }
+      }
+    },
+    "Conversation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話"
+          }
+        }
+      }
+    },
+    "Senses": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senses"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラと音声"
+          }
+        }
+      }
+    },
+    "Camera": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラ"
+          }
+        }
+      }
+    },
+    "Stop camera": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop camera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラを停止"
+          }
+        }
+      }
+    },
+    "Waiting for camera to stop": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for camera to stop"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラの停止を待っています"
+          }
+        }
+      }
+    },
+    "Start camera": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start camera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラを開始"
+          }
+        }
+      }
+    },
+    "Detects broad object categories and face positions, not identity. Video is never saved or sent externally.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detects broad object categories and face positions, not identity. Video is never saved or sent externally."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大まかな物の種類と顔の位置を認識します。本人確認は行いません。映像を保存したり外部へ送ったりしません。"
+          }
+        }
+      }
+    },
+    "Read replies aloud": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read replies aloud"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返答を読み上げる"
+          }
+        }
+      }
+    },
+    "Continuous conversation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuous conversation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連続会話"
+          }
+        }
+      }
+    },
+    "When enabled, tap Talk to resume on-device voice input after each reply. Stop, Rest, backgrounding the app or undocking ends the session.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When enabled, tap Talk to resume on-device voice input after each reply. Stop, Rest, backgrounding the app or undocking ends the session."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効にして「話す」を押すと、返答の後に端末内の音声入力を再開します。停止・休憩・バックグラウンド移行・スタンド取り外しで終了します。"
+          }
+        }
+      }
+    },
+    "Delegation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delegation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行の委任"
+          }
+        }
+      }
+    },
+    "Your rules": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your rules"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたのルール"
+          }
+        }
+      }
+    },
+    "Wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォレット"
+          }
+        }
+      }
+    },
+    "Mate's name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mate's name"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateの名前"
+          }
+        }
+      }
+    },
+    "Request external translation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request external translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部へ翻訳を依頼"
+          }
+        }
+      }
+    },
+    "Request external summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request external summary"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部へ要約を依頼"
+          }
+        }
+      }
+    },
+    "Local notes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local notes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内のメモ"
+          }
+        }
+      }
+    },
+    "What should Mate remember?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What should Mate remember?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateに覚えておいてほしいこと"
+          }
+        }
+      }
+    },
+    "Save notes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save notes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモを保存"
+          }
+        }
+      }
+    },
+    "Stored in this iPhone's Keychain. Never shared with external providers or published to ENS.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored in this iPhone's Keychain. Never shared with external providers or published to ENS."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneのKeychainに保存します。外部の提供者やENSへ公開しません。"
+          }
+        }
+      }
+    },
+    "Connections": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connections"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続"
+          }
+        }
+      }
+    },
+    "Configure connection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure connection"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続を設定"
+          }
+        }
+      }
+    },
+    "On-device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内"
+          }
+        }
+      }
+    },
+    "Check availability": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check availability"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用可否を確認"
+          }
+        }
+      }
+    },
+    "Payment network": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment network"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決済ネットワーク"
+          }
+        }
+      }
+    },
+    "Wallet setup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet setup"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォレット設定"
+          }
+        }
+      }
+    },
+    "External execution setup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "External execution setup"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部実行の設定"
+          }
+        }
+      }
+    },
+    "Configured": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configured"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定済み"
+          }
+        }
+      }
+    },
+    "Not configured": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not configured"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未設定"
+          }
+        }
+      }
+    },
+    "On-device proving": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device proving"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の証明生成"
+          }
+        }
+      }
+    },
+    "Available": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用可能"
+          }
+        }
+      }
+    },
+    "Unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unavailable"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用不可"
+          }
+        }
+      }
+    },
+    "Voice input starts only when you tap Talk and is transcribed on-device. Tap again to cancel, even while permissions are being requested.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice input starts only when you tap Talk and is transcribed on-device. Tap again to cancel, even while permissions are being requested."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「話す」を押したときだけ音声入力を開始し、端末内で文字にします。権限の確認中も、もう一度押すとキャンセルできます。"
+          }
+        }
+      }
+    },
+    "ZK verifies private spending rules. Payment recipients and amounts are public. The current settlement design trusts the signature of the server that verifies the proof.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZK verifies private spending rules. Payment recipients and amounts are public. The current settlement design trusts the signature of the server that verifies the proof."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZKは非公開の支出ルールへの適合を証明します。支払先と金額は公開されます。現在の決済は、証明を検証するサーバーの署名を信頼する設計です。"
+          }
+        }
+      }
+    },
+    "Clear conversation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear conversation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話を消去"
+          }
+        }
+      }
+    },
+    "You set\nthe boundaries.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You set\nthe boundaries."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "できることは、\nあなたが決める。"
+          }
+        }
+      }
+    },
+    "Your budget and permissions stay on this device. The external execution service receives a proof that the request meets those rules.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your budget and permissions stay on this device. The external execution service receives a proof that the request meets those rules."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予算と許可の内容は端末内に留まります。外部の実行サービスには、依頼がそのルールに適合する証明を送ります。"
+          }
+        }
+      }
+    },
+    "Current mandate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current mandate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の委任"
+          }
+        }
+      }
+    },
+    "Spending limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spending limit"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出上限"
+          }
+        }
+      }
+    },
+    "Spent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spent"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出済み"
+          }
+        }
+      }
+    },
+    "Expires": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expires"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効期限"
+          }
+        }
+      }
+    },
+    "Refresh spending": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh spending"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出を更新"
+          }
+        }
+      }
+    },
+    "Revoke this mandate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoke this mandate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この委任を取り消す"
+          }
+        }
+      }
+    },
+    "New mandate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New mandate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい委任"
+          }
+        }
+      }
+    },
+    "Translation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳"
+          }
+        }
+      }
+    },
+    "Summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要約"
+          }
+        }
+      }
+    },
+    "Valid for %lld hours": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valid for %lld hours"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効期間：%lld時間"
+          }
+        }
+      }
+    },
+    "No limit increases, redelegation or arbitrary contract calls are allowed. Device authentication is required before signing.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No limit increases, redelegation or arbitrary contract calls are allowed. Device authentication is required before signing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限の増額・再委任・任意のコントラクト呼び出しは許可しません。署名前に端末認証が必要です。"
+          }
+        }
+      }
+    },
+    "Approve these terms": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve these terms"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この条件を承認"
+          }
+        }
+      }
+    },
+    "Recover pending mandate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recover pending mandate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認待ちの委任を復元"
+          }
+        }
+      }
+    },
+    "%@ test USDC only. Do not send real funds. Your owner wallet and Mate's execution key are separate.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ test USDC only. Do not send real funds. Your owner wallet and Mate's execution key are separate."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のテストUSDC専用です。実資金を送らないでください。所有者ウォレットとMateの実行キーは別々です。"
+          }
+        }
+      }
+    },
+    "Connect with Privy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect with Privy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privyで接続"
+          }
+        }
+      }
+    },
+    "Email address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールアドレス"
+          }
+        }
+      }
+    },
+    "Verification code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verification code"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認コード"
+          }
+        }
+      }
+    },
+    "Sign in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログイン"
+          }
+        }
+      }
+    },
+    "Send verification code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send verification code"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認コードを送信"
+          }
+        }
+      }
+    },
+    "Set up owner and Mate wallets": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up owner and Mate wallets"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有者とMateのウォレットを作成"
+          }
+        }
+      }
+    },
+    "Owner": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owner"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有者"
+          }
+        }
+      }
+    },
+    "Execution account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Execution account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行用口座"
+          }
+        }
+      }
+    },
+    "Refresh balances": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh balances"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残高を更新"
+          }
+        }
+      }
+    },
+    "Mate's execution key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mate's execution key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateの実行キー"
+          }
+        }
+      }
+    },
+    "Manage funds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage funds"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資金を管理"
+          }
+        }
+      }
+    },
+    "Amount (test USDC)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amount (test USDC)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "金額（テストUSDC）"
+          }
+        }
+      }
+    },
+    "1. Approve this deposit amount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Approve this deposit amount"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. この入金額を承認"
+          }
+        }
+      }
+    },
+    "2. Deposit into execution account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. Deposit into execution account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. 実行用口座へ入金"
+          }
+        }
+      }
+    },
+    "Return to owner wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return to owner wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有者ウォレットへ返金"
+          }
+        }
+      }
+    },
+    "Deposits are public and separate from your private spending limit. For example, deposit 20 USDC and set a spending limit of 5 USDC.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits are public and separate from your private spending limit. For example, deposit 20 USDC and set a spending limit of 5 USDC."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入金額は公開され、非公開の支出上限とは別です。例えば20 USDCを入金し、支出上限を5 USDCに設定できます。"
+          }
+        }
+      }
+    },
+    "Give your companion a name.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Give your companion a name."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相棒に名前を付けよう。"
+          }
+        }
+      }
+    },
+    "An ENSv2 subname points to Mate's address. Only the name, address and a short introduction are public.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An ENSv2 subname points to Mate's address. Only the name, address and a short introduction are public."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ENSv2のサブネームをMateのアドレスに結び付けます。名前・アドレス・短い紹介文だけが公開されます。"
+          }
+        }
+      }
+    },
+    "Registered": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registered"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登録済み"
+          }
+        }
+      }
+    },
+    "New name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New name"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい名前"
+          }
+        }
+      }
+    },
+    "e.g. amedama": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. amedama"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例：amedama"
+          }
+        }
+      }
+    },
+    "Use 3–32 letters, digits or hyphens. You manage the name; it points to Mate's address.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use 3–32 letters, digits or hyphens. You manage the name; it points to Mate's address."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英数字とハイフンで3〜32文字にしてください。名前はあなたが管理し、Mateのアドレスを指します。"
+          }
+        }
+      }
+    },
+    "Registration lasts one year. The parent domain administrator can also change or remove the name.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registration lasts one year. The parent domain administrator can also change or remove the name."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登録期間は1年です。親ドメインの管理者も名前の変更や削除ができます。"
+          }
+        }
+      }
+    },
+    "Sign and register name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign and register name"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "署名して名前を登録"
+          }
+        }
+      }
+    },
+    "Configure the ENS parent domain before registering a name.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure the ENS parent domain before registering a name."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を登録する前にENSの親ドメインを設定してください。"
+          }
+        }
+      }
+    },
+    "A name does not prove trustworthiness or payment authority. Approval binds the resolved address and transaction details, not the name alone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A name does not prove trustworthiness or payment authority. Approval binds the resolved address and transaction details, not the name alone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前は信頼性や支払い権限の証明ではありません。承認は名前だけでなく、解決されたアドレスと取引内容に結び付きます。"
+          }
+        }
+      }
+    },
+    "Only this text\nleaves your device.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only this text\nleaves your device."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末から送るのは、\nこの文章だけ。"
+          }
+        }
+      }
+    },
+    "This text is sent with the recipient, price, signature and proof. Conversation history, camera video, local notes and your total budget are not sent. Remove any unnecessary personal information.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This text is sent with the recipient, price, signature and proof. Conversation history, camera video, local notes and your total budget are not sent. Remove any unnecessary personal information."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この文章を宛先・料金・署名・証明とともに送ります。会話履歴・カメラ映像・端末内メモ・予算総額は送りません。不要な個人情報は取り除いてください。"
+          }
+        }
+      }
+    },
+    "Before a paid request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before a paid request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有料の依頼を始める前に"
+          }
+        }
+      }
+    },
+    "Connect to your execution service before making paid requests. Local ZK works without this connection.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to your execution service before making paid requests. Local ZK works without this connection."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有料の依頼には実行サービスへの接続が必要です。ローカルZKは未接続でも利用できます。"
+          }
+        }
+      }
+    },
+    "Connect execution service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect execution service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行サービスに接続"
+          }
+        }
+      }
+    },
+    "1. Set up and fund your wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Set up and fund your wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. ウォレットを作成して入金"
+          }
+        }
+      }
+    },
+    "2. Approve your private spending rules": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. Approve your private spending rules"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. 非公開の支出ルールを承認"
+          }
+        }
+      }
+    },
+    "Check wallet funds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check wallet funds"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォレット残高を確認"
+          }
+        }
+      }
+    },
+    "Spending mandate available": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spending mandate available"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出の委任があります"
+          }
+        }
+      }
+    },
+    "The current mandate and remaining allowance are checked again before proof generation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current mandate and remaining allowance are checked again before proof generation."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明を生成する前に、現在の委任と残りの上限を再確認します。"
+          }
+        }
+      }
+    },
+    "Text to share": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text to share"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信する文章"
+          }
+        }
+      }
+    },
+    "Provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提供者"
+          }
+        }
+      }
+    },
+    "Searching live registrations": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching live registrations"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の登録情報を検索中"
+          }
+        }
+      }
+    },
+    "%@ USDC · %lld feedback entries": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ USDC · %lld feedback entries"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ USDC・評価%lld件"
+          }
+        }
+      }
+    },
+    "Find providers": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find providers"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提供者を探す"
+          }
+        }
+      }
+    },
+    "Candidates come from current registrations on The Graph. Feedback counts alone do not guarantee safety.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidates come from current registrations on The Graph. Feedback counts alone do not guarantee safety."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Graphの現在の登録情報から候補を探します。評価件数だけで安全性が保証されるわけではありません。"
+          }
+        }
+      }
+    },
+    "Payment recipient": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment recipient"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払先"
+          }
+        }
+      }
+    },
+    "The proof and signature bind this address, price and text. The recipient cannot change after approval.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proof and signature bind this address, price and text. The recipient cannot change after approval."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明と署名を、このアドレス・料金・文章に結び付けます。承認後に宛先を変えることはできません。"
+          }
+        }
+      }
+    },
+    "Executing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Executing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中"
+          }
+        }
+      }
+    },
+    "Send this text and request service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send this text and request service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この文章を送って依頼"
+          }
+        }
+      }
+    },
+    "Complete the setup steps above, then return to review this saved request.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete the setup steps above, then return to review this saved request."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上の設定を済ませてから、保存されたこの依頼の確認に戻ってください。"
+          }
+        }
+      }
+    },
+    "External request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "External request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部への依頼"
+          }
+        }
+      }
+    },
+    "Awaiting confirmation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Awaiting confirmation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認待ち"
+          }
+        }
+      }
+    },
+    "The result is not confirmed yet. If the service has not received the request, retry with the same saved signature and request ID. New payments are paused.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The result is not confirmed yet. If the service has not received the request, retry with the same saved signature and request ID. New payments are paused."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果はまだ確定していません。サービスが未受信なら、保存済みの同じ署名と依頼IDで再試行します。新しい支払いは停止中です。"
+          }
+        }
+      }
+    },
+    "Check result": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check result"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果を確認"
+          }
+        }
+      }
+    },
+    "Cancel if no payment was sent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel if no payment was sent"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未払いならキャンセル"
+          }
+        }
+      }
+    },
+    "No executions yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No executions yet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行履歴はまだありません。"
+          }
+        }
+      }
+    },
+    "Only requests with a verified proof and confirmed testnet payment are recorded here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only requests with a verified proof and confirmed testnet payment are recorded here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明を検証し、テストネットの支払いが確定した依頼だけを記録します。"
+          }
+        }
+      }
+    },
+    "Confirmed execution": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed execution"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確定した実行"
+          }
+        }
+      }
+    },
+    "Total spent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total spent"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出合計"
+          }
+        }
+      }
+    },
+    "View confirmed transaction": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View confirmed transaction"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確定した取引を表示"
+          }
+        }
+      }
+    },
+    "Prove permission.\nKeep your rules private.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prove permission.\nKeep your rules private."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可を証明する。\nルールは秘密のまま。"
+          }
+        }
+      }
+    },
+    "Create and verify a real ProveKit proof on this device. After installation, this exercise also works in airplane mode.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create and verify a real ProveKit proof on this device. After installation, this exercise also works in airplane mode."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末で本物のProveKit証明を生成・検証します。インストール後は機内モードでも試せます。"
+          }
+        }
+      }
+    },
+    "Offline proof exercise · No payment or signature": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline proof exercise · No payment or signature"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインの証明体験・支払いや署名は行いません"
+          }
+        }
+      }
+    },
+    "1. Private inputs — stay on this device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Private inputs — stay on this device"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. 秘密の入力 — 端末内に留める"
+          }
+        }
+      }
+    },
+    "Allow translation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳を許可"
+          }
+        }
+      }
+    },
+    "Your limit, full permission set and random secret salt are private circuit inputs. A fresh salt prevents guessing a small budget from its commitment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your limit, full permission set and random secret salt are private circuit inputs. A fresh salt prevents guessing a small budget from its commitment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限・許可の全体・ランダムな秘密のソルトは回路への非公開入力です。新しいソルトにより、コミットメントから少額の予算を推測することを防ぎます。"
+          }
+        }
+      }
+    },
+    "2. Public request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. Public request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. 公開する依頼"
+          }
+        }
+      }
+    },
+    "Translation price": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation price"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳料金"
+          }
+        }
+      }
+    },
+    "Translation · Previously spent: 0 USDC": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation · Previously spent: 0 USDC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳・支出済み：0 USDC"
+          }
+        }
+      }
+    },
+    "This exercise generates a fresh request ID and uses example Sepolia addresses. It cannot authorize a payment. In the payment flow, the proof binds the actual network, vault, recipient, price, text hash, expiry and replay ID.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This exercise generates a fresh request ID and uses example Sepolia addresses. It cannot authorize a payment. In the payment flow, the proof binds the actual network, vault, recipient, price, text hash, expiry and replay ID."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この体験では新しい依頼IDと例示用のSepoliaアドレスを使います。支払いを承認するものではありません。決済時の証明は実際のネットワーク・Vault・宛先・料金・文章ハッシュ・有効期限・再実行防止IDに結び付きます。"
+          }
+        }
+      }
+    },
+    "Verified on this device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verified on this device"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末で検証済み"
+          }
+        }
+      }
+    },
+    "Original proof accepted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original proof accepted"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の証明を検証しました"
+          }
+        }
+      }
+    },
+    "Modified proof rejected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modified proof rejected"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改ざんした証明を拒否しました"
+          }
+        }
+      }
+    },
+    "Prove + verify": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prove + verify"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成＋検証"
+          }
+        }
+      }
+    },
+    "Proof size": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proof size"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明のサイズ"
+          }
+        }
+      }
+    },
+    "%lld bytes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld bytes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lldバイト"
+          }
+        }
+      }
+    },
+    "%lld ms": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ms"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lldミリ秒"
+          }
+        }
+      }
+    },
+    "Measured on this device for this run. Modified-proof checking is excluded from the time above.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Measured on this device for this run. Modified-proof checking is excluded from the time above."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今回この端末で測定した値です。上の時間に改ざん証明の検査は含みません。"
+          }
+        }
+      }
+    },
+    "Verify independently": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verify independently"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別の環境で検証"
+          }
+        }
+      }
+    },
+    "Export only the proof and its embedded public inputs. Your private rule values and salt are not included. Anyone with this circuit's matching verifier key can verify the file.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export only the proof and its embedded public inputs. Your private rule values and salt are not included. Anyone with this circuit's matching verifier key can verify the file."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明と、それに含まれる公開入力だけを書き出します。秘密のルールの値とソルトは含みません。この回路に一致する検証キーを持つ人ならファイルを検証できます。"
+          }
+        }
+      }
+    },
+    "Share proof file": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share proof file"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明ファイルを共有"
+          }
+        }
+      }
+    },
+    "Prepare proof file for sharing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare proof file for sharing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有する証明ファイルを準備"
+          }
+        }
+      }
+    },
+    "What a verifier sees": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What a verifier sees"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検証者に見えるもの"
+          }
+        }
+      }
+    },
+    "Policy commitment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Policy commitment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルールのコミットメント"
+          }
+        }
+      }
+    },
+    "Request commitment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request commitment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依頼のコミットメント"
+          }
+        }
+      }
+    },
+    "A payment verifier also receives the public request, price and prior spending. Successful requests can reveal a lower bound on your budget. ZK does not hide public payments or encrypt the text sent to a provider.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A payment verifier also receives the public request, price and prior spending. Successful requests can reveal a lower bound on your budget. ZK does not hide public payments or encrypt the text sent to a provider."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決済の検証者は依頼・料金・支出済み額も受け取ります。成功した依頼から予算の下限が推測される場合があります。ZKは公開された支払いを隠したり、提供者への文章を暗号化したりするものではありません。"
+          }
+        }
+      }
+    },
+    "Use private rules for a real request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use private rules for a real request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実際の依頼にルールを使う"
+          }
+        }
+      }
+    },
+    "Review a translation request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review a translation request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳の依頼を確認"
+          }
+        }
+      }
+    },
+    "The paid flow requires a configured execution service, wallet funds and a separately approved mandate. This offline exercise does not create that approval.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The paid flow requires a configured execution service, wallet funds and a separately approved mandate. This offline exercise does not create that approval."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有料の実行には実行サービスの設定・ウォレット残高・別途承認した委任が必要です。このオフライン体験でその承認は作成されません。"
+          }
+        }
+      }
+    },
+    "Try the boundary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try the boundary"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可の境界を試す"
+          }
+        }
+      }
+    },
+    "Set the price above your limit, or turn off translation. Mate refuses to generate a proof at preflight. That local refusal is separate from the cryptographic modified-proof check above.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set the price above your limit, or turn off translation. Mate refuses to generate a proof at preflight. That local refusal is separate from the cryptographic modified-proof check above."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "料金を上限より高くするか、翻訳の許可を外してください。Mateは事前チェックで証明の生成を拒否します。この拒否は、上の暗号学的な改ざん証明の検査とは別です。"
+          }
+        }
+      }
+    },
+    "Settlement currently relies on the server verifier's signed attestation; the vault does not verify ProveKit proofs directly. This exercise demonstrates the native circuit, not server or blockchain enforcement.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settlement currently relies on the server verifier's signed attestation; the vault does not verify ProveKit proofs directly. This exercise demonstrates the native circuit, not server or blockchain enforcement."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の決済はサーバー検証者の署名付き証明結果を信頼します。VaultはProveKit証明を直接検証しません。この体験はネイティブ回路を示し、サーバーやブロックチェーンの強制力を示すものではありません。"
+          }
+        }
+      }
+    },
+    "Generate and verify proof": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate and verify proof"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明を生成して検証"
+          }
+        }
+      }
+    },
+    "Computing on this device…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Computing on this device…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末で計算中…"
+          }
+        }
+      }
+    },
+    "Discard this run": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard this run"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今回の結果を破棄"
+          }
+        }
+      }
+    },
+    "Discarding hides the result. A native call already in progress must finish.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discarding hides the result. A native call already in progress must finish."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "破棄すると結果を表示しません。実行中のネイティブ処理は終了まで続きます。"
+          }
+        }
+      }
+    },
+    "Local ZK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local ZK"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルZK"
+          }
+        }
+      }
+    },
+    "Result discarded. Native computation may still be finishing.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Result discarded. Native computation may still be finishing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果を破棄しました。ネイティブ計算は終了処理中の場合があります。"
+          }
+        }
+      }
+    },
+    "No proof generated. ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No proof generated. "
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明は生成していません。"
+          }
+        }
+      }
+    },
+    "Execution service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Execution service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行サービス"
+          }
+        }
+      }
+    },
+    "HTTPS API URL": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTPS API URL"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTPSのAPI URL"
+          }
+        }
+      }
+    },
+    "Installation pairing token": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installation pairing token"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続用トークン"
+          }
+        }
+      }
+    },
+    "Use the token from your private .env file. An iPhone needs an HTTPS endpoint reachable from the phone; Simulator can use localhost.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the token from your private .env file. An iPhone needs an HTTPS endpoint reachable from the phone; Simulator can use localhost."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非公開の.envファイルにあるトークンを使います。iPhoneから到達できるHTTPS接続先が必要です。Simulatorではlocalhostを使えます。"
+          }
+        }
+      }
+    },
+    "Settlement": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settlement"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決済"
+          }
+        }
+      }
+    },
+    "Test network": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test network"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テストネットワーク"
+          }
+        }
+      }
+    },
+    "HTTPS RPC URL": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTPS RPC URL"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTPSのRPC URL"
+          }
+        }
+      }
+    },
+    "Deployed MateVault address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deployed MateVault address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デプロイ済みMateVaultのアドレス"
+          }
+        }
+      }
+    },
+    "The service's network, vault and token must match. Changing networks clears the vault field to avoid reusing another deployment's address.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The service's network, vault and token must match. Changing networks clears the vault field to avoid reusing another deployment's address."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスのネットワーク・Vault・トークンが一致する必要があります。ネットワーク変更時は別のデプロイ先を再利用しないようVault欄を空にします。"
+          }
+        }
+      }
+    },
+    "Privy app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privy app"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privyアプリ"
+          }
+        }
+      }
+    },
+    "App ID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App ID"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリID"
+          }
+        }
+      }
+    },
+    "iOS client ID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS client ID"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOSクライアントID"
+          }
+        }
+      }
+    },
+    "Use public app identifiers, never an app secret or wallet private key.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use public app identifiers, never an app secret or wallet private key."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開用のアプリ識別子を使ってください。アプリのシークレットやウォレットの秘密鍵は入力しません。"
+          }
+        }
+      }
+    },
+    "Check connection and save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check connection and save"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続を確認して保存"
+          }
+        }
+      }
+    },
+    "Checking service and network…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking service and network…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスとネットワークを確認中…"
+          }
+        }
+      }
+    },
+    "Settings stay in this device's Keychain. Saving stops camera and voice input and reconnects the wallet; it never signs a payment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings stay in this device's Keychain. Saving stops camera and voice input and reconnects the wallet; it never signs a payment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定はこの端末のKeychainに保存します。保存時はカメラと音声入力を停止してウォレットへ再接続します。支払いの署名はしません。"
+          }
+        }
+      }
+    },
+    "Connection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続設定"
+          }
+        }
+      }
+    },
+    "Arc Testnet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arc Testnet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arcテストネット"
+          }
+        }
+      }
+    },
+    "Sepolia testnet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sepolia testnet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sepoliaテストネット"
+          }
+        }
+      }
+    },
+    "Unsupported network": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsupported network"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未対応のネットワーク"
+          }
+        }
+      }
+    },
+    "The operation was cancelled.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The operation was cancelled."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作をキャンセルしました。"
+          }
+        }
+      }
+    },
+    "Wait for the current operation to finish, then try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for the current operation to finish, then try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の操作が終わってから再度お試しください。"
+          }
+        }
+      }
+    },
+    "The response could not be verified. The operation has not been marked complete.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The response could not be verified. The operation has not been marked complete."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "応答を検証できませんでした。操作は完了扱いになっていません。"
+          }
+        }
+      }
+    },
+    "Enter a positive amount with up to six decimal places.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a positive amount with up to six decimal places."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小数点以下6桁以内の正の金額を入力してください。"
+          }
+        }
+      }
+    },
+    "The address or identifier format is invalid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The address or identifier format is invalid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アドレスまたは識別子の形式が正しくありません。"
+          }
+        }
+      }
+    },
+    "The execution details are invalid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The execution details are invalid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行内容が正しくありません。"
+          }
+        }
+      }
+    },
+    "The mandate terms are invalid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The mandate terms are invalid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "委任の条件が正しくありません。"
+          }
+        }
+      }
+    },
+    "The mandate is missing, expired or its spending state changed. Refresh your rules.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The mandate is missing, expired or its spending state changed. Refresh your rules."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "委任がないか、有効期限切れか、支出状況が変わっています。ルールを更新してください。"
+          }
+        }
+      }
+    },
+    "The mandate was revoked or its owner could not be verified.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The mandate was revoked or its owner could not be verified."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "委任が取り消されているか、所有者を検証できませんでした。"
+          }
+        }
+      }
+    },
+    "The required signature could not be verified.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The required signature could not be verified."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必要な署名を検証できませんでした。"
+          }
+        }
+      }
+    },
+    "This request exceeds the approved spending limit.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This request exceeds the approved spending limit."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この依頼は承認済みの支出上限を超えています。"
+          }
+        }
+      }
+    },
+    "This service is not allowed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This service is not allowed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このサービスは許可されていません。"
+          }
+        }
+      }
+    },
+    "Secure storage is unavailable. Unlock your device and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secure storage is unavailable. Unlock your device and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全な保存領域を利用できません。端末のロックを解除して再度お試しください。"
+          }
+        }
+      }
+    },
+    "Proof resources are missing. Run make proofs, then rebuild.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proof resources are missing. Run make proofs, then rebuild."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明用のリソースがありません。make proofsを実行してビルドし直してください。"
+          }
+        }
+      }
+    },
+    "The on-device proof runtime is not installed. Run make native-runtime and make proofs, then rebuild.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The on-device proof runtime is not installed. Run make native-runtime and make proofs, then rebuild."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の証明ランタイムが未導入です。make native-runtimeとmake proofsを実行してビルドし直してください。"
+          }
+        }
+      }
+    },
+    "Checking proof runtime.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking proof runtime."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明ランタイムを確認中です。"
+          }
+        }
+      }
+    },
+    "This device does not support on-device conversation. Use an Apple Intelligence-compatible iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device does not support on-device conversation. Use an Apple Intelligence-compatible iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末は端末内会話に対応していません。Apple Intelligence対応のiPhoneを使ってください。"
+          }
+        }
+      }
+    },
+    "Enable Apple Intelligence in Settings. Conversation will not fall back to the cloud.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable Apple Intelligence in Settings. Conversation will not fall back to the cloud."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定でApple Intelligenceを有効にしてください。会話をクラウドへ切り替えることはありません。"
+          }
+        }
+      }
+    },
+    "The on-device conversation model is being prepared. Try again after the model download finishes.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The on-device conversation model is being prepared. Try again after the model download finishes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の会話モデルを準備中です。ダウンロード後に再度お試しください。"
+          }
+        }
+      }
+    },
+    "The on-device conversation model is unavailable. Nothing is automatically sent to the cloud.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The on-device conversation model is unavailable. Nothing is automatically sent to the cloud."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の会話モデルを利用できません。クラウドへ自動送信することはありません。"
+          }
+        }
+      }
+    },
+    "Microphone access is not allowed. You can still type a message.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone access is not allowed. You can still type a message."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイクの使用が許可されていません。文字で入力できます。"
+          }
+        }
+      }
+    },
+    "Voice input requires microphone and speech recognition permissions. You can still use the keyboard.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice input requires microphone and speech recognition permissions. You can still use the keyboard."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力にはマイクと音声認識の許可が必要です。キーボードは引き続き使えます。"
+          }
+        }
+      }
+    },
+    "On-device speech recognition is unavailable for the selected language. Continue with the keyboard; audio will not be sent to the cloud.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device speech recognition is unavailable for the selected language. Continue with the keyboard; audio will not be sent to the cloud."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択した言語の端末内音声認識を利用できません。キーボードで続けてください。音声をクラウドへ送ることはありません。"
+          }
+        }
+      }
+    },
+    "Could not read the microphone input format.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read the microphone input format."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイクの入力形式を読み取れませんでした。"
+          }
+        }
+      }
+    },
+    "Voice input was interrupted. You can continue with the keyboard.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice input was interrupted. You can continue with the keyboard."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力が中断されました。キーボードで続けられます。"
+          }
+        }
+      }
+    },
+    "Could not start reading aloud.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not start reading aloud."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み上げを開始できませんでした。"
+          }
+        }
+      }
+    },
+    "Camera access is not allowed. You can change this in iPhone Settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera access is not allowed. You can change this in iPhone Settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラの使用が許可されていません。iPhoneの設定で変更できます。"
+          }
+        }
+      }
+    },
+    "Could not start the camera. Check whether another app is using it and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not start the camera. Check whether another app is using it and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラを開始できませんでした。他のアプリが使用していないか確認し、再度お試しください。"
+          }
+        }
+      }
+    },
+    "The camera was interrupted. Tap Start camera to resume.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera was interrupted. Tap Start camera to resume."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラが中断されました。「カメラを開始」を押すと再開します。"
+          }
+        }
+      }
+    },
+    "The front camera is unavailable. Try a physical iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The front camera is unavailable. Try a physical iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前面カメラを利用できません。実機のiPhoneで試してください。"
+          }
+        }
+      }
+    },
+    "DockKit is unavailable in this environment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DockKit is unavailable in this environment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この環境ではDockKitを利用できません。"
+          }
+        }
+      }
+    },
+    "DockKit is unavailable in this environment. Test the stand on a physical iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DockKit is unavailable in this environment. Test the stand on a physical iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この環境ではDockKitを利用できません。実機のiPhoneでスタンドを試してください。"
+          }
+        }
+      }
+    },
+    "Configure your Privy App ID and iOS Client ID. No wallet has been created yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure your Privy App ID and iOS Client ID. No wallet has been created yet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PrivyのアプリIDとiOSクライアントIDを設定してください。ウォレットはまだ作成していません。"
+          }
+        }
+      }
+    },
+    "Privy credentials changed. Close and restart the app to use the saved connection settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privy credentials changed. Close and restart the app to use the saved connection settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privyの識別子を変更しました。保存した設定を使うにはアプリを終了して起動し直してください。"
+          }
+        }
+      }
+    },
+    "Sign in with your email first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in with your email first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先にメールアドレスでログインしてください。"
+          }
+        }
+      }
+    },
+    "The registered owner wallet could not be found. Its key will not be replaced automatically.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The registered owner wallet could not be found. Its key will not be replaced automatically."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登録済みの所有者ウォレットが見つかりません。キーを自動的に置き換えることはありません。"
+          }
+        }
+      }
+    },
+    "The registered execution key could not be found. Revoke the mandate before setting it up again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The registered execution key could not be found. Revoke the mandate before setting it up again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登録済みの実行キーが見つかりません。委任を取り消してから再設定してください。"
+          }
+        }
+      }
+    },
+    "Owner approval requires your device passcode or Face ID.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owner approval requires your device passcode or Face ID."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有者の承認には端末のパスコードまたはFace IDが必要です。"
+          }
+        }
+      }
+    },
+    "Authorize Mate to act under the displayed terms": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authorize Mate to act under the displayed terms"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示した条件でMateが実行することを承認"
+          }
+        }
+      }
+    },
+    "The execution wallet is not configured.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The execution wallet is not configured."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行用ウォレットが未設定です。"
+          }
+        }
+      }
+    },
+    "Register this name for Mate's public address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Register this name for Mate's public address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateの公開アドレスにこの名前を登録"
+          }
+        }
+      }
+    },
+    "Complete signing and settlement connection setup first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete signing and settlement connection setup first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先に署名と決済の接続設定を完了してください。"
+          }
+        }
+      }
+    },
+    "Approve only the displayed test USDC deposit amount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve only the displayed test USDC deposit amount"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示したテストUSDCの入金額だけを承認"
+          }
+        }
+      }
+    },
+    "Deposit test USDC into the execution account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposit test USDC into the execution account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行用口座へテストUSDCを入金"
+          }
+        }
+      }
+    },
+    "Return test USDC to the owner's wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return test USDC to the owner's wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有者ウォレットへテストUSDCを返金"
+          }
+        }
+      }
+    },
+    "Revoke Mate's mandate on-chain": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoke Mate's mandate on-chain"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックチェーン上でMateの委任を取り消す"
+          }
+        }
+      }
+    },
+    "Unlock your phone and reopen Mate to restore pending operations first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock your phone and reopen Mate to restore pending operations first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneのロックを解除し、Mateを開き直して確認待ちの操作を復元してください。"
+          }
+        }
+      }
+    },
+    "Recover the pending execution before changing connections.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recover the pending execution before changing connections."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続を変更する前に確認待ちの実行を復元してください。"
+          }
+        }
+      }
+    },
+    "Recover the pending mandate before changing connections.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recover the pending mandate before changing connections."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続を変更する前に確認待ちの委任を復元してください。"
+          }
+        }
+      }
+    },
+    "Enter a supported testnet, matching USDC token, vault and pairing token.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a supported testnet, matching USDC token, vault and pairing token."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応するテストネットと、一致するUSDC・Vault・接続用トークンを入力してください。"
+          }
+        }
+      }
+    },
+    "Keep notes within 2,000 bytes.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep notes within 2,000 bytes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモは2,000バイト以内にしてください。"
+          }
+        }
+      }
+    },
+    "Keep each message within 2,200 characters.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep each message within 2,200 characters."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メッセージは2,200文字以内にしてください。"
+          }
+        }
+      }
+    },
+    "Wake Mate before making a request.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wake Mate before making a request."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依頼する前にMateを起こしてください。"
+          }
+        }
+      }
+    },
+    "No active provider meets these requirements. No preset alternative will be substituted.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No active provider meets these requirements. No preset alternative will be substituted."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "条件を満たす有効な提供者がいません。用意した代替候補へ置き換えることはありません。"
+          }
+        }
+      }
+    },
+    "Set up your wallet and settlement connection first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up your wallet and settlement connection first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先にウォレットと決済の接続を設定してください。"
+          }
+        }
+      }
+    },
+    "Revoke the current mandate before changing its terms.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoke the current mandate before changing its terms."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "条件を変更する前に現在の委任を取り消してください。"
+          }
+        }
+      }
+    },
+    "A mandate is awaiting confirmation. Recover it and check its status first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mandate is awaiting confirmation. Recover it and check its status first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認待ちの委任があります。先に復元して状態を確認してください。"
+          }
+        }
+      }
+    },
+    "Checking approved terms": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking approved terms"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認済みの条件を確認中"
+          }
+        }
+      }
+    },
+    "Verifying owner approval": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying owner approval"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有者の承認を検証中"
+          }
+        }
+      }
+    },
+    "There is no pending mandate.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is no pending mandate."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認待ちの委任はありません。"
+          }
+        }
+      }
+    },
+    "A transaction is awaiting confirmation. Check Activity before retrying to avoid duplicate execution.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A transaction is awaiting confirmation. Check Activity before retrying to avoid duplicate execution."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認待ちの取引があります。二重実行を避けるため、再試行の前に履歴を確認してください。"
+          }
+        }
+      }
+    },
+    "Verifying signature": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying signature"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "署名を検証中"
+          }
+        }
+      }
+    },
+    "Check the mandate, provider and text to share.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the mandate, provider and text to share."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "委任・提供者・送信する文章を確認してください。"
+          }
+        }
+      }
+    },
+    "Generating a proof on this iPhone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating a proof on this iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneで証明を生成中"
+          }
+        }
+      }
+    },
+    "Signing with the restricted execution key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signing with the restricted execution key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "制限付きの実行キーで署名中"
+          }
+        }
+      }
+    },
+    "Sending approved text and confirming execution": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending approved text and confirming execution"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認した文章を送信して実行を確認中"
+          }
+        }
+      }
+    },
+    "Could not restore the request. Check whether it can be cancelled before payment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not restore the request. Check whether it can be cancelled before payment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依頼を復元できませんでした。支払い前にキャンセルできるか確認してください。"
+          }
+        }
+      }
+    },
+    "The execution service is not configured. Check the connection settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The execution service is not configured. Check the connection settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行サービスが未設定です。接続設定を確認してください。"
+          }
+        }
+      }
+    },
+    "The connected network does not match this installation. Signing and payment have been stopped.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The connected network does not match this installation. Signing and payment have been stopped."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続したネットワークが設定と一致しません。署名と支払いを停止しました。"
+          }
+        }
+      }
+    },
+    "The proof does not match this request. No new payment was authorized.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proof does not match this request. No new payment was authorized."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明がこの依頼と一致しません。新しい支払いは承認されていません。"
+          }
+        }
+      }
+    },
+    "The provider, recipient or price changed. Review a fresh quote.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The provider, recipient or price changed. Review a fresh quote."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提供者・宛先・料金が変わっています。新しい見積もりを確認してください。"
+          }
+        }
+      }
+    },
+    "This execution was cancelled. Review a new request to continue.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This execution was cancelled. Review a new request to continue."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この実行はキャンセル済みです。続けるには新しい依頼を確認してください。"
+          }
+        }
+      }
+    },
+    "The transaction reverted. It has not been recorded as successful.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The transaction reverted. It has not been recorded as successful."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取引が取り消されました。成功として記録していません。"
+          }
+        }
+      }
+    },
+    "The Circle proof attestor is unavailable. Check its testnet login and configured wallet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Circle proof attestor is unavailable. Check its testnet login and configured wallet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Circleの証明結果署名者を利用できません。テストネットへのログインと設定したウォレットを確認してください。"
+          }
+        }
+      }
+    },
+    "Provider discovery is unavailable. Check the service's Graph connection.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider discovery is unavailable. Check the service's Graph connection."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提供者を検索できません。サービスのGraph接続を確認してください。"
+          }
+        }
+      }
+    },
+    "The execution service could not complete this request. Check Activity before retrying a payment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The execution service could not complete this request. Check Activity before retrying a payment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行サービスがこの依頼を完了できませんでした。支払いを再試行する前に履歴を確認してください。"
+          }
+        }
+      }
+    },
+    "Use HTTPS for external services. Localhost is allowed only for Simulator connections to this Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use HTTPS for external services. Localhost is allowed only for Simulator connections to this Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部サービスにはHTTPSを使ってください。localhostはSimulatorからこのMacへの接続に限ります。"
+          }
+        }
+      }
+    },
+    "The execution service uses a different network or vault. These settings have not been saved.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The execution service uses a different network or vault. These settings have not been saved."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行サービスのネットワークまたはVaultが異なります。設定は保存していません。"
+          }
+        }
+      }
+    },
+    "Settlement RPC is not configured.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settlement RPC is not configured."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決済用RPCが未設定です。"
+          }
+        }
+      }
+    },
+    "Could not verify the operation through Settlement RPC.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not verify the operation through Settlement RPC."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決済用RPCで操作を確認できませんでした。"
+          }
+        }
+      }
+    },
+    "The transaction was submitted, but confirmation is pending. Check its history before sending again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The transaction was submitted, but confirmation is pending. Check its history before sending again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取引を送信しましたが、まだ確定していません。再送する前に履歴を確認してください。"
+          }
+        }
+      }
+    },
+    "Registering the mandate on %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registering the mandate on %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@に委任を登録中"
+          }
+        }
+      }
+    },
+    "Waiting for %@ confirmation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for %@ confirmation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@の確定を待っています"
+          }
+        }
+      }
+    },
+    "The Graph · block %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Graph · block %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Graph・ブロック%@"
+          }
+        }
+      }
+    },
+    "Could not connect to the external service (HTTP %lld).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not connect to the external service (HTTP %lld)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部サービスへ接続できませんでした（HTTP %lld）。"
+          }
+        }
+      }
+    },
+    "Could not verify tracking settings: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not verify tracking settings: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追跡設定を確認できませんでした：%@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

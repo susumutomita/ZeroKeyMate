@@ -83,7 +83,7 @@ actor NetworkService {
         guard let http=response as? HTTPURLResponse,data.count < 2_000_000 else {throw ProductError.invalidResponse}
         guard (200..<300).contains(http.statusCode) else {
             if let failure=try? JSONDecoder().decode(Failure.self,from:data) {throw NetworkFailure(code:failure.error,message:failure.message)}
-            throw ProductError.unavailable("Could not connect to the external service (HTTP \(http.statusCode)).")
+            throw ProductError.unavailable(L10n.format("Could not connect to the external service (HTTP %lld).",http.statusCode))
         }
         return try JSONDecoder().decode(Response.self,from:data)
     }

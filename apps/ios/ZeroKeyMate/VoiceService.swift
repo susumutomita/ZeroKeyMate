@@ -38,9 +38,9 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
         }
         guard generation==token else{return}
         guard microphone,speech == .authorized else {errorMessage="Voice input requires microphone and speech recognition permissions. You can still use the keyboard.";return}
-        guard let recognizer=SFSpeechRecognizer(locale:Locale(identifier:"en-US")),recognizer.isAvailable,
+        guard let recognizer=SFSpeechRecognizer(locale:Locale(identifier:L10n.language.speechLocale)),recognizer.isAvailable,
               recognizer.supportsOnDeviceRecognition else {
-            errorMessage="English on-device speech recognition is unavailable. Continue with the keyboard; audio will not be sent to the cloud.";return
+            errorMessage="On-device speech recognition is unavailable for the selected language. Continue with the keyboard; audio will not be sent to the cloud.";return
         }
         do {
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord,mode:.measurement,options:[.defaultToSpeaker,.allowBluetoothHFP])
@@ -89,7 +89,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             try AVAudioSession.sharedInstance().setCategory(.playback,mode:.spokenAudio)
             try AVAudioSession.sharedInstance().setActive(true)
             let utterance=AVSpeechUtterance(string:text)
-            utterance.voice=AVSpeechSynthesisVoice(language:"en-US");utterance.rate=0.49
+            utterance.voice=AVSpeechSynthesisVoice(language:L10n.language.speechLocale);utterance.rate=0.49
             currentUtterance=utterance;speaking=true;synthesizer.speak(utterance)
         }catch{errorMessage="Could not start reading aloud."}
     }
