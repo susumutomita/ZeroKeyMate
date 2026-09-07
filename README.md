@@ -62,15 +62,27 @@ cd ZeroKeyMate
 npm ci --ignore-scripts
 npm run configure
 make test
-make build-ios
-./mate --simulator
 ```
+
+For your connected iPhone (build, sign, install and launch):
+
+```sh
+make start
+```
+
+For an iPhone Simulator instead:
+
+```sh
+make start-simulator
+```
+
+For the physical phone, connect it over USB, unlock it, trust this Mac and enable Developer Mode. The launcher selects a single connected, paired iPhone running iOS 26+ and a single signing Team from the Mac's valid Apple Development identities. If there is more than one, specify `MATE_DEVICE_UDID=UDID make start` and/or `MATE_DEVELOPMENT_TEAM=TEAM_ID make start`. `make help` lists both modes. It never silently switches from a phone to a Simulator.
 
 `configure` creates an ignored `.env` containing local pairing/journal keys and preserves an existing file. It does not create wallets, fund an account or deploy contracts. A fresh clone can open the UI without payment credentials. Source-only builds explicitly disable proving and paid execution until the real runtime and circuit are built.
 
 The UI is currently Japanese. Keyboard opens conversation, microphone starts speech, moon stops camera/microphone and rests, sliders open settings, and clock opens activity. On-device conversation requires an eligible Apple Intelligence device/model; unavailable models are reported without a cloud fallback.
 
-For a physical iPhone, run `make project`, open `apps/ios/ZeroKeyMate.xcodeproj`, select your Signing Team and run. DockKit requires compatible physical hardware. Detailed configuration is in [setup (日本語)](docs/setup.md) and [`.env.example`](.env.example).
+If a signing identity is missing, run `make project`, open `apps/ios/ZeroKeyMate.xcodeproj`, and configure your Apple Account/Signing Team in Xcode before retrying. DockKit requires compatible physical hardware. These make targets launch the native app; API/provider startup is still separate. Detailed configuration is in [setup (日本語)](docs/setup.md) and [`.env.example`](.env.example).
 
 ## Reproduce the proof and payment demo
 

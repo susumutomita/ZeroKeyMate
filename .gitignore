@@ -19,3 +19,4 @@ apps/ios/ZeroKeyMate/Resources/Selectors.json
 !.env.example
 *.p12
 *.mobileprovision
+__pycache__/

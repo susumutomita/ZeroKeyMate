@@ -30,6 +30,8 @@ Rust verifier versions/checksums are in services/verifier/Cargo.lock. [dependenc
 
 ## API contracts consulted
 
+- User-designated launch-workflow reference: [TenkaCloudPassport Makefile](https://github.com/susumutomita/TenkaCloudPassport/blob/e7b3a1a55d18b1911bb7ef44f88b8f10618842fa/Makefile) and its `start` / `ios` package commands, consulted with explicit user authorization on 2026-09-07. The repository is public and its [Apache-2.0 license](https://github.com/susumutomita/TenkaCloudPassport/blob/e7b3a1a55d18b1911bb7ef44f88b8f10618842fa/LICENSE) was reviewed. Only the make-based launch entry-point workflow was used as a reference; Mate retains its Swift/Xcode build and uses no Expo runtime or copied application implementation. Device discovery/install commands were checked against the installed Xcode `devicectl --help`; signing-team detection uses the matching development certificate's subject OU.
+
 - [Apple DockKit](https://developer.apple.com/documentation/dockkit), [connection changes](https://developer.apple.com/documentation/dockkit/dockaccessorymanager/accessorystatechanges), [system tracking](https://developer.apple.com/documentation/dockkit/dockaccessorymanager/setsystemtrackingenabled(_:)).
 - [AVCaptureSession](https://developer.apple.com/documentation/avfoundation/avcapturesession), [Foundation Models](https://developer.apple.com/documentation/foundationmodels), [on-device speech](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition).
 - [Apple privacy manifest data declarations](https://developer.apple.com/documentation/bundleresources/describing-data-use-in-privacy-manifests).

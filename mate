@@ -11,10 +11,10 @@ while [[ $# -gt 0 ]]; do
     --verify) MODE=verify; shift ;;
     --readiness) MODE=readiness; shift ;;
     --device)
-      [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo 'A device UDID is required.' >&2;exit 2; }
+      [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo 'A device UDID or auto is required.' >&2;exit 2; }
       DEVICE="$2";shift 2 ;;
     --simulator) DEVICE="";shift ;;
-    --help) printf '%s\n' './mate [--simulator | --device UDID] [--verify | --readiness]';exit 0 ;;
+    --help) printf '%s\n' 'make start: connected iPhone; make start-simulator: iPhone Simulator' './mate [--simulator | --device auto|UDID] [--verify | --readiness]';exit 0 ;;
     *) echo "Unknown argument: $1" >&2;exit 2 ;;
   esac
 done
@@ -35,17 +35,29 @@ if [[ "$MODE" == verify ]]; then
   exit 0
 fi
 if [[ -n "$DEVICE" ]]; then
-  [[ "${MATE_DEVELOPMENT_TEAM:-}" =~ ^[A-Z0-9]{10}$ ]] || { echo 'Set MATE_DEVELOPMENT_TEAM for the paired, unlocked iPhone.' >&2;exit 1; }
+  echo '接続中のiPhoneと署名用Teamを確認しています。'
+  # Keep assignment separate from export so a failed selector stops this script.
+  MATE_DEVELOPMENT_TEAM="$(python3 scripts/device-launch.py team)"
+  export MATE_DEVELOPMENT_TEAM
+  DEVICE="$(python3 scripts/device-launch.py device "$DEVICE")"
   make project
   export VERITY_SWIFT_SDK_MODE=source-only
   if [[ "${MATE_PROOF_RUNTIME:-auto}" != source-only && -f .tools/verity/output/Verity.xcframework/mate-runtime.json ]]; then export VERITY_SWIFT_SDK_MODE=native;fi
+  extra=(-IDEPackageSupportDisableManifestSandbox=NO)
+  if [[ "${MATE_NESTED_SANDBOX:-0}" == 1 ]]; then
+    extra=(-IDEPackageSupportDisableManifestSandbox=YES 'OTHER_SWIFT_FLAGS=$(inherited) -disable-sandbox')
+  fi
+  echo 'iPhone用アプリをビルド・署名しています。'
   xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug \
     -destination "id=$DEVICE" -derivedDataPath .build/NativeDevice \
     -clonedSourcePackagesDirPath "$ROOT/.build/SourcePackages" \
-    "DEVELOPMENT_TEAM=$MATE_DEVELOPMENT_TEAM" -allowProvisioningUpdates build
+    -packageCachePath "$ROOT/.build/PackageCache" -disablePackageRepositoryCache "${extra[@]}" \
+    "DEVELOPMENT_TEAM=$MATE_DEVELOPMENT_TEAM" -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
   APP="$ROOT/.build/NativeDevice/Build/Products/Debug-iphoneos/ZeroKeyMate.app"
-  xcrun devicectl device install app --device "$DEVICE" "$APP"
-  xcrun devicectl device process launch --device "$DEVICE" com.zerokeymate.companion
+  echo 'iPhoneへインストールしています。'
+  xcrun devicectl --timeout 120 device install app --device "$DEVICE" "$APP"
+  echo 'iPhoneでMateを起動しています。'
+  xcrun devicectl --timeout 30 device process launch --device "$DEVICE" com.zerokeymate.companion
 else
   make build-ios
   ID="$(python3 scripts/select-simulator.py)"

@@ -18,13 +18,23 @@ Apple Silicon Mac、Xcode 26以降、Node.js 22.16以降の22系または24系�
 npm ci --ignore-scripts
 npm run configure          # 既存の .env は上書きしません
 make test
-make build-ios
-./mate --simulator
+```
+
+手元のiPhoneへビルド・インストール・起動する場合：
+
+```sh
+make start
+```
+
+Simulatorで起動する場合：
+
+```sh
+make start-simulator
 ```
 
 画面・会話・カメラの開始にウォレットや決済の設定は不要です。会話にはApple Intelligence対応端末と利用可能な端末内モデルが必要です。カメラは設定の「開始」、マイクは「話す」で初めて起動します。「続けて話す」は個別に有効化した場合だけ、開始後の返答に続いて音声入力を再開します。
 
-実機では `make project` 後に `apps/ios/ZeroKeyMate.xcodeproj` を開き、Signing Teamを設定して実行します。設定済みなら `MATE_DEVELOPMENT_TEAM=チームID ./mate --device UDID` も使えます。DockKitの接続・追尾は実機でのみ検証できます。
+実機はUSB接続・ロック解除・Macの信頼・Developer Modeの有効化が必要です。接続済みiPhoneと署名用Teamが1つずつなら自動選択します。複数ある場合は `MATE_DEVICE_UDID=UDID MATE_DEVELOPMENT_TEAM=チームID make start` で指定します。署名用証明書がない場合は `make project` 後に `apps/ios/ZeroKeyMate.xcodeproj` を開き、XcodeでApple AccountとSigning Teamを設定してください。DockKitの接続・追尾は実機でのみ検証できます。APIと専門サービスは別途起動します。
 
 ## 外部への依頼
 

@@ -28,6 +28,16 @@ The existing [parent issue #4](https://github.com/susumutomita/ZeroKeyMate/issue
 
 Relevant source: [`mate`](../mate), [`CompanionModel.swift`](../apps/ios/ZeroKeyMate/CompanionModel.swift), [`AppConfiguration.swift`](../apps/ios/ZeroKeyMate/AppConfiguration.swift), [`ConversationService.swift`](../apps/ios/ZeroKeyMate/ConversationService.swift), [`DockService.swift`](../apps/ios/ZeroKeyMate/DockService.swift), and [`MateView.swift`](../apps/ios/ZeroKeyMate/MateView.swift). The local terminal demo does not exercise these unfinished mobile workflows.
 
+## Two launch modes — 2026-09-07
+
+`make start` now selects a connected iOS 26+ iPhone and a signing Team, builds/signs, installs and launches the native app. `make start-simulator` uses the existing Simulator path. `make start-device` is an alias for the phone mode. Multiple devices/Teams require explicit selection. The user-designated public TenkaCloudPassport workflow was consulted for the make entry points; provenance is in [SOURCES](SOURCES.md).
+
+Local `make test SWIFT_TEST_FLAGS=--disable-sandbox` passed **46 tests: Swift 19, Node 22, launcher unit tests 5**. The launcher tests use labeled metadata fixtures to check ambiguous/offline/unpaired/old-OS device rejection and Team selection; they are not installation evidence. `CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios` passed. Shell syntax, `make help`, and dry-run dispatch for both start targets also passed.
+
+The actual signing-Team selector succeeded using this Mac's valid development identity and its matching certificate's subject OU. No private signing key was exported. An actual `make start` attempt then failed while querying CoreDeviceService, **before device build, installation or launch**. Direct `devicectl list devices` also reported that its CoreDeviceService connection was invalidated and timed out. The phone's connection state could not be established from that failure.
+
+Xcode GUI inspection was attempted as well, but the Computer Use tool returned `Computer Use was not approved to use Xcode`. The earlier Simulator GUI denial remains unresolved; no new local Simulator runtime success is claimed. The make entry points and SDK build are verified; installation and launch on the user's physical iPhone remain blocked in this execution environment. Logs: `.build/validation/tests-start.log`, `ios-build-start.log`, and `device-start.log`.
+
 ## 実行した検査
 
 | 検査 | 結果と範囲 |
