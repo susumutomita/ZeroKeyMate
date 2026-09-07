@@ -18,3 +18,9 @@ The images demonstrate presentation and the tested home-to-Rest UI transition. T
 ## English home and Rest
 
 `home-english.png` and `rest-english.png` are unmodified attachments from the passing `testPortraitHomeDoesNotStartSensorsAndControlsRemainAccessible` test in [CI run 34130391198](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34130391198), commit `07e7a96`. The bundle is `acceptance-20260907T140245Z.xcresult`; iPhone 17 Pro / iOS Simulator 26.2. Attachment UUIDs are `5EFA0068-72CC-4AB9-B2B9-D38E4C40C985` (home) and `A9BB25B5-C837-4FE4-A0E9-C4ACE1CAD8D7` (Rest). The home accessibility audit passed. That run failed a different proof-screen toggle test, subsequently corrected; these images do not claim a wholly passing run or native proving.
+
+## Face-only home — 2026-09-08
+
+`face-home.png` and `face-rest.png` are unmodified XCTest attachments from `.build/validation/face-ui.xcresult` on iPhone 17 / iOS Simulator 26.5. Attachment UUIDs: `A33FAD34-3375-4F17-B465-4423C1CAF6DF` (face-only home) and `CEF64E6D-1174-4275-8A43-58DB8AFE7573` (Rest). Both corresponding tests passed, including absence of visible home text and the controls accessibility audit. Six UI tests passed; the native proof UI test timed out in that first run. These images establish presentation, not physical gaze or DockKit motion.
+
+The timed-out native UI case subsequently passed in `face-proof-retry.xcresult` after adding an explicit wait for the presented action to become hittable. This was a focused one-test rerun.

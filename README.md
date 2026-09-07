@@ -9,11 +9,11 @@ Mate is designed to keep everyday conversation on your iPhone. When you ask a sp
 [日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Delivery schedule](docs/schedule.md) · [Arc setup](docs/arc-setup.md) · [Prize strategy](docs/prize-strategy.md) · [Interim report](docs/interim-report.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
 
 <p align="center">
-  <img src="docs/assets/home-english.png" width="260" alt="English Mate home: local proof entry, conversation controls and camera off.">
-  <img src="docs/assets/rest-english.png" width="260" alt="Mate resting after the Rest control is pressed, with the camera stopped.">
+  <img src="docs/assets/face-home.png" width="260" alt="Mate home showing only two eyes, without visible text or a toolbar.">
+  <img src="docs/assets/face-rest.png" width="260" alt="Mate resting after the Rest control is pressed, with the camera stopped.">
 </p>
 
-The screenshots above are earlier English Simulator captures, before the face-only home screen update. They show the local-proof entry point, not proof-generation results.
+The home screen is Mate’s face: no visible text or toolbar. Tap the face to open controls; touch and hold to rest.
 
 <p align="center"><em>Actual iOS Simulator captures: home → Rest. These screens do not demonstrate live conversation, DockKit tracking or a payment. <a href="docs/assets/README.md">Capture provenance</a>.</em></p>
 

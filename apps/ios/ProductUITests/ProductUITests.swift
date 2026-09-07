@@ -104,7 +104,11 @@ final class ProductUITests: XCTestCase {
 #if MATE_NATIVE_PROOFS
         let app=launch()
         tapPadding(app.buttons["open-local-proof"])
-        app.buttons["generate-local-proof"].tap()
+        let generate = app.buttons["generate-local-proof"]
+        XCTAssertTrue(generate.waitForExistence(timeout: 5))
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: generate)
+        waitForExpectations(timeout: 5)
+        generate.tap()
         XCTAssertTrue(app.descendants(matching:.any)["local-proof-ready"].waitForExistence(timeout:120))
         func fullyVisible(_ element:XCUIElement) -> Bool {
             element.exists && element.isHittable &&
