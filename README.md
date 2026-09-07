@@ -23,6 +23,14 @@ Tap **Try private rules on this device** on the home screen. Enter a private spe
 
 After installation, try it in airplane mode. Change the limit or permission and the previous evidence is cleared. A request outside the rules is rejected at preflight and labeled **No proof generated**; this is distinct from cryptographic rejection of a modified proof. Closing the screen or backgrounding discards its result, although an in-progress native call must finish before resources can be released.
 
+After a successful run, tap **Prepare proof file for sharing**, then **Share proof file** to transfer the actual `.np` file to another computer. Sharing is explicit. Verify it with the matching circuit key from this build:
+
+```sh
+.tools/bin/provekit-cli verify --verifier .build/proofs/mate_policy.pkv --proof /path/to/exported-proof.np
+```
+
+The verifier key must match the bundled setup manifest; using another circuit or setup is not a valid comparison. The proof file contains embedded public inputs, not the private witness. This phone-export round trip still needs physical-device acceptance.
+
 This is an **offline proof exercise**, using fresh request identifiers and example Sepolia addresses, with no payment or wallet signature. The paid execution flow separately binds the actual transaction context. Physical-iPhone measurements and the new screen's runtime acceptance remain pending; a simulator build is not device evidence.
 
 The private budget, allowed-service mask and salt are not sent to a verifier. Public spending and successful requests can still reveal information such as a lower bound on the budget. The current vault trusts the server's signed proof-verification attestation; it does not verify ProveKit directly on-chain.

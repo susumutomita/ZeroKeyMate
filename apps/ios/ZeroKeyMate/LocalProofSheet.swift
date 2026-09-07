@@ -15,14 +15,22 @@ struct LocalProofSheet: View {
                 Text("Offline proof exercise · No payment or signature").font(.caption).foregroundStyle(.secondary)
             }
             Section("1. Private inputs — stay on this device") {
-                TextField("Private spending limit (USDC)", text: $budget)
-                    .keyboardType(.decimalPad).accessibilityIdentifier("proof-budget")
+                HStack {
+                    Text("Spending limit")
+                    TextField("USDC", text: $budget).multilineTextAlignment(.trailing)
+                        .keyboardType(.decimalPad).accessibilityIdentifier("proof-budget")
+                    Text("USDC")
+                }
                 Toggle("Allow translation", isOn: $allowsTranslation)
                 Text("Your limit, full permission set and random secret salt are private circuit inputs. A fresh salt prevents guessing a small budget from its commitment.").font(.footnote)
             }.disabled(model.running)
             Section("2. Public request") {
-                TextField("Translation price (USDC)", text: $amount)
-                    .keyboardType(.decimalPad).accessibilityIdentifier("proof-amount")
+                HStack {
+                    Text("Translation price")
+                    TextField("USDC", text: $amount).multilineTextAlignment(.trailing)
+                        .keyboardType(.decimalPad).accessibilityIdentifier("proof-amount")
+                    Text("USDC")
+                }
                 Text("Translation · Previously spent: 0 USDC")
                 Text("This exercise generates a fresh request ID and uses example Sepolia addresses. It cannot authorize a payment. In the payment flow, the proof binds the actual network, vault, recipient, price, text hash, expiry and replay ID.").font(.footnote)
             }.disabled(model.running)
@@ -45,6 +53,14 @@ struct LocalProofSheet: View {
                     LabeledContent("Proof size", value: "\(evidence.proof.bytes.count) bytes")
                     Text("Measured on this device for this run. Modified-proof checking is excluded from the time above.").font(.footnote)
                 }.accessibilityIdentifier("local-proof-evidence")
+                Section("Verify independently") {
+                    Text("Export only the proof and its embedded public inputs. Your private rule values and salt are not included. Anyone with this circuit's matching verifier key can verify the file.").font(.footnote)
+                    if let url = model.exportURL {
+                        ShareLink("Share proof file", item: url)
+                    } else {
+                        Button("Prepare proof file for sharing") { model.prepareExport() }
+                    }
+                }
                 Section("What a verifier sees") {
                     Text("Policy commitment").font(.caption)
                     Text(evidence.proof.policyHash).font(.system(.caption, design: .monospaced)).textSelection(.enabled)

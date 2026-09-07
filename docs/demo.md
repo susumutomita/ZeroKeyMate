@@ -1,6 +1,8 @@
 # Three-minute demo guide
 
-One story: **approve a bounded translation, obtain its result, then retry without paying twice.** Use the native app for the consent/UI segment and the actual local acceptance harness for the cryptographic/payment segment. The full iPhone-to-live-services flow has not passed acceptance, so do not splice those segments into an apparent live mobile payment.
+One story: **an iPhone proves a paid translation follows a private policy, and another machine can check the proof without receiving that policy.** The new home-screen **Try private rules on this device** entry exercises the production native circuit before any wallet setup. Actual phone performance, export and the complete mobile payment path still require acceptance; do not splice terminal results into an apparent live phone transaction.
+
+Lead with the local proof, not the eyes or stand. Use an installed native build, show airplane mode, enter a private limit and public quote, and generate a proof. Keep the real elapsed time visible. Share the `.np` file explicitly, transfer it to the verification computer and run the README's verification command using the matching setup key. This is the proposed strongest demonstration; it is not yet recorded device evidence. If device acceptance is unavailable, present the terminal proof segment as a terminal segment.
 
 This is a recording plan, not a completed video. [Submission fields](submission.md#submission-fields-still-requiring-the-entrant).
 
@@ -33,13 +35,12 @@ Before recording, verify the target Simulator/device actually opens the app. In 
 
 | Time | Show | Suggested human narration |
 | --- | --- | --- |
-| 0:00–0:20 | Actual app home or attributed CI capture | “This is Mate, an iPhone companion built around your consent. Conversation is designed to stay on the phone. Asking an outside AI for help is a separate decision.” |
-| 0:20–0:45 | Conversation/settings screen; camera stays off. Show Rest only if actually operating the app. | “You choose what to share and approve a spending policy. Docking never starts a recording or a payment. The controls are conversation, Talk and Rest.” |
-| 0:45–1:05 | README architecture and the test's approved sentence | “Let's translate one meeting note. This next segment is our local protocol demo: a real proof and model, with simulated payment on Anvil. Provider discovery uses test data.” |
-| 1:05–1:45 | Run the actual-model `test:local` command and show its real result | “The proof binds this exact text, recipient and amount to an approved policy. The API verifies it; the contract checks authority and replay. The specialist checks the payment event before releasing this translation.” |
-| 1:45–2:15 | Explain the restart/retry assertions in `local.acceptance.mjs` alongside the passing run | “The same test then closes the API and database, starts them again and retrieves this result. It resubmits the original request. The balance is still 9.9 test tokens from an initial 10, and the model ran once.” |
-| 2:15–2:40 | `npm run test:proofs`; show tamper/substitution tests pass | “A modified proof or proof for another action is rejected. The private budget and salt are not part of the public grant; the amount and recipient are public.” |
-| 2:40–3:00 | Validation/status table | “Today this works locally. Hardware and live integrations are next. The vault trusts an off-chain proof attestor. Our contribution is a companion whose paid requests are explicit, bounded and recoverable.” |
+| 0:00–0:20 | Native app's Local ZK screen; actual device and airplane-mode state | “This iPhone can prove a request follows my private spending rules. The verifier does not need my total budget or full permission list.” |
+| 0:20–1:10 | Enter private limit and public price, then run real local proving | “This is our production ProveKit circuit. No wallet is connected for this offline exercise. Here are the actual proof size and time measured on this device.” |
+| 1:10–1:40 | Export the actual proof and verify it on another computer | “This file came from the phone. A separate verifier accepts it with the matching circuit key. The modified copy is rejected by the app's native verifier.” |
+| 1:40–2:00 | Change the permission to forbid translation, then request proof generation | “Mate refuses at preflight. That refusal is not itself a ZK proof. Cryptographic enforcement also requires the circuit and independent verifier.” |
+| 2:00–2:40 | Separately labeled `test:local` result and recovery assertions | “In this local payment simulation, a real proof binds the approved text, recipient and price. The vault prevents replay, and retry retrieves the same result without another payment. Discovery is a fixture.” |
+| 2:40–3:00 | Actual acceptance status and trust boundary | “Our goal is private permission for paid AI requests. Today settlement trusts the server verifier's attestation. Full phone-to-live-service payment and physical hardware acceptance remain open.” |
 
 If the real-model mode was not run, say “model fixture” in the narration and do not display the earlier translation as a new result. Do not imply the test output is a live phone transaction. The 9.9 balance is asserted by the test; it is not currently a dedicated UI or receipt display.
 
@@ -57,12 +58,12 @@ For the UI segment: [home](assets/home-simulator.png), [Rest](assets/rest-simula
 
 ## Video format and judge questions
 
-Target a three-minute, at least 720p desktop capture with the entrant's own narration. Remove idle waits with visible cuts; keep the actual execution order and result. Use screen capture for the iPhone/Simulator rather than filming a display with a phone. The consulted [ETHOnline 2026 guide](https://ethglobal.com/events/ethonline2026/info/details) requires 2–4 minutes and disallows sped-up footage and AI/TTS narration. Confirm the selected event's rules before exporting; no event is selected in this repository yet.
+Target a three-minute, at least 720p desktop capture with the entrant's own narration. Remove idle waits with visible cuts; keep the actual execution order and result. Use screen capture for the iPhone/Simulator rather than filming a display with a phone. The consulted [ETHOnline 2026 guide](https://ethglobal.com/events/ethonline2026/info/details) requires 2–4 minutes and disallows sped-up footage and AI/TTS narration. ETHOnline 2026 is the confirmed event. Recheck the current organizer requirements before exporting.
 
 Be ready to answer:
 
 - **Who enforces the private budget?** The trusted ProveKit verifier/attestor checks it. The contract independently enforces grant/action signatures, expiry, revocation and replay. A colluding attestor and agent can exceed the private budget.
 - **What is private?** Budget, allowed-service mask, salt and local conversation are withheld. The approved text goes to the specialist; payment metadata is public. Server operators can decrypt their journals.
 - **What if the provider disappears after payment?** Stored requests/results support recovery, but this is not escrow and there is no automatic refund.
-- **Why The Graph and ENS?** Live records are intended to select a specialist and verify its named recipient. Their live acceptance is still pending; neither gives spending authority.
+- **Why Arc, Privy and The Graph?** Arc is the planned settlement target, Privy supplies owner and execution wallets, and The Graph supplies provider candidates. Full live acceptance remains pending; provider discovery never gives spending authority. ENS is deferred.
 - **Did this run on DockKit hardware?** No physical acceptance has been recorded. Build, Simulator and local-chain evidence are listed separately.

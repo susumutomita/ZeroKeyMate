@@ -141,3 +141,7 @@ Ran `.tools/bin/provekit-cli prove --prover .build/proofs/mate_policy.pkp --inpu
 - `make test SWIFT_TEST_FLAGS=--disable-sandbox`: passed (19 Swift, 22 Node, 5 Python).
 - `CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios`: passed with the validated native runtime and circuit resources. CoreSimulatorService is unavailable in the managed shell; this does not constitute a simulator launch or physical-device test.
 - Added UI acceptance for the local preflight refusal and extended native proof acceptance to cover the exercise verifier. Their execution on iOS remains pending CI/native-device acceptance; source-only CI cannot execute native ProveKit.
+
+- The offline screen now offers explicit `.np` proof export for independent verification. No private witness is included. The export path builds successfully; a real iPhone-to-PC sharing/verification round trip remains unverified.
+- `npm run test:proofs`: passed all three real Rust verifier checks (valid proof, altered proof rejected, substituted statement rejected).
+- Re-ran `make test SWIFT_TEST_FLAGS=--disable-sandbox` and the native-resource `make build-ios` after adding export: both passed.

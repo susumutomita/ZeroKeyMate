@@ -12,19 +12,38 @@ final class LocalProofModel: ObservableObject {
     @Published private(set) var running = false
     @Published private(set) var evidence: Evidence?
     @Published private(set) var message: String?
+    @Published private(set) var exportURL: URL?
     private let proofs = ProofService()
     private var task: Task<Void, Never>?
     private var generation = UUID()
 
     func invalidate() {
         generation = UUID()
+        clearExport()
         task?.cancel()
         evidence = nil
         message = running ? "Result discarded. Native computation may still be finishing." : nil
     }
 
+    private func clearExport() {
+        if let exportURL { try? FileManager.default.removeItem(at: exportURL) }
+        exportURL = nil
+    }
+
+    func prepareExport() {
+        guard let evidence, !running else { return }
+        do {
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ZeroKeyMateProofs", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = directory.appendingPathComponent("proof-\(evidence.proof.proofHash.dropFirst(2)).np")
+            try evidence.proof.bytes.write(to: url, options: [.atomic, .completeFileProtection])
+            exportURL = url
+        } catch { message = error.localizedDescription }
+    }
+
     func prove(budget: String, amount: String, allowsTranslation: Bool) {
         guard !running else { return }
+        clearExport()
         evidence = nil
         message = nil
         do {
