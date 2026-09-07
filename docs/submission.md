@@ -71,7 +71,7 @@ Codex assisted with implementation, debugging, automated validation and this sub
 | Repository | [ZeroKeyMate](https://github.com/susumutomita/ZeroKeyMate); currently submit the [review branch](https://github.com/susumutomita/ZeroKeyMate/tree/codex/complete-local-runtime) / exact reviewed commit, not an older main. |
 | Demo video | Not recorded/uploaded. [Three-minute script and capture plan](demo.md). |
 | App / deployment link | No public install or live deployment claimed. Provide source/build instructions, and add verified testnet links if deployed. |
-| Partner prizes and feedback | Not selected. Match actual integrations to the selected event's official requirements and record real feedback. |
+| Partner prizes and feedback | Proposed priorities: Privy financial flow, The Graph AI use case, ENSv2 conditional. Event/pool confirmation and live evidence are pending; none selected in the form. See [strategy](prize-strategy.md). |
 | AI/spec workflow disclosure | This document and [development history](development-history.md); add any earlier prompts/specs actually used before final submission. |
 
 ## Official rules to check

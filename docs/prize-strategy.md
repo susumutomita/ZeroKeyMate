@@ -1,0 +1,29 @@
+# Prize strategy
+
+Reviewed 2026-09-07. **Conditional on ETHOnline 2026 being the entrant's actual event. No prize has been selected or submitted in the Hacker Dashboard.** The ordering below is an engineering recommendation based on the current product, not an eligibility determination. Confirm the event and the entrant's Start Fresh/Continuity pool before final selection.
+
+| Priority | Target | Why it fits Mate | Required evidence still missing |
+| --- | --- | --- | --- |
+| 1 | Privy — Best financial flow ($2,500) | Owner authentication and separate owner/agent wallets support the central paid-specialist journey | A real Privy wallet and a working supported financial operation, demonstrated through the app; compile-only adapter evidence is insufficient |
+| 2 | The Graph — Best AI Tooling or AI Use Case with The Graph | Live provider data can determine which specialist the user chooses | A live Graph query affecting provider selection, with actual records and reproducible evidence; local discovery fixtures do not qualify |
+| 3, conditional | ENS — Best Use of ENSv2 | A managed companion subname and checked provider recipient can make names functional parts of the journey | Working ENSv2 on Sepolia, real registration/resolution and a demonstrable product benefit beyond displaying a name |
+
+Official requirements: [Privy](https://ethglobal.com/events/ethonline2026/prizes/privy), [The Graph](https://ethglobal.com/events/ethonline2026/prizes/the-graph), [ENS](https://ethglobal.com/events/ethonline2026/prizes/ens). Graph has separate Start Fresh and Continuity pools. ENS also lists an existing-project integration prize; choose the applicable category only after the entrant's pool and prior work are confirmed.
+
+The first priority is to complete the paid translation journey already central to Mate. Graph is useful only if its records affect a real choice. ENS is the first prize to drop if completing it would jeopardize the core demo. Do not add unrelated sponsor SDKs to fill application slots.
+
+## What we are not claiming
+
+The [World prize page](https://ethglobal.com/events/ethonline2026/prizes/world) describes AgentKit and Selfie Check integrations. Our private-policy ProveKit implementation is not evidence of either. Client-side ZK remains our core technical contribution, but it does not by itself establish eligibility for a World prize. We found no separately named ProveKit prize in the consulted [event prize listing](https://ethglobal.com/events/ethonline2026/prizes).
+
+The current repository targets Sepolia and local Anvil simulation, with no Arc, Ledger Agent Stack or Chainlink CRE workflow demonstrated. Those are not current targets. No standalone Belkin prize was identified in that listing.
+
+## Decision before final submission
+
+1. Confirm the actual event, pool and admissible pre-existing work using the entrant's dashboard and contribution history.
+2. Complete and record the real Privy flow. Keep its wallet and transaction evidence with the final commit.
+3. Demonstrate Graph provider selection on live data; retain a sanitized query/result and the resulting decision.
+4. Include ENS only when its real Sepolia path and central product value are shown.
+5. Draft sponsor feedback from actual integration experience, then choose only supported prizes in the submission form.
+
+Until those gates pass, the interim report should say “proposed targets” and “live acceptance pending.” Missing integration evidence must not become a successful-looking UI or a fabricated transaction.

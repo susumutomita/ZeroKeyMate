@@ -6,7 +6,7 @@ A private iPhone companion that proves each paid AI request follows your rules.
 
 Mate is designed to keep everyday conversation on your iPhone. When you ask a specialist to translate or summarize something, you review the exact text, provider, recipient and price first. A ProveKit proof checks the request against your private spending policy; a narrowly scoped Ethereum vault enforces the signed execution. The language model has no authority to approve a payment.
 
-[日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Delivery schedule](docs/schedule.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
+[日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Delivery schedule](docs/schedule.md) · [Prize strategy](docs/prize-strategy.md) · [Interim report](docs/interim-report.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
 
 <p align="center">
   <img src="docs/assets/home-simulator.png" width="260" alt="Earlier Japanese build of Mate: conversation, talk and rest controls, with the camera stopped.">
