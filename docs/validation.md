@@ -1,8 +1,16 @@
-# 検証記録 — 2026-09-06
+# 検証記録 — 2026-09-07更新
 
 APIと専門サービスの欠けていた実装、iOSの復元・停止操作、起動手順を補完しました。ローカルでの自動検査とiOS SDKビルドは成功しています。実機DockKitと外部サービスのライブ接続は未確認のため、製品全体の受け入れ完了とは扱いません。
 
-検査時点の対象は `8d8b271` を基点とする作業ディレクトリの変更です。環境はApple Silicon、macOS 26.6.2、Xcode 26.6（17F113）、Node.js 24.14.1です。既存のApache-2.0 LICENSEと、別作業のschedulerファイルは変更していません。
+最初の検査対象は `8d8b271` を基点とする作業ディレクトリの変更です。実装は `addcbb1`、アクセシビリティ修正は `cdfb6d0` と `5bbe0f6` で [PR #12](https://github.com/susumutomita/ZeroKeyMate/pull/12) にPushしました。環境はApple Silicon、macOS 26.6.2、Xcode 26.6（17F113）、Node.js 24.14.1です。既存のApache-2.0 LICENSEと、別作業のschedulerファイルは変更していません。
+
+## Latest verified status (English)
+
+The implementation at [`5bbe0f6`](https://github.com/susumutomita/ZeroKeyMate/commit/5bbe0f6) passed [CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34072016837) and [cryptographic acceptance](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34072016883). CI ran `make test`, Simulator/device SDK builds, `make test-ios`, contract tests and the proof checks. Local `make test SWIFT_TEST_FLAGS=--disable-sandbox` and `make build-ios` also passed after the control fix.
+
+The downloaded XCTest bundle confirms **5 passed, 0 failed, 2 skipped** on iPhone 17 Pro / iOS Simulator 26.2. All three UI tests passed, including actual taps in the icon padding and the portrait accessibility audit. The other passes cover Keychain and private-policy exclusion from the signing document. Native proving and scheme loading are the two explicit skips. [Screenshots and bundle provenance](assets/README.md).
+
+The earlier local acceptance covered 57 automated tests, real proofs, actual HTTP/contract execution and restart/retry recovery. An additional evaluation used a real installed Ollama model. Payments were simulated on Anvil; discovery used explicit fixtures. Physical DockKit, on-device proof performance and live Privy/ENS/The Graph/public-Sepolia acceptance are still unverified. Baseline iOS CI is source-only and skips native proof runtime tests. Local Simulator access was blocked, so CI UI evidence is identified separately.
 
 ## 実行した検査
 
@@ -58,7 +66,11 @@ iOSのネイティブライブラリも、このリポジトリの公開ソー�
 
 `addcbb1` に対する [暗号検査CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34037626377) は成功しました。現在の回路ソースを準備する処理もCI上では成功しています。[通常CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34037626382) のenforcementも成功し、iOSではSDKビルド後にSimulator上の7件を実行しました。
 
-iPhone 17 Pro / iOS Simulator 26.2で4件成功、1件失敗、2件skipです。Keychain、署名文書、会話・設定・履歴画面、横向きの操作確認は成功しました。証明ランタイムを含めないCI構成のため、ネイティブ証明の2件は明示的にskipしています。縦画面のアクセシビリティ検査は、上部のブランド名「Mate.」が `Label not human-readable` と判定されて失敗しました。xcresultの要素スクリーンショットで対象を確認し、読み上げ名を「メイト」にする修正を追加しました。この修正後のCI結果はまだ別途確認が必要です。
+iPhone 17 Pro / iOS Simulator 26.2で4件成功、1件失敗、2件skipでした。Keychain、署名文書、会話・設定・履歴画面、横向きの操作確認は成功しました。証明ランタイムを含めないCI構成のため、ネイティブ証明の2件は明示的にskipしています。縦画面のアクセシビリティ検査は、上部のブランド名「Mate.」が `Label not human-readable` と判定されて失敗しました。xcresultの要素スクリーンショットで対象を確認し、読み上げ名を「メイト」にする修正を追加しました。
+
+`cdfb6d0` の [再検査](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34040505670) では縦画面・読み上げ名・Restの検査が成功しました。一方、「文字で話す」のタップ後もホーム画面のままで、会話入力が現れない別の失敗が残りました。xcresultの操作座標と画面階層を確認し、アイコンボタンの透明な余白を含む表示枠全体に `contentShape(Rectangle())` を設定しました。会話ボタンの中央に加えて、会話・設定・履歴ボタンの余白でも画面を開ける検査を追加し、シートを閉じてから次の操作まで実際の消失を待つようにしています。
+
+`5bbe0f6` の [CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34072016837) はiOS・enforcementとも成功し、`make test-ios` まで通過しました。[暗号検査](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34072016883) も成功しました。ローカルでの同じ修正後の `make test SWIFT_TEST_FLAGS=--disable-sandbox` はSwift 19件・Node 22件が成功、`CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios` も終了コード0でした。ログは `.build/validation/tests-submission.log` と `.build/validation/ios-build-submission.log` です。
 
 ローカルではユーザーから起動の許可を受けて `open`、Simulator本体の直接起動、GUI操作ツールを試しました。`open` はLaunchServicesエラー、本体の直接起動は異常終了、GUI操作ツールは `Computer Use was not approved to use Simulator` を返しました。ローカルSimulatorは起動確認できていません。会話での許可と、操作ツール側のSimulator利用許可は別の状態でした。
 

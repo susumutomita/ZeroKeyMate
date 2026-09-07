@@ -2,64 +2,134 @@
 
 **Your companion. Your rules.**
 
-iPhoneとDockKitスタンドで使う、端末内で会話する相棒です。外部へ翻訳・要約を依頼するときは、送る文章・提供者・宛先・料金を確認してから、承認済みの条件を満たすProveKit証明と限定された実行署名を送ります。決済はSepoliaのテストUSDC専用です。
+A private iPhone companion that proves each paid AI request follows your rules.
 
-## 起動
+Mate is designed to keep everyday conversation on your iPhone. When you ask a specialist to translate or summarize something, you review the exact text, provider, recipient and price first. A ProveKit proof checks the request against your private spending policy; a narrowly scoped Ethereum vault enforces the signed execution. The language model has no authority to approve a payment.
 
-Apple Silicon Mac、Xcode 26以降、Node.js 22.16以降の22系または24系が必要です。XcodeGenと固定版Verityの公開ソースはプロジェクト内の `.tools/` に取得します。
+[日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
+
+<p align="center">
+  <img src="docs/assets/home-simulator.png" width="260" alt="Mate's actual Japanese home screen: conversation, talk and rest controls, with the camera stopped.">
+  <img src="docs/assets/rest-simulator.png" width="260" alt="Mate resting after the Rest control is pressed, with the camera stopped.">
+</p>
+
+<p align="center"><em>Actual iOS Simulator captures: home → Rest. These screens do not demonstrate live conversation, DockKit tracking or a payment. <a href="docs/assets/README.md">Capture provenance</a>.</em></p>
+
+## The moment we want to make possible
+
+“Translate this meeting note, but only within the rules I approved.”
+
+1. **Set your rules.** Approve a versioned mandate for a dedicated agent wallet, a budget, allowed services and an expiry.
+2. **Choose what leaves the phone.** Review the text and a specialist's current quote. The conversation history is not attached.
+3. **Prove and execute.** Prove that this specific request fits the committed policy. Verify the proof, owner grant and agent signature before transferring test USDC.
+4. **Get the result, even after a disconnect.** Recover the same signed request and receipt. Retrying a completed request cannot spend again.
+
+The local acceptance test exercises steps 3–4 with a real proof, HTTP services and Solidity contracts. The complete iPhone-to-public-Sepolia flow still needs live acceptance.
+
+## Why Ethereum and zero knowledge?
+
+An assistant's instructions are not a spending boundary. MateVault checks authority, expiry, revocation, spend state and replay on chain. Each action binds the chain, vault, mandate, concrete recipient, amount, service, disclosed text hash and nonce. The vault supports one configured token and a fixed transfer operation.
+
+The proof keeps the policy's budget, allowed-service mask and salt out of the public grant. The payment amount and recipient remain public; the specialist receives the text you approve. A human-readable ENS name helps select a recipient but cannot authorize spending.
+
+**Trust boundary:** ProveKit verification runs off chain. MateVault trusts the configured attestor's signature on its result. A compromised attestor can approve a policy violation; collusion with the agent can spend beyond the private budget. This is not an on-chain ZK verifier. See the [full trust assumptions](docs/architecture.md#trust-assumptions).
+
+## What works today
+
+| Component | Evidence | Remaining acceptance |
+| --- | --- | --- |
+| Native SwiftUI app | iOS Simulator/device SDK builds; CI exercises real screens and Keychain | Physical iPhone, camera, microphone, Foundation Models and DockKit |
+| ProveKit + Noir policy circuit | Real proof generation/verification, six invalid-witness rejections and API tamper tests | Proof generation latency and memory on the target iPhone |
+| MateVault | 12 contract tests on Anvil, including replay and authorization failures | Public Sepolia deployment and live receipts |
+| API + specialist + recovery | Real proof → HTTP → vault → result, including API restart and retry without duplicate spend | Complete mobile/live-service flow |
+| Local specialist model | Actual Ollama translation and recovery checked locally | A separately configured, license-reviewed deployment |
+| Privy | Pinned iOS SDK and signing adapter compile | Live login and owner/agent signing |
+| ENSv2 + The Graph | Registration/resolution and discovery adapters implemented | Live registry, index schema, provider records and queries |
+
+**Current scope: a working local prototype, with hardware and live integration acceptance still open.** Anvil payments are simulations. Default local discovery and model responses are labeled fixtures; the optional Ollama mode generates a real response. No unavailable integration is replaced by a success screen. [Detailed results](docs/validation.md).
+
+## Run the app
+
+Use an Apple Silicon Mac, Xcode 26 or later with an iOS Simulator runtime, and Node.js 22.16+ on the 22.x line or Node.js 24.x. Open Xcode once to finish its setup. The scripts install a checksum-pinned XcodeGen inside this project.
+
+The current review build is in [PR #12](https://github.com/susumutomita/ZeroKeyMate/pull/12). Until it is merged, check out its branch:
 
 ```sh
+git clone --branch codex/complete-local-runtime https://github.com/susumutomita/ZeroKeyMate.git
+cd ZeroKeyMate
 npm ci --ignore-scripts
-npm run configure          # 既存の .env は上書きしません
+npm run configure
 make test
 make build-ios
 ./mate --simulator
 ```
 
-画面・会話・カメラの開始にウォレットや決済の設定は不要です。会話にはApple Intelligence対応端末と利用可能な端末内モデルが必要です。カメラは設定の「開始」、マイクは「話す」で初めて起動します。「続けて話す」は個別に有効化した場合だけ、開始後の返答に続いて音声入力を再開します。
+`configure` creates an ignored `.env` containing local pairing/journal keys and preserves an existing file. It does not create wallets, fund an account or deploy contracts. A fresh clone can open the UI without payment credentials. Source-only builds explicitly disable proving and paid execution until the real runtime and circuit are built.
 
-実機では `make project` 後に `apps/ios/ZeroKeyMate.xcodeproj` を開き、Signing Teamを設定して実行します。設定済みなら `MATE_DEVELOPMENT_TEAM=チームID ./mate --device UDID` も使えます。DockKitの接続・追尾は実機でのみ検証できます。
+The UI is currently Japanese. Keyboard opens conversation, microphone starts speech, moon stops camera/microphone and rests, sliders open settings, and clock opens activity. On-device conversation requires an eligible Apple Intelligence device/model; unavailable models are reported without a cloud fallback.
 
-## 外部への依頼
+For a physical iPhone, run `make project`, open `apps/ios/ZeroKeyMate.xcodeproj`, select your Signing Team and run. DockKit requires compatible physical hardware. Detailed configuration is in [setup (日本語)](docs/setup.md) and [`.env.example`](.env.example).
 
-[セットアップ](docs/setup.md)に従い、Privy、MateVault、ProveKit、ENSv2、The Graph、専門モデルを設定します。秘密値は無視対象の `.env` に保存します。
+## Reproduce the proof and payment demo
 
-```sh
-npm run api               # 委任・探索・証明検証・支払・復元API
-npm run provider          # 別ターミナル。実際のOllamaモデルで翻訳／要約
-```
-
-1. ウォレット画面でPrivyにログインし、所有者とMateのウォレットを準備します。
-2. テストUSDCの承認と預け入れをそれぞれ確認します。
-3. 「あなたのルール」で予算・許可する仕事・期限を承認します。
-4. 依頼画面で文章を編集し、The Graph・ENS・実際の見積もりから取得した提供者を選びます。
-5. iPhoneが証明を生成します。専門サービスは仕事を準備し、契約の支払記録を確認してから結果を返します。
-6. 切断時は履歴から同じ依頼を復元します。未受信なら保存済みの同じ署名・識別子で再送します。未送金の取り消しはサーバーへの永続記録を確認してから解除します。
-
-予算・ソルト・端末内の会話履歴は送信しません。承認した文章は専門サービスに開示され、復元用の暗号化記録に保存されます。送金先・金額は公開情報です。
-
-## 検証
+Install Rust/rustup and Foundry with `anvil` available on PATH. Dependency versions, public sources and licenses are recorded in [SOURCES](docs/SOURCES.md). No model is downloaded automatically.
 
 ```sh
-make test                 # Swift + Node
-make build-ios            # Simulator SDKビルド
-make build-device         # 実機SDKビルド。署名なし
-make test-contracts       # Anvil上の実契約。ローカル決済シミュレーション
-make proofs               # Rustが必要。公開版ProveKitで回路生成・正常／異常条件を検査
+make test-contracts
+make proofs
 cargo +nightly-2026-03-04 build --release --locked --manifest-path services/verifier/Cargo.toml
-npm run test:proofs        # Rust検証器と実際の証明によるAPI境界の検査
-npm run test:local         # 実証明・HTTP・契約をつなぐローカル決済シミュレーション
-make native-runtime       # 公開ソースからiOSのProveKitをビルド
-./mate --verify           # 実ランタイムと回路が必要。Simulatorで証明・Keychain・UIを検査
-./mate --readiness         # 設定と未検証項目。製品の完成証明ではありません
+npm run test:proofs
+npm run test:local
 ```
 
-通常のビルドは証明ランタイムなしでも起動できますが、その場合は証明生成・外部実行を利用できません。`make native-runtime` と `make proofs` の後で再ビルドすると実ランタイムを組み込みます。通常のセットアップは期限付きのCI成果物に依存しません。
+This generates an actual proof and exercises the execution/recovery protocol on a disposable Anvil chain. It uses published test accounts and a test token; it is **local payment simulation**, not public Sepolia. See the [demo guide](docs/demo.md) for the real-model option, rejection checks and a three-minute walkthrough.
 
-今回の実行結果と残る実機・外部接続の確認は [検証記録](docs/validation.md) に記載します。ビルドやローカルチェーンの検査は、実機DockKit・ライブ決済・スポンサー提出条件の検証を代替しません。
+To include ProveKit in the iOS app and run native acceptance on a usable Simulator:
 
-## 境界と出典
+```sh
+make native-runtime
+make build-ios
+./mate --verify
+```
 
-公開出典と依存ライセンスは [SOURCES](docs/SOURCES.md)、信頼条件は [architecture](docs/architecture.md)、実機確認は [device-checklist](docs/device-checklist.md) に記録します。無関係な非公開コードは実装元にしません。正式なクリーンルーム監査の認証ではありません。
+Normal setup builds from pinned public sources, without relying on expiring CI artifacts. Host restrictions that prevent circuit preparation or Simulator access must be resolved before those checks can run; an SDK build is not a runtime test.
 
-ProveKitはポリシー適合性を証明します。クラウドの映像・音声の暗号化や実世界の本人確認は行いません。現行契約はオフチェーン検証器の署名を信頼します。カード認証・任意のコントラクト操作・本番資金は対象外です。Apache-2.0 [LICENSE](LICENSE) を維持します。
+## How it fits together
+
+```mermaid
+flowchart LR
+    U[User reviews text and price] --> I[iPhone: policy and agent signature]
+    I --> P[ProveKit policy proof]
+    I --> A[Execution API]
+    P --> V[Rust proof verifier]
+    A --> V
+    A --> D[The Graph candidates + ENS address check]
+    V --> T[Off-chain attestor]
+    T --> C[MateVault: grant, action, replay, test USDC]
+    A --> S[Specialist: prepare approved text]
+    C --> R[Canonical payment receipt]
+    R --> S
+    S --> I
+```
+
+The Graph and ENS paths require live configuration; local acceptance substitutes explicitly labeled discovery fixtures. The specialist independently checks the payment event before releasing its result. Settlement is not escrow: provider failure after payment has no automatic refund.
+
+| Code | Responsibility |
+| --- | --- |
+| [`apps/ios`](apps/ios) | Companion UI, sensor consent, local conversation, signing and recovery |
+| [`Sources/MateCore`](Sources/MateCore) | Versioned policy/action encoding and receipt validation |
+| [`circuits`](circuits) | Private-policy compliance circuit |
+| [`services/api`](services/api) | Discovery, proof verification, execution and encrypted journal |
+| [`services/provider`](services/provider) | Ollama specialist, encrypted prepared result, independent payment check |
+| [`services/verifier`](services/verifier) | Real ProveKit verification and public-input extraction |
+| [`contracts`](contracts) | MateVault and ENS address resolver |
+
+## Consent, sources and submission
+
+Camera and microphone require explicit starts. Docking alone starts no recording, upload or payment. Stop remains effective during startup; backgrounding, interruptions and detach stop capture. Returning foreground or re-docking does not restore consent. Camera OFF is reported only after the service stops. Camera-intent transitions have unit coverage; physical behavior remains on the [device checklist](docs/device-checklist.md).
+
+No audio recordings, camera frames or conversation history are uploaded. Approved specialist text/results are stored in encrypted server journals whose operators hold the keys. ProveKit proves policy compliance; it does not encrypt media or establish real-world identity. Production funds and identity-card support are outside this prototype.
+
+For ETHGlobal review: [submission copy and open fields](docs/submission.md), [demo script](docs/demo.md), and [development history / AI assistance](docs/development-history.md). Event, track, prize eligibility and the final demo video are still to be confirmed. Existing commits are disclosed rather than represented as work from an unconfirmed event window.
+
+Original project code is licensed under [Apache-2.0](LICENSE). Public sources and reviewed dependency licenses are in [SOURCES](docs/SOURCES.md) and [third-party notices](docs/THIRD_PARTY_NOTICES.txt). This provenance record is not a formal clean-room audit.

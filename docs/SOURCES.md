@@ -1,6 +1,6 @@
 # Public sources and dependency review
 
-Reviewed on 2026-09-06. This is a provenance and license record, not a formal clean-room or legal audit. No unrelated private repository is an implementation source. The repository's Apache-2.0 LICENSE is unchanged.
+Reviewed on 2026-09-06, with Foundry and UI documentation added on 2026-09-07. This is a provenance and license record, not a formal clean-room or legal audit. No unrelated private repository is an implementation source. The repository's Apache-2.0 LICENSE is unchanged.
 
 ## Runtime and build dependencies
 
@@ -16,6 +16,7 @@ Reviewed on 2026-09-06. This is a provenance and license record, not a formal cl
 | zod | 3.24.4 | MIT | https://github.com/colinhacks/zod |
 | solc-js | 0.8.30 | MIT | https://github.com/ethereum/solc-js |
 | XcodeGen | 2.46.0 | MIT, development only | https://github.com/yonaskolb/XcodeGen/releases/tag/2.46.0 |
+| Foundry / Anvil | CI 1.3.1; existing local 1.5.1-stable, b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2 | MIT option reviewed in both revisions; development-only executable, not redistributed here | [CI source and license](https://github.com/foundry-rs/foundry/blob/v1.3.1/LICENSE-MIT), [local revision license](https://github.com/foundry-rs/foundry/blob/b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2/LICENSE-MIT) |
 | Rust / rustup | nightly-2026-03-04 / installer 1.29.1 used locally | MIT / Apache-2.0, development only | https://github.com/rust-lang/rustup |
 | Ollama API | operator-installed server, no model bundled | API adapter only; operator reviews each selected model's license | https://docs.ollama.com/api/generate |
 | Ollama local evaluation server | existing installation 0.33.3 | MIT; no server binary distributed by this repository | https://github.com/ollama/ollama/tree/v0.33.3 |
@@ -32,6 +33,7 @@ Rust verifier versions/checksums are in services/verifier/Cargo.lock. [dependenc
 - [Apple DockKit](https://developer.apple.com/documentation/dockkit), [connection changes](https://developer.apple.com/documentation/dockkit/dockaccessorymanager/accessorystatechanges), [system tracking](https://developer.apple.com/documentation/dockkit/dockaccessorymanager/setsystemtrackingenabled(_:)).
 - [AVCaptureSession](https://developer.apple.com/documentation/avfoundation/avcapturesession), [Foundation Models](https://developer.apple.com/documentation/foundationmodels), [on-device speech](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition).
 - [Apple privacy manifest data declarations](https://developer.apple.com/documentation/bundleresources/describing-data-use-in-privacy-manifests).
+- [SwiftUI contentShape](https://developer.apple.com/documentation/swiftui/view/contentshape(_:eofill:)) was consulted for the home icon controls' actual touch regions; the padded frame and its hittable shape are checked by CI UI interaction tests.
 - [Privy EIP-712 signing](https://docs.privy.io/wallets/using-wallets/ethereum/sign-typed-data) plus the pinned iOS SDK's Swift interface.
 - [EIP-712](https://eips.ethereum.org/EIPS/eip-712), [ERC-1271](https://eips.ethereum.org/EIPS/eip-1271), [Circle's USDC contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses).
 - [ENSv2 IRegistry](https://github.com/ensdomains/contracts-v2/blob/48b3e2d39513b9dd32ef1850877a29009bc807b9/contracts/src/registry/interfaces/IRegistry.sol), [PermissionedRegistry](https://github.com/ensdomains/contracts-v2/blob/48b3e2d39513b9dd32ef1850877a29009bc807b9/contracts/src/registry/PermissionedRegistry.sol), [documented roles](https://github.com/ensdomains/contracts-v2/blob/48b3e2d39513b9dd32ef1850877a29009bc807b9/contracts/src/registry/libraries/RegistryRolesLib.sol), and [Sepolia addresses](https://github.com/ensdomains/contracts-v2/blob/48b3e2d39513b9dd32ef1850877a29009bc807b9/contracts/docs/addresses/sepolia.md). Interfaces and roles are used under their MIT notices; the small Mate resolver/factory is original project code.
