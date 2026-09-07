@@ -7,7 +7,7 @@ import net from 'node:net';
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {createPublicClient,createWalletClient,http,toHex} from 'viem';
-import {sepolia} from 'viem/chains';
+import {settlementNetwork} from '../networks.mjs';
 import {mnemonicToAccount} from 'viem/accounts';
 import {ROOT} from '../config.mjs';
 import {Chain} from '../chain.mjs';
@@ -27,26 +27,26 @@ import {sha256,u64,domain,grantTypes,executionTypes,actionDigest,actionPreimage,
 // The default model is also a fixture. An explicitly selected, already installed
 // local Ollama model can be evaluated without downloading weights or a fallback.
 const modelName=process.env.MATE_TEST_OLLAMA_MODEL;
-test(`local payment simulation: real proof → HTTP API → vault → HTTP specialist (${modelName?'actual Ollama':'model fixture'}), without duplicate spend`,async t=>{
+for(const chainId of [11155111,5042002]) test(`local payment simulation (chain ${chainId}): real proof → HTTP API → vault → HTTP specialist (${modelName?'actual Ollama':'model fixture'}), without duplicate spend`,async t=>{
   const directory=fs.mkdtempSync(path.join(os.tmpdir(),'mate-local-acceptance-'));
   t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
   const reservation=net.createServer();
   await new Promise(resolve=>reservation.listen(0,'127.0.0.1',resolve));
   const port=reservation.address().port;await new Promise(resolve=>reservation.close(resolve));
-  const child=spawn('anvil',['--port',String(port),'--chain-id','11155111','--block-time','1','--silent'],{stdio:'ignore'});
+  const child=spawn('anvil',['--port',String(port),'--chain-id',String(chainId),'--block-time','1','--silent'],{stdio:'ignore'});
   let childError;child.on('error',error=>{childError=error;});t.after(()=>child.kill('SIGTERM'));
   const rpcURL=`http://127.0.0.1:${port}`;
-  const client=createPublicClient({chain:sepolia,transport:http(rpcURL,{retryCount:0}),pollingInterval:100});
+  const client=createPublicClient({chain:settlementNetwork(chainId).chain,transport:http(rpcURL,{retryCount:0}),pollingInterval:100});
   const deadline=Date.now()+15_000;
   while(true){
     if(childError)throw childError;
     if(child.exitCode!==null)throw new Error('Local Anvil failed to start');
-    try{assert.equal(await client.getChainId(),11155111);break;}catch(error){if(Date.now()>deadline)throw error;}
+    try{assert.equal(await client.getChainId(),chainId);break;}catch(error){if(Date.now()>deadline)throw error;}
     await new Promise(resolve=>setTimeout(resolve,100));
   }
   const accounts=Array.from({length:5},(_,addressIndex)=>mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex}));
   const [owner,agent,attestor,relayer,recipient]=accounts;
-  const wallet=createWalletClient({account:owner,chain:sepolia,transport:http(rpcURL)});
+  const wallet=createWalletClient({account:owner,chain:settlementNetwork(chainId).chain,transport:http(rpcURL)});
   const mined=async hash=>{
     const receipt=await client.waitForTransactionReceipt({hash,timeout:20_000,pollingInterval:100});
     assert.equal(receipt.status,'success');return receipt;
@@ -62,9 +62,9 @@ test(`local payment simulation: real proof → HTTP API → vault → HTTP speci
   ])await mined(await wallet.writeContract({address,abi,functionName,args}));
   let journal=new Journal(path.join(directory,'api.sqlite'),'ab'.repeat(32));t.after(()=>journal.close());
   const providerJournal=new Journal(path.join(directory,'provider.sqlite'),'cd'.repeat(32));t.after(()=>providerJournal.close());
-  const config={rpcURL,vault,token,attestorKey:toHex(attestor.getHdKey().privateKey),relayerKey:toHex(relayer.getHdKey().privateKey)};
+  const config={chainId,rpcURL,vault,token,attestorKey:toHex(attestor.getHdKey().privateKey),relayerKey:toHex(relayer.getHdKey().privateKey)};
   const chain=new Chain(config,journal);await chain.prepare();
-  const providerChain=new Chain({rpcURL,vault,token,attestorAddress:attestor.address},providerJournal);await providerChain.prepare();
+  const providerChain=new Chain({chainId,rpcURL,vault,token,attestorAddress:attestor.address},providerJournal);await providerChain.prepare();
   const modelURL=process.env.MATE_TEST_OLLAMA_URL||'http://127.0.0.1:11434';
   if(modelName) {
     const url=new URL(modelURL);
@@ -76,7 +76,7 @@ test(`local payment simulation: real proof → HTTP API → vault → HTTP speci
     ready:async()=>{},run:async(_service,text)=>`LOCAL TEST FIXTURE: ${text}`,
   };
   let modelCalls=0;
-  const specialist=new Specialist({config:{vault,service:0,price:'100000',recipient:recipient.address},chain:providerChain,journal:providerJournal,
+  const specialist=new Specialist({config:{chainId,vault,token,service:0,price:'100000',recipient:recipient.address},chain:providerChain,journal:providerJournal,
     model:{ready:()=>model.ready(),run:async(...args)=>{modelCalls++;return model.run(...args);}}});
   const specialistToken='f'.repeat(64);
   const providerServer=jsonServer({token:specialistToken,handler:providerHandler(specialist)});
@@ -87,6 +87,7 @@ test(`local payment simulation: real proof → HTTP API → vault → HTTP speci
   const transport=new Discovery({},{});
   const quote=await transport.call(provider,'/v1/quote?service=0');
   assert.equal(quote.ready,true);assert.equal(quote.price,'100000');
+  assert.equal(quote.chainId,chainId);assert.equal(quote.vault,vault);assert.equal(quote.token,token);
   const discovery={
     choose:async()=>({provider,indexedBlock:'local-fixture-not-The-Graph'}),
     call:(...args)=>transport.call(...args),
@@ -106,18 +107,21 @@ test(`local payment simulation: real proof → HTTP API → vault → HTTP speci
   const budget=5_000_000n,salt=Buffer.from(Array.from({length:32},(_,i)=>i)),services=3;
   const policyHash=sha256(Buffer.concat([Buffer.from('ZKM-POL1'),u64(budget),Buffer.from([services]),salt]));
   const grant={owner:owner.address,agent:agent.address,policyHash,validUntil:Math.floor(Date.now()/1000)+3600,nonce:'0'};
-  const signature=await owner.signTypedData({domain:domain(11155111,vault),types:grantTypes,primaryType:'Grant',message:{...grant,validUntil:BigInt(grant.validUntil),nonce:0n}});
+  const signature=await owner.signTypedData({domain:domain(chainId,vault),types:grantTypes,primaryType:'Grant',message:{...grant,validUntil:BigInt(grant.validUntil),nonce:0n}});
+  const wrongChainSignature=await owner.signTypedData({domain:domain(chainId===5042002?11155111:5042002,vault),
+    types:grantTypes,primaryType:'Grant',message:{...grant,validUntil:BigInt(grant.validUntil),nonce:0n}});
+  assert.equal((await post('/v1/grants',{grant,signature:wrongChainSignature})).status,403);
   const registered=await post('/v1/grants',{grant,signature});assert.equal(registered.status,200,JSON.stringify(registered.body));
   const payload=modelName?'おはようございます。今日の会議は午前10時に始まります。':'Explicit local test disclosure';
   const action={mandateId:registered.body.mandateId,recipient:recipient.address,amount:'100000',service:0,nonce:newNonce(),
     expiresAt:Math.floor(Date.now()/1000)+300,requestHash:sha256(payload),spentBefore:'0'};
-  const hash=actionDigest(11155111,vault,action);
+  const hash=actionDigest(chainId,vault,action);
   const witness={policy_hash:[...Buffer.from(policyHash.slice(2),'hex')],action_hash:[...Buffer.from(hash.slice(2),'hex')],
-    spent:'0',amount:action.amount,service:'0',budget:String(budget),services:String(services),salt:[...salt],context:[...actionPreimage(11155111,vault,action).subarray(0,160)]};
+    spent:'0',amount:action.amount,service:'0',budget:String(budget),services:String(services),salt:[...salt],context:[...actionPreimage(chainId,vault,action).subarray(0,160)]};
   const input=path.join(directory,'input.json'),proofFile=path.join(directory,'proof.np');
   fs.writeFileSync(input,JSON.stringify(witness),{mode:0o600});
   await promisify(execFile)(path.join(ROOT,'.tools/bin/provekit-cli'),['prove','--prover',path.join(ROOT,'.build/proofs/mate_policy.pkp'),'--input',input,'--out',proofFile],{timeout:90_000,maxBuffer:4*1024*1024});
-  const agentSignature=await agent.signTypedData({domain:domain(11155111,vault),types:executionTypes,primaryType:'Execution',message:{actionHash:hash}});
+  const agentSignature=await agent.signTypedData({domain:domain(chainId,vault),types:executionTypes,primaryType:'Execution',message:{actionHash:hash}});
   const request={action,payload,agentSignature,proof:fs.readFileSync(proofFile).toString('base64'),providerId:'11155111:1'};
   assert.equal((await post('/v1/execute',{...request,payload:'changed'})).status,409);
   const executed=await post('/v1/execute',request);assert.equal(executed.status,200,JSON.stringify(executed.body));
@@ -138,8 +142,8 @@ test(`local payment simulation: real proof → HTTP API → vault → HTTP speci
   assert.equal(recovered.status,200);assert.deepEqual(await recovered.json(),executed.body);
   const repeated=await post('/v1/execute',request);assert.deepEqual(repeated,executed);
   assert.equal(await chain.read('balances',[owner.address]),9_900_000n);assert.equal(modelCalls,1);
-  const altered={...action,nonce:newNonce(),spentBefore:'100000'},alteredHash=actionDigest(11155111,vault,altered);
-  const alteredSignature=await agent.signTypedData({domain:domain(11155111,vault),types:executionTypes,primaryType:'Execution',message:{actionHash:alteredHash}});
+  const altered={...action,nonce:newNonce(),spentBefore:'100000'},alteredHash=actionDigest(chainId,vault,altered);
+  const alteredSignature=await agent.signTypedData({domain:domain(chainId,vault),types:executionTypes,primaryType:'Execution',message:{actionHash:alteredHash}});
   assert.equal((await post('/v1/execute',{...request,action:altered,agentSignature:alteredSignature})).status,422);
   assert.equal((await post('/v1/executions/cancel',{actionHash:alteredHash})).status,200);
   assert.equal((await post('/v1/execute',{...request,action:altered,agentSignature:alteredSignature})).status,409);

@@ -4,7 +4,7 @@ Reviewed 2026-09-07. **ETHOnline 2026 attendance and the selected Building from 
 
 | Priority | Target | Why it fits Mate | Required evidence still missing |
 | --- | --- | --- | --- |
-| 1 | Arc — Best Agentic Economy Application with Circle Agent Stack | The user selected Arc as the intended USDC settlement layer for bounded specialist requests | Arc settlement and Circle Agent Stack integration are not yet implemented; demonstrate the actual flow before claiming eligibility |
+| 1 | Arc — Best Agentic Economy Application with Circle Agent Stack | The user selected Arc as the intended USDC settlement layer for bounded specialist requests | Arc settlement binding and Circle Agent Wallet proof-attestation adapter are implemented and locally tested; actual Circle login, public vault and live settlement evidence remain required |
 | 2 | Privy — Best financial flow ($2,500) | Owner authentication and separate owner/agent wallets support the central paid-specialist journey | A real Privy wallet and a working supported financial operation, demonstrated through the app; compile-only adapter evidence is insufficient |
 | 3 | The Graph — Best AI Tooling or AI Use Case with The Graph | Live provider data can determine which specialist the user chooses | A live Graph query affecting provider selection, with actual records and reproducible evidence; local discovery fixtures do not qualify |
 | Deferred | ENS — Best Use of ENSv2 | A managed companion subname and checked provider recipient can make names functional parts of the journey | Working ENSv2 on Sepolia, real registration/resolution and a demonstrable product benefit beyond displaying a name |
@@ -17,7 +17,7 @@ The first priority is to complete the paid translation journey on Arc with Circl
 
 The [World prize page](https://ethglobal.com/events/ethonline2026/prizes/world) describes AgentKit and Selfie Check integrations. Our private-policy ProveKit implementation is not evidence of either. Client-side ZK remains our core technical contribution, but it does not by itself establish eligibility for a World prize. We found no separately named ProveKit prize in the consulted [event prize listing](https://ethglobal.com/events/ethonline2026/prizes).
 
-The current repository targets Sepolia and local Anvil simulation, with no Arc, Ledger Agent Stack or Chainlink CRE workflow demonstrated. Arc is now the planned primary target; Ledger and Chainlink are not current targets. No standalone Belkin prize was identified in that listing.
+The repository now supports Arc Testnet and legacy Sepolia, with real local proof/contract acceptance on both chain domains. Public Arc/Circle operation is not yet demonstrated; Ledger and Chainlink are not current targets. No standalone Belkin prize was identified in that listing.
 
 ## Decision before final submission
 

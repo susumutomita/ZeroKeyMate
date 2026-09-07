@@ -16,7 +16,7 @@ export class Executor {
   });}
   execute(input){return this.#queue.run(async()=>{
     const request=executeSchema.parse(input);
-    const actionHash=actionDigest(11155111,this.config.vault,request.action);
+    const actionHash=actionDigest(this.config.chainId??11155111,this.config.vault,request.action);
     requireValue(sha256(Buffer.from(request.payload)).toLowerCase()===request.action.requestHash.toLowerCase(),
       'payload_hash','承認した文章から内容が変わっています。',409);
     const id=`execution:${actionHash}`;
@@ -68,7 +68,7 @@ export class Executor {
       const prepared=await this.discovery.call(provider,'/v1/prepare',{
         action:request.action,agentSignature:request.agentSignature,payload:request.payload,proofHash,
       });
-      requireValue(prepared.actionHash===actionDigest(11155111,this.config.vault,request.action) && prepared.status==='ready',
+      requireValue(prepared.actionHash===actionDigest(this.config.chainId??11155111,this.config.vault,request.action) && prepared.status==='ready',
         'provider_not_ready','提供者の実行準備を確認できません。支払いは開始していません。',503);
       this.journal.put(id,'ready',value);state='ready';
     }

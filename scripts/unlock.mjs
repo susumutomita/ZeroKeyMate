@@ -1,10 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {ROOT} from '../services/api/config.mjs';
+import {stateDirectory} from '../services/api/networks.mjs';
 const kind=process.argv[2];
 if(!['api','provider'].includes(kind))throw new Error('Usage: npm run unlock -- api|provider');
-const directory=kind==='api' ? process.env.MATE_DATA_DIRECTORY||path.join(ROOT,'.data')
-  :process.env.PROVIDER_DATA_DIRECTORY||path.join(ROOT,'.data/provider');
+const directory=stateDirectory(kind);
 const filename=path.join(directory,`${kind}.lock`);
 if(!fs.existsSync(filename)){console.log('No lock exists.');}
 else {

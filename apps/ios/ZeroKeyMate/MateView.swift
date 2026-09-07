@@ -30,6 +30,7 @@ struct MateView:View {
                         case .activity:ActivitySheet(model:model)
                         case .disclosure:DisclosureSheet(model:model)
                         case .localProof:LocalProofSheet(proofs:model.proofs) { model.makeDraft(service:.translation) }
+                        case .connection:ConnectionSheet(model:model)
                         }
                     }
                     .toolbar{ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}}
@@ -228,7 +229,9 @@ private struct SettingsSheet:View {
                 Button("Try private rules on this device",systemImage:"checkmark.shield"){model.sheet = .localProof}
                 Button{model.sheet = .rules}label:{Label("Your rules",systemImage:"checkmark.shield")}
                 Button{model.sheet = .wallet}label:{Label("Wallet",systemImage:"creditcard")}
-                Button{model.sheet = .identity}label:{Label("Mate's name",systemImage:"at")}
+                if model.configuration.chainID == 11_155_111, !model.configuration.ensParent.isEmpty {
+                    Button{model.sheet = .identity}label:{Label("Mate's name",systemImage:"at")}
+                }
                 Button{model.makeDraft(service:.translation)}label:{Label("Request external translation",systemImage:"character.bubble")}
                 Button{model.makeDraft(service:.summary)}label:{Label("Request external summary",systemImage:"text.alignleft")}
             }
@@ -238,9 +241,10 @@ private struct SettingsSheet:View {
                 SectionNote(text:"Stored in this iPhone's Keychain. Never shared with external providers or published to ENS.")
             }
             Section("Connections"){
+                Button("Configure connection"){model.sheet = .connection}.disabled(model.financialBusy)
                 LabeledContent("Conversation",value:model.modelUnavailable == nil ? "On-device":"Check availability")
                 if let unavailable=model.modelUnavailable{SectionNote(text:unavailable)}
-                LabeledContent("Payment network",value:"Sepolia testnet")
+                LabeledContent("Payment network",value:model.configuration.networkName)
                 LabeledContent("Wallet setup",value:model.configuration.walletConfigured ? "Configured":"Not configured")
                 LabeledContent("External execution setup",value:model.configuration.paymentsConfigured ? "Configured":"Not configured")
                 LabeledContent("On-device proving",value:model.proofUnavailable == nil ? "Available":"Unavailable")
@@ -301,7 +305,7 @@ private struct WalletSheet:View {
     private func run(_ operation:@escaping () async throws -> Void){Task{do{try await operation()}catch{model.errorMessage=error.localizedDescription}}}
     var body:some View {
         Form{
-            Section{SectionNote(text:"Sepolia test USDC only. Do not send real funds. Your owner wallet and Mate's execution key are separate.")}
+            Section{SectionNote(text:"\(model.configuration.networkName) test USDC only. Do not send real funds. Your owner wallet and Mate's execution key are separate.")}
             if !wallet.isAuthenticated {
                 Section("Connect with Privy"){
                     TextField("Email address",text:$email).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -387,7 +391,8 @@ private struct DisclosureSheet:View {
             }
             Section("Before a paid request") {
                 if !model.configuration.paymentsConfigured {
-                    SectionNote(text:"This build has no valid execution-service configuration. Local ZK is still available; payment and provider execution are unavailable until setup is complete.")
+                    SectionNote(text:"Connect to your execution service before making paid requests. Local ZK works without this connection.")
+                    Button("Connect execution service"){model.sheet = .connection}
                 } else if model.wallet.agentAddress == nil {
                     Button("1. Set up and fund your wallet") { model.sheet = .wallet }
                 } else if model.mandate == nil {
@@ -457,7 +462,7 @@ private struct ActivitySheet:View {
                 Section{
                     VStack(alignment:.leading,spacing:14){
                         Text("No executions yet.").font(.system(size:25)).tracking(-0.6)
-                        SectionNote(text:"Only requests with a verified proof and confirmed Sepolia payment are recorded here.")
+                        SectionNote(text:"Only requests with a verified proof and confirmed testnet payment are recorded here.")
                     }.padding(.vertical,24)
                 }.listRowBackground(Color.clear)
             }
@@ -467,7 +472,7 @@ private struct ActivitySheet:View {
                     LabeledContent("Total spent",value:TokenAmount(units:UInt64(receipt.spentAfter) ?? 0).display+" USDC")
                     Text("Proof SHA-256").font(.caption).foregroundStyle(.secondary)
                     Text(receipt.proofHash).font(.system(size:10,design:.monospaced)).textSelection(.enabled)
-                    if let url=URL(string:"https://sepolia.etherscan.io/tx/"+receipt.transactionHash){Link("View Sepolia transaction",destination:url)}
+                    if let url=URL(string:model.configuration.explorerURL+"/tx/"+receipt.transactionHash){Link("View confirmed transaction",destination:url)}
                 }
             }
         }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Activity").navigationBarTitleDisplayMode(.inline)

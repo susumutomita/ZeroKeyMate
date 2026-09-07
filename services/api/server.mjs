@@ -1,4 +1,5 @@
 import path from 'node:path';
+import {stateDirectory} from './networks.mjs';
 import {pathToFileURL} from 'node:url';
 import {z} from 'zod';
 import {configuration,ROOT} from './config.mjs';
@@ -25,6 +26,7 @@ export function apiHandler({chain,names,discovery,executor}) {
   return async (request,url) => {
     const route=`${request.method} ${url.pathname}`;
     switch (route) {
+    case 'GET /v1/configuration':query(url,{});return {chainId:chain.config.chainId,vault:chain.config.vault,token:chain.config.token,actionVersion:'ZKM-ACT1'};
     case 'GET /v1/account':return chain.account(query(url,{owner:address}).owner);
     case 'GET /v1/state':return chain.state(query(url,{mandateId:hash32}).mandateId);
     case 'GET /v1/providers':return discovery.list(Number(query(url,{service:z.enum(['0','1'])}).service));
@@ -46,11 +48,12 @@ export function apiHandler({chain,names,discovery,executor}) {
 export async function startAPI(e=process.env) {
   const token=e.MATE_API_TOKEN||'';
   requireValue(token.length>=32,'pairing_required','MATE_API_TOKENを設定してください。npm run configure で初期設定を作成できます。',503);
-  const release=processLock(path.join(path.resolve(e.MATE_DATA_DIRECTORY||path.join(ROOT,'.data')),'api.lock'));
+  const release=processLock(path.join(stateDirectory('api',e),'api.lock'));
   let journal,handler,configurationError;
-  const health={service:'ZeroKey Mate API',network:'sepolia',ready:false,proofVerification:'unavailable'};
+  const health={service:'ZeroKey Mate API',chainId:null,vault:null,token:null,ready:false,proofVerification:'unavailable'};
   try {
     const config=configuration(e);
+    Object.assign(health,{chainId:config.chainId,vault:config.vault,token:config.token});
     journal=new Journal(path.join(config.dataDirectory,'api.sqlite'),config.journalKey);
     const chain=new Chain(config,journal);
     await chain.prepare();
@@ -61,7 +64,7 @@ export async function startAPI(e=process.env) {
     const executor=new Executor({config,chain,verifier,discovery,journal});
     handler=apiHandler({chain,names,discovery,executor});health.ready=health.proofVerification==='available';
   } catch (error) {
-    configurationError=error instanceof ProductError ? error : new ProductError('integration_unavailable','Sepolia・契約・検証ファイルの接続設定を確認してください。',503);
+    configurationError=error instanceof ProductError ? error : new ProductError('integration_unavailable','ネットワーク・契約・検証ファイルの接続設定を確認してください。',503);
     handler=async()=>{throw configurationError;};
   }
   const server=jsonServer({token,handler,publicHandler:route=>route==='/health' ? health : undefined});

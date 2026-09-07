@@ -1,5 +1,6 @@
 import {createPublicClient, createWalletClient, http, hashTypedData, keccak256, encodeFunctionData, parseEventLogs} from 'viem';
-import {sepolia} from 'viem/chains';
+import {CircleAttestor} from './circle-attestor.mjs';
+import {settlementNetwork} from './networks.mjs';
 import {privateKeyToAccount} from 'viem/accounts';
 import {domain, contractGrant, contractAction, grantTypes, actionDigest, proofTypes} from './protocol.mjs';
 import {SerialQueue, ProductError, requireValue} from './errors.mjs';
@@ -12,10 +13,10 @@ export const tokenABI = [
 /** Persist signed transaction bytes before broadcast; retries always resend identical bytes. */
 export class TransactionLane {
   #public; #wallet; #account; #journal; #queue = new SerialQueue(); #prefix;
-  constructor({publicClient,rpcURL,key,journal}) {
+  constructor({publicClient,rpcURL,key,journal,chainId=11155111}) {
     this.#public=publicClient;this.#account=privateKeyToAccount(key);this.#journal=journal;
-    this.#wallet=createWalletClient({account:this.#account,chain:sepolia,transport:http(rpcURL,{retryCount:0,timeout:20_000})});
-    this.#prefix=`tx:${this.#account.address.toLowerCase()}:`;
+    this.#wallet=createWalletClient({account:this.#account,chain:settlementNetwork(chainId).chain,transport:http(rpcURL,{retryCount:0,timeout:20_000})});
+    this.#prefix=`tx:${chainId===11155111?'':`${chainId}:`}${this.#account.address.toLowerCase()}:`;
   }
   get address(){return this.#account.address;}
   async #settle(id, entry) {
@@ -55,14 +56,22 @@ export class TransactionLane {
 }
 export class Chain {
   constructor(config,journal) {
-    this.config=config;
-    this.public=createPublicClient({chain:sepolia,transport:http(config.rpcURL,{retryCount:1,timeout:20_000})});
+    this.config={...config,chainId:config.chainId??11155111};
+    this.journal=journal;
+    const chainId=this.config.chainId;
+    this.public=createPublicClient({chain:settlementNetwork(chainId).chain,transport:http(config.rpcURL,{retryCount:1,timeout:20_000})});
     this.abi=loadArtifact('MateVault').abi;
-    this.lane=config.relayerKey ? new TransactionLane({publicClient:this.public,rpcURL:config.rpcURL,key:config.relayerKey,journal}) : null;
-    this.attestor=config.attestorKey ? privateKeyToAccount(config.attestorKey) : null;
+    this.lane=config.relayerKey ? new TransactionLane({publicClient:this.public,rpcURL:config.rpcURL,key:config.relayerKey,journal,chainId}) : null;
+    this.attestor=config.attestorMode==='circle' ? new CircleAttestor({walletAddress:config.attestorAddress,vault:config.vault,chainId,executable:config.circleCLI,cliHome:config.circleHome})
+      : config.attestorKey ? privateKeyToAccount(config.attestorKey) : null;
   }
   async prepare(){
-    requireValue(await this.public.getChainId()===11155111,'wrong_chain','Sepolia以外への接続は許可しません。',503);
+    const binding={chainId:this.config.chainId,vault:this.config.vault.toLowerCase(),token:this.config.token.toLowerCase()};
+    const stored=this.journal.get('settlement-binding');
+    requireValue(!stored || JSON.stringify(stored.value)===JSON.stringify(binding),'deployment_changed',
+      'This journal belongs to another deployment. Recover it with its original configuration; use a separate data directory for a new deployment.',503);
+
+    requireValue(await this.public.getChainId()===this.config.chainId,'wrong_chain','The RPC network does not match the approved settlement chain.',503);
     const [code,token,attestor]=await Promise.all([
       this.public.getCode({address:this.config.vault}),this.read('token'),this.read('attestor'),
     ]);
@@ -70,6 +79,8 @@ export class Chain {
       && attestor.toLowerCase()===(this.attestor?.address||this.config.attestorAddress)?.toLowerCase(),'vault_configuration','コントラクトと設定が一致しません。',503);
     const decimals=await this.public.readContract({address:token,abi:tokenABI,functionName:'decimals'});
     requireValue(decimals===6,'token_decimals','6桁のテストUSDCのみ利用できます。',503);
+    if(this.attestor instanceof CircleAttestor)await this.attestor.prepare();
+    if(!stored)this.journal.put('settlement-binding','confirmed',binding);
   }
   read(functionName,args=[]) {return this.public.readContract({address:this.config.vault,abi:this.abi,functionName,args});}
   async state(id){
@@ -85,8 +96,8 @@ export class Chain {
     ]);
     return {nonce:String(nonce),balance:String(balance),tokenBalance:String(tokenBalance),gasBalance:String(gasBalance)};
   }
-  grantID(grant){return hashTypedData({domain:domain(11155111,this.config.vault),types:grantTypes,primaryType:'Grant',message:contractGrant(grant)});}
-  async verifyOwner(grant,signature){return this.public.verifyTypedData({address:grant.owner,domain:domain(11155111,this.config.vault),types:grantTypes,primaryType:'Grant',message:contractGrant(grant),signature});}
+  grantID(grant){return hashTypedData({domain:domain(this.config.chainId,this.config.vault),types:grantTypes,primaryType:'Grant',message:contractGrant(grant)});}
+  async verifyOwner(grant,signature){return this.public.verifyTypedData({address:grant.owner,domain:domain(this.config.chainId,this.config.vault),types:grantTypes,primaryType:'Grant',message:contractGrant(grant),signature});}
   async register(grant,signature){
     const mandateId=this.grantID(grant);
     // An old registration remains recoverable even after its validity period ends.
@@ -95,14 +106,23 @@ export class Chain {
     return {mandateId,transactionHash:tx.hash,blockNumber:tx.blockNumber};
   }
   async verifyAgent(action,signature,state){
-    return this.public.verifyTypedData({address:state.agent,domain:domain(11155111,this.config.vault),
+    return this.public.verifyTypedData({address:state.agent,domain:domain(this.config.chainId,this.config.vault),
       types:{Execution:[{name:'actionHash',type:'bytes32'}]},primaryType:'Execution',
-      message:{actionHash:actionDigest(11155111,this.config.vault,action)},signature});
+      message:{actionHash:actionDigest(this.config.chainId,this.config.vault,action)},signature});
   }
   async pay(action,signature,proofHash){
-    const actionHash=actionDigest(11155111,this.config.vault,action);
-    const proofApproval=await this.attestor.signTypedData({domain:domain(11155111,this.config.vault),types:proofTypes,
-      primaryType:'ProofApproval',message:{actionHash,proofHash}});
+    const actionHash=actionDigest(this.config.chainId,this.config.vault,action);
+    const approvalDocument={domain:domain(this.config.chainId,this.config.vault),types:proofTypes,
+      primaryType:'ProofApproval',message:{actionHash,proofHash}};
+    const approvalID=`approval:${actionHash}:${proofHash}`;
+    let proofApproval=this.journal.get(approvalID)?.value.signature;
+    if(!proofApproval) {
+      proofApproval=await this.attestor.signTypedData(approvalDocument);
+      requireValue(await this.public.verifyTypedData({address:this.attestor.address,...approvalDocument,signature:proofApproval}),
+        'attestor_signature','The proof attestor returned an invalid signature.',503);
+      // Preserve exact calldata across retries even if the external signer uses nondeterministic signatures.
+      this.journal.put(approvalID,'confirmed',{signature:proofApproval});
+    }
     const tx=await this.lane.send(`execute:${actionHash}`,{to:this.config.vault,
       data:encodeFunctionData({abi:this.abi,functionName:'execute',args:[contractAction(action),proofHash,signature,proofApproval]})});
     const event=await this.executionEvent(tx.hash,action,proofHash);
@@ -114,7 +134,7 @@ export class Chain {
     const canonical=await this.public.getBlock({blockNumber:receipt.blockNumber});
     requireValue(canonical.hash===receipt.blockHash,'payment_reorg','支払いブロックを再確認してください。',409);
     const logs=parseEventLogs({abi:this.abi,eventName:'Executed',logs:receipt.logs.filter(log=>log.address.toLowerCase()===this.config.vault.toLowerCase()),strict:true});
-    const hashExpected=actionDigest(11155111,this.config.vault,action);
+    const hashExpected=actionDigest(this.config.chainId,this.config.vault,action);
     const event=logs.find(log=>log.args.actionHash.toLowerCase()===hashExpected.toLowerCase())?.args;
     requireValue(event && event.mandateId.toLowerCase()===action.mandateId.toLowerCase()
       && event.recipient.toLowerCase()===action.recipient.toLowerCase() && event.amount===BigInt(action.amount)

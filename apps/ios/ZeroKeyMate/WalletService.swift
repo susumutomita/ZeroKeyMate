@@ -12,26 +12,38 @@ final class WalletService: ObservableObject {
     @Published private(set) var isAuthenticated = false
     @Published private(set) var busy = false
     private let configuration: AppConfiguration
-    private var privy: (any Privy)?
+    private static var sharedPrivy: (any Privy)?
+    private static var sharedCredentials: (String, String)?
     private var ownerWallet: (any EmbeddedEthereumWallet)?
     private var agentWallet: (any EmbeddedEthereumWallet)?
     private let rpc: EthereumRPC
     init(configuration: AppConfiguration) {
         self.configuration = configuration
-        rpc = EthereumRPC(url: configuration.rpcURL)
+        rpc = EthereumRPC(url: configuration.rpcURL,chainID:configuration.chainID)
     }
-    private func client() throws -> any Privy {
+    private func client() async throws -> any Privy {
         guard configuration.walletConfigured else {
             throw ProductError.unavailable("Configure your Privy App ID and iOS Client ID. No wallet has been created yet.")
         }
-        if let privy { return privy }
+        if let value = Self.sharedPrivy {
+            guard let credentials = Self.sharedCredentials,
+                  credentials.0 == configuration.privyAppID,
+                  credentials.1 == configuration.privyClientID else {
+                throw ProductError.unavailable("Privy credentials changed. Close and restart the app to use the saved connection settings.")
+            }
+            _ = await value.getAuthState()
+            return value
+        }
         let value = PrivySdk.initialize(config: PrivyConfig(appId: configuration.privyAppID,
             appClientId: configuration.privyClientID, loggingConfig: PrivyLoggingConfig(logLevel: .none)))
-        privy = value
+        Self.sharedPrivy = value
+        Self.sharedCredentials = (configuration.privyAppID, configuration.privyClientID)
+        _ = await value.getAuthState()
         return value
     }
     func restore() async throws {
-        guard let user = await (try client()).getUser() else { isAuthenticated = false; return }
+        let sdk = try await client()
+        guard let user = await sdk.getUser() else { isAuthenticated = false; return }
         isAuthenticated = true
         guard let roles = try LocalSecrets.read(WalletRoles.self, key: "wallet-roles"), roles.userID == user.id else { return }
         ownerWallet = user.embeddedEthereumWallets.first { $0.address.lowercased() == roles.owner.lowercased() }
@@ -41,18 +53,21 @@ final class WalletService: ObservableObject {
     func sendCode(email: String) async throws {
         guard !busy else { throw ProductError.busy }
         busy = true; defer { busy = false }
-        try await client().email.sendCode(to: email.trimmingCharacters(in: .whitespacesAndNewlines))
+        let sdk = try await client()
+        try await sdk.email.sendCode(to: email.trimmingCharacters(in: .whitespacesAndNewlines))
     }
     func login(email: String, code: String) async throws {
         guard !busy else { throw ProductError.busy }
         busy = true; defer { busy = false }
-        _ = try await client().email.loginWithCode(code, sentTo: email.trimmingCharacters(in: .whitespacesAndNewlines))
+        let sdk = try await client()
+        _ = try await sdk.email.loginWithCode(code, sentTo: email.trimmingCharacters(in: .whitespacesAndNewlines))
         try await restore()
     }
     func prepareWallets() async throws {
         guard !busy else { throw ProductError.busy }
         busy = true; defer { busy = false }
-        guard let user = await (try client()).getUser() else { throw ProductError.unavailable("Sign in with your email first.") }
+        let sdk = try await client()
+        guard let user = await sdk.getUser() else { throw ProductError.unavailable("Sign in with your email first.") }
         isAuthenticated = true
         var roles = try LocalSecrets.read(WalletRoles.self, key: "wallet-roles")
         if roles?.userID != user.id { roles = nil }
@@ -91,11 +106,14 @@ final class WalletService: ObservableObject {
     private var signingDomain: EthereumRpcRequest.EIP712TypedData.EIP712Domain {
         .init(name: "ZeroKey Mate", version: "1", chainId: Int(configuration.chainID), verifyingContract: configuration.vault)
     }
-    func signGrant(_ grant: MandateGrant) async throws -> String {
+    func signGrant(_ grant: MandateGrant,validateApproval:() throws -> Void) async throws -> String {
         guard let ownerWallet, ownerWallet.address.lowercased() == grant.owner.lowercased(),
               grant.agent.lowercased() == agentAddress?.lowercased(), configuration.paymentsConfigured else { throw ProductError.invalidResponse }
-        try await rpc.ensureSepolia()
+        try validateApproval()
+        try await rpc.ensureNetwork()
+        try validateApproval()
         try await authenticateOwner(reason: "Authorize Mate to act under the displayed terms")
+        try validateApproval()
         let typed = EthereumRpcRequest.EIP712TypedData(domain: signingDomain, primaryType: "Grant", types: ["Grant": [
             .init("owner", type: "address"), .init("agent", type: "address"), .init("policyHash", type: "bytes32"),
             .init("validUntil", type: "uint64"), .init("nonce", type: "uint256")
@@ -103,16 +121,18 @@ final class WalletService: ObservableObject {
                       "validUntil": String(grant.validUntil), "nonce": grant.nonce])
         return try await ownerWallet.provider.request(.ethSignTypedDataV4(address: ownerWallet.address, typedData: typed))
     }
-    func signAction(hash: String) async throws -> String {
+    func signAction(hash: String,validateApproval:() throws -> Void) async throws -> String {
         guard let agentWallet, configuration.paymentsConfigured else { throw ProductError.unavailable("The execution wallet is not configured.") }
         _ = try CanonicalBytes.hex(hash, count: 32)
+        try await rpc.ensureNetwork()
+        try validateApproval()
         let typed = EthereumRpcRequest.EIP712TypedData(domain: signingDomain, primaryType: "Execution",
             types: ["Execution": [.init("actionHash", type: "bytes32")]], message: ["actionHash": hash])
         return try await agentWallet.provider.request(.ethSignTypedDataV4(address: agentWallet.address, typedData: typed))
     }
     func signName(label: String, nonce: String, expiresAt: UInt64) async throws -> String {
         guard let ownerWallet, let agentAddress, configuration.paymentsConfigured,
-              !configuration.ensParent.isEmpty,
+              configuration.chainID == 11_155_111, !configuration.ensParent.isEmpty,
               label.range(of: "^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$", options: .regularExpression) != nil else { throw ProductError.invalidResponse }
         _ = try CanonicalBytes.hex(nonce, count: 32)
         try await authenticateOwner(reason: "Register this name for Mate's public address")
@@ -120,8 +140,8 @@ final class WalletService: ObservableObject {
         return try await ownerWallet.provider.request(.personalSign(message: CanonicalBytes.hexString(Data(message.utf8)), address: ownerWallet.address))
     }
     enum FundingOperation { case approve(UInt64), deposit(UInt64), withdraw(UInt64), revoke(String) }
-    func send(_ operation: FundingOperation) async throws -> String {
-        guard let ownerWallet, configuration.paymentsConfigured else { throw ProductError.unavailable("Complete signing and Sepolia connection setup first.") }
+    func send(_ operation: FundingOperation,validateApproval:() throws -> Void) async throws -> String {
+        guard let ownerWallet, configuration.paymentsConfigured else { throw ProductError.unavailable("Complete signing and settlement connection setup first.") }
         guard let url = Bundle.main.url(forResource: "Selectors", withExtension: "json"),
               let selectors = try? JSONDecoder().decode([String:String].self, from: Data(contentsOf: url)) else { throw ProductError.invalidResponse }
         let name: String, to: String, parameters: String, reason: String
@@ -143,11 +163,15 @@ final class WalletService: ObservableObject {
             name = "revoke(bytes32)"; to = configuration.vault; parameters = String(id.dropFirst(2)); reason = "Revoke Mate's mandate on-chain"
         }
         guard let selector = selectors[name], selector.utf8.count == 10 else { throw ProductError.invalidResponse }
-        try await rpc.ensureSepolia()
+        try validateApproval()
+        try await rpc.ensureNetwork()
+        try validateApproval()
         try await authenticateOwner(reason: reason)
-        await ownerWallet.provider.switchChain(chainId: 11_155_111, rpcUrl: configuration.rpcURL)
+        try validateApproval()
+        await ownerWallet.provider.switchChain(chainId: Int(configuration.chainID), rpcUrl: configuration.rpcURL)
+        try validateApproval()
         let transaction = EthereumRpcRequest.UnsignedEthTransaction(from: ownerWallet.address, to: to,
-            data: selector + parameters, value: .int(0), chainId: .int(11_155_111))
+            data: selector + parameters, value: .int(0), chainId: .int(Int(configuration.chainID)))
         return try await ownerWallet.provider.request(.ethSendTransaction(transaction: transaction))
     }
 }

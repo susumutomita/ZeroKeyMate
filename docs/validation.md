@@ -4,7 +4,15 @@ APIと専門サービスの欠けていた実装、iOSの復元・停止操作�
 
 最初の検査対象は `8d8b271` を基点とする作業ディレクトリの変更です。実装は `addcbb1`、アクセシビリティ修正は `cdfb6d0` と `5bbe0f6` で [PR #12](https://github.com/susumutomita/ZeroKeyMate/pull/12) にPushしました。環境はApple Silicon、macOS 26.6.2、Xcode 26.6（17F113）、Node.js 24.14.1です。既存のApache-2.0 LICENSEと、別作業のschedulerファイルは変更していません。
 
-## Latest verified status (English)
+## Current Arc and local ZK completion work
+
+The branch now implements an offline native proof/share screen, Arc settlement context, a scoped Circle Agent Wallet attestor, live Graph record/quote checks, validated runtime connection settings, and foreground service orchestration. `make test SWIFT_TEST_FLAGS=--disable-sandbox` passes 19 Swift + 25 Node + 5 launcher tests; `make test-contracts` passes 12 tests. `npm run test:local` passes both chain 11155111 and chain 5042002 with real proofs, HTTP services, contracts and restart/retry protection. Anvil payments and model/discovery fixtures remain explicitly simulated.
+
+A read-only Arc RPC check returned chain 5042002 and USDC ERC-20 decimals 6. The pinned Circle CLI runs, but its status command requires operator terms acceptance/login; no wallet or attestation has been fabricated. Circle adapter tests use a labeled transport fixture and real signature validation, not the live Circle service. Privy and The Graph credentials and a public vault remain unconfigured in this workspace.
+
+The `07e7a96` CI rerun confirmed the home hit region/accessibility fix. The remaining proof-preflight UI test tapped blank space in a full-width Switch row; it now taps the actual thumb and waits for value 0. Final branch CI must confirm that change. Physical-iPhone proof time/memory, exported proof verification, live sponsor integration and DockKit remain acceptance gates.
+
+## Earlier verified baseline (English)
 
 The implementation at [`5bbe0f6`](https://github.com/susumutomita/ZeroKeyMate/commit/5bbe0f6) passed [CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34072016837) and [cryptographic acceptance](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34072016883). CI ran `make test`, Simulator/device SDK builds, `make test-ios`, contract tests and the proof checks. Local `make test SWIFT_TEST_FLAGS=--disable-sandbox` and `make build-ios` also passed after the control fix.
 
@@ -19,9 +27,9 @@ The existing [parent issue #4](https://github.com/susumutomita/ZeroKeyMate/issue
 | Requirement | Current implementation and remaining work |
 | --- | --- |
 | [#5 source completion](https://github.com/susumutomita/ZeroKeyMate/issues/5) | Missing API entry points/naming/lock and the Rust lockfile were implemented in this branch. Fidelity to the referenced 94-file archive and every PR #3 integration criterion has not been established; no byte-identical archive recovery is claimed. |
-| [#6 operation cancellation](https://github.com/susumutomita/ZeroKeyMate/issues/6) | Signed retry, receipt recovery and persistent server cancellation exist. Discovery/proving/signing do not yet share a request generation across every stop/resume boundary. The current `findProviders` does not bind its result to a draft ID, and `execute` still derives the service from the selected provider. This remains implementation work. |
-| [#7 full-stack launch](https://github.com/susumutomita/ZeroKeyMate/issues/7) | `mate` builds/launches the app. API and specialist use separate npm commands. Automatic service orchestration, ownership-aware reuse/stop and an integrated device HTTPS path are not implemented. |
-| [#8 runtime pairing](https://github.com/susumutomita/ZeroKeyMate/issues/8) | Configuration is generated into the app bundle; connection changes require rebuilding. In-app pairing and resumable onboarding are not implemented. |
+| [#6 operation cancellation](https://github.com/susumutomita/ZeroKeyMate/issues/6) | Request generations now invalidate discovery/proving/signing results across draft edits, Rest, backgrounding and approval dismissal. Draft service is independently checked. Signing checks consent again after asynchronous authentication. Already-broadcast transaction recovery remains separate; physical lifecycle acceptance is pending. |
+| [#7 full-stack launch](https://github.com/susumutomita/ZeroKeyMate/issues/7) | `make dev`, `make dev-simulator`, `make dev-device` and `make services` own actual API/provider processes and stop them on Ctrl+C, failing closed when configuration/runtime is missing. Automatic reuse and HTTPS provisioning are not implemented; the operator supplies a phone-reachable HTTPS endpoint. |
+| [#8 runtime pairing](https://github.com/susumutomita/ZeroKeyMate/issues/8) | **Settings → Configure connection** checks authenticated deployment and RPC chain before saving to Keychain. Pending grants/executions prevent switching. Privy app/client ID changes after SDK initialization require app restart. A complete first-run/live-phone onboarding acceptance remains open. |
 | [#9 conversational actions](https://github.com/susumutomita/ZeroKeyMate/issues/9) | Translation/summary proposals exist. Conversation-to-rules, ENS naming, spend queries and revocation routing remain open. |
 | [#10 continuous voice](https://github.com/susumutomita/ZeroKeyMate/issues/10) | Opt-in reply/listen continuation and several stop paths are implemented. The complete session/interruption/approval criteria and physical behavior are not accepted. |
 | [#11 expression and stand motion](https://github.com/susumutomita/ZeroKeyMate/issues/11) | Eyes reflect rest/listening/thinking and face position; DockKit exposes tracking control. A shared approval/execution expression model and bounded nod/shake motion coordinator are not implemented. |

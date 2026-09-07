@@ -52,3 +52,14 @@ The existing preparation files were taken from this repository's [proof workflow
 The source-built iOS runtime came from this repository's [native workflow run 33947836684](https://github.com/susumutomita/ZeroKeyMate/actions/runs/33947836684), artifact 9963986559. Archive SHA-256: 5a0436e772cb51f49ec9f536d5d71838be0a32a18fde37c3f306ac80b4c286c3. Its embedded runtime tar SHA-256 is cf5dffd4ec49196ed69d6ba00b3803663fda138135ce1c9be048c147aeb187b2. Both static libraries matched the runtime manifest's hashes and pinned public source revisions.
 
 The replacement CI and normal setup build current sources instead of referring to these expiring historical artifact IDs.
+
+
+## Arc and Circle Agent Stack — 2026-09-07
+
+- Arc parameters and the shared native/6-decimal USDC interface: [connect](https://docs.arc.io/integrate/connect-to-arc), [contract addresses](https://docs.arc.io/arc/references/contract-addresses), [stablecoin model](https://docs.arc.io/arc/concepts/stablecoin-native-model). Live read-only RPC checks returned chain ID 5042002 and ERC-20 `decimals() = 6`.
+- Circle Agent Wallet [typed-data signing and CLI reference](https://developers.circle.com/agent-stack/circle-cli/command-reference), [quickstart](https://developers.circle.com/agent-stack/agent-wallets/quickstart). The optional adapter uses the official CLI to attest only a verified action hash and proof hash; it never supplies the private policy or approved plaintext.
+- `@circle-fin/cli` 1.0.0: Apache-2.0, [public npm source archive](https://registry.npmjs.org/@circle-fin/cli/-/cli-1.0.0.tgz). Its published source map was consulted for command flags, agent-wallet selection and the JSON result envelope; the adapter was written independently against that interface.
+- Optional CLI dependencies are pinned separately in `config/circle-cli/package-lock.json` and inventoried in [circle-cli-dependencies.json](circle-cli-dependencies.json). This is an external command-line tool, not an iOS SDK or a binary redistributed in this repo. Its dependency set includes `rpc-websockets` 9.3.8 under LGPL-3.0-only; retain its upstream license and corresponding source availability if separately redistributing that tool. BSD-3-Clause is selected where offered as an alternative to GPL-2.0. `text-encoding-utf-8` 1.0.2's actual LICENSE.md declares public-domain/Unlicense material and notes WHATWG-derived material. This review is not a formal license or clean-room audit.
+- The adapter sets `DO_NOT_TRACK=1`. CLI login, email OTP and acceptance of Circle's terms remain explicit operator actions. No authentication email was sent by this implementation run.
+
+Privy lifecycle: [Swift setup](https://docs.privy.io/basics/swift/setup) and [2.0 migration](https://docs.privy.io/basics/swift/advanced/migrating-to-2.0). The app initializes the SDK once per process, awaits readiness, and requires restart when initialized app credentials change.

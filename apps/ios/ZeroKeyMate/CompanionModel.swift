@@ -28,8 +28,8 @@ struct PendingExecution:Codable,Sendable {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case conversation,settings,rules,wallet,identity,activity,disclosure,localProof;var id:String{rawValue}}
-    @Published var sheet:Sheet?
+    enum Sheet:String,Identifiable {case conversation,settings,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
+    @Published var sheet:Sheet? { didSet { if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() } } }
     @Published var errorMessage:String?
     @Published private(set) var messages:[ConversationMessage]=[]
     @Published private(set) var thinking=false
@@ -55,19 +55,21 @@ final class CompanionModel:ObservableObject {
     }
     @Published private(set) var voiceSessionActive=false
     @Published var sleeping=false
-    let configuration:AppConfiguration
+    @Published private(set) var configuration:AppConfiguration
     let sensors=MateModel()
     let voice=VoiceService()
-    let wallet:WalletService
+    @Published private(set) var wallet:WalletService
     private let conversation=ConversationService()
     // A single actor serializes native work across payment and offline screens.
     let proofs=ProofService()
-    private let network:NetworkService
-    private let rpc:EthereumRPC
+    private var network:NetworkService
+    private var rpc:EthereumRPC
     private var conversationTask:Task<Void,Never>?
     private var conversationGeneration:UInt64=0
     private var requestGeneration=UUID()
     private var started=false
+    private var configurationGeneration=UUID()
+    private var stateLoaded=false
     private var foreground=true
     private var notifications=Set<AnyCancellable>()
 
@@ -75,7 +77,7 @@ final class CompanionModel:ObservableObject {
         self.configuration=configuration
         wallet=WalletService(configuration:configuration)
         network=NetworkService(configuration:configuration)
-        rpc=EthereumRPC(url:configuration.rpcURL)
+        rpc=EthereumRPC(url:configuration.rpcURL,chainID:configuration.chainID)
         voice.onFinal={[weak self] text in self?.send(text)}
         voice.onPlaybackFinished={[weak self] in self?.resumeListening()}
         voice.onInputInterrupted={[weak self] in self?.stopVoice()}
@@ -87,16 +89,54 @@ final class CompanionModel:ObservableObject {
     }
     func start() async {
         guard !started else{return};started=true
-        modelUnavailable=await conversation.availability()
-        do{try await proofs.prepare();proofUnavailable=nil}catch{proofUnavailable=error.localizedDescription}
+        let startupGeneration=configurationGeneration
+        let unavailable=await conversation.availability()
+        guard configurationGeneration==startupGeneration else{return}
+        modelUnavailable=unavailable
+        var proofError:String?
+        do{try await proofs.prepare()}catch{proofError=error.localizedDescription}
+        guard configurationGeneration==startupGeneration else{return}
+        proofUnavailable=proofError
         do {
-            mandate=try LocalSecrets.read(StoredMandate.self,key:"active-mandate")
+            mandate=try LocalSecrets.read(StoredMandate.self,key:configuration.stateKey("active-mandate"))
             if let mandate{_=try mandate.policy.material()}
-            identity=try LocalSecrets.read(MateIdentity.self,key:"mate-identity")
-            receipts=try LocalSecrets.read([ExecutionReceipt].self,key:"receipts") ?? []
-            pendingExecution=try LocalSecrets.read(PendingExecution.self,key:"pending-execution")
+            identity=try LocalSecrets.read(MateIdentity.self,key:configuration.stateKey("mate-identity"))
+            receipts=try LocalSecrets.read([ExecutionReceipt].self,key:configuration.stateKey("receipts")) ?? []
+            pendingExecution=try LocalSecrets.read(PendingExecution.self,key:configuration.stateKey("pending-execution"))
             localNotes=try LocalSecrets.read(String.self,key:"local-notes") ?? ""
+            stateLoaded=true
             if configuration.walletConfigured{try await wallet.restore()}
+        }catch{
+            guard configurationGeneration==startupGeneration else{return}
+            if !stateLoaded{started=false}
+            errorMessage=error.localizedDescription
+        }
+    }
+    func applyConfiguration(_ value:AppConfiguration) async {
+        guard !financialBusy else{return}
+        guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
+        guard pendingExecution == nil else{errorMessage="Recover the pending execution before changing connections.";return}
+        do {
+            if try LocalSecrets.read(PendingGrant.self,key:configuration.stateKey("pending-grant")) != nil {
+                errorMessage="Recover the pending mandate before changing connections.";return
+            }
+        }catch{errorMessage=error.localizedDescription;return}
+        guard value.paymentsConfigured else{errorMessage="Enter a supported testnet, matching USDC token, vault and pairing token.";return}
+        financialBusy=true;stopVoice();sensors.stopCapture();cancelConversation()
+        let ticket=requestGeneration
+        defer{financialBusy=false}
+        do {
+            let candidate=NetworkService(configuration:value)
+            try await candidate.validateDeployment()
+            let candidateRPC=EthereumRPC(url:value.rpcURL,chainID:value.chainID)
+            try await candidateRPC.ensureNetwork()
+            guard foreground,!sleeping,requestGeneration==ticket else{throw ProductError.cancelled}
+            try LocalSecrets.write(value,key:"connection-settings")
+            configurationGeneration=UUID();stateLoaded=false
+            configuration=value;network=candidate;rpc=candidateRPC;wallet=WalletService(configuration:value)
+            mandate=nil;account=nil;spent=0;receipts=[];identity=nil;providers=[];discoveryEvidence=nil;draft=nil
+            started=false;sheet = .settings
+            await start()
         }catch{errorMessage=error.localizedDescription}
     }
     private func cancelConversation() {
@@ -106,6 +146,7 @@ final class CompanionModel:ObservableObject {
     func setForeground(_ active:Bool) {
         foreground=active;sensors.setForeground(active)
         if !active{requestGeneration=UUID();stopVoice();cancelConversation()}
+        else if !stateLoaded {Task{await start()}}
     }
     func stopVoice(){voiceSessionActive=false;voice.stop()}
     private func resumeListening() {
@@ -121,7 +162,7 @@ final class CompanionModel:ObservableObject {
         guard localNotes.utf8.count<=2_000 else{errorMessage="Keep notes within 2,000 bytes.";return}
         do{try LocalSecrets.write(localNotes,key:"local-notes")}catch{errorMessage=error.localizedDescription}
     }
-    func clearConversation(){cancelConversation();stopVoice();messages=[];draft=nil}
+    func clearConversation(){requestGeneration=UUID();cancelConversation();stopVoice();messages=[];draft=nil}
     func send(_ text:String) {
         let input=text.trimmingCharacters(in:.whitespacesAndNewlines)
         guard !thinking,!financialBusy,!input.isEmpty,foreground else{return}
@@ -180,7 +221,7 @@ final class CompanionModel:ObservableObject {
             guard response.providers.allSatisfy({$0.service==service.rawValue && UInt64($0.price) != nil}) else{throw ProductError.invalidResponse}
             providers=response.providers;discoveryEvidence="The Graph · block \(response.indexedBlock)"
             if providers.isEmpty{throw ProductError.unavailable("No active provider meets these requirements. No preset alternative will be substituted.")}
-        }catch{errorMessage=error.localizedDescription}
+        }catch{if draft?.id==draftID,foreground,!sleeping{errorMessage=error.localizedDescription}}
     }
     func refreshAccount() async {
         guard let owner=wallet.ownerAddress else{return}
@@ -193,20 +234,23 @@ final class CompanionModel:ObservableObject {
                       state.policyHash.lowercased()==mandate.grant.policyHash.lowercased(),let value=UInt64(state.spent) else{throw ProductError.invalidResponse}
                 spent=value
                 if state.revoked || state.validUntil<=UInt64(Date().timeIntervalSince1970) {
-                    try LocalSecrets.delete("active-mandate");self.mandate=nil
+                    try LocalSecrets.delete(configuration.stateKey("active-mandate"));self.mandate=nil
                 }
             }
         }catch{errorMessage=error.localizedDescription}
     }
     func authorize(budget:String,translation:Bool,summary:Bool,hours:Int) async {
+        guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
+        let approvalGeneration=requestGeneration
+        func validateApproval() throws { guard foreground,!sleeping,requestGeneration==approvalGeneration else{throw ProductError.cancelled} }
         guard !financialBusy else{return}
         guard mandate == nil else{errorMessage="Revoke the current mandate before changing its terms.";return}
         guard let owner=wallet.ownerAddress,let agent=wallet.agentAddress,configuration.paymentsConfigured else{
-            errorMessage="Set up your wallet and Sepolia connection first.";return
+            errorMessage="Set up your wallet and settlement connection first.";return
         }
         financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
         do {
-            guard try LocalSecrets.read(PendingGrant.self,key:"pending-grant") == nil else{
+            guard try LocalSecrets.read(PendingGrant.self,key:configuration.stateKey("pending-grant")) == nil else{
                 throw ProductError.unavailable("A mandate is awaiting confirmation. Recover it and check its status first.")
             }
             guard (1...24).contains(hours) else{throw MandateError.invalidPolicy}
@@ -216,10 +260,10 @@ final class CompanionModel:ObservableObject {
             let grant=try MandateGrant(owner:owner,agent:agent,policyHash:LocalSecrets.hash(policy.material()),
                 validUntil:UInt64(Date().timeIntervalSince1970)+UInt64(hours*3600),nonce:state.nonce)
             executionStatus="Verifying owner approval"
-            let signature=try await wallet.signGrant(grant)
+            let signature=try await wallet.signGrant(grant,validateApproval:validateApproval)
             let pending=PendingGrant(grant:grant,policy:policy,signature:signature)
-            try LocalSecrets.write(pending,key:"pending-grant")
-            executionStatus="Registering the mandate on Sepolia"
+            try LocalSecrets.write(pending,key:configuration.stateKey("pending-grant"))
+            executionStatus="Registering the mandate on \(configuration.networkName)"
             try await finishGrant(pending)
         }catch{errorMessage=error.localizedDescription}
     }
@@ -231,31 +275,35 @@ final class CompanionModel:ObservableObject {
               state.policyHash.lowercased()==pending.grant.policyHash.lowercased(),state.validUntil==pending.grant.validUntil,
               !state.revoked,let value=UInt64(state.spent) else{throw ProductError.invalidResponse}
         let stored=StoredMandate(id:receipt.mandateId,grant:pending.grant,policy:pending.policy)
-        try LocalSecrets.write(stored,key:"active-mandate");try LocalSecrets.delete("pending-grant")
+        try LocalSecrets.write(stored,key:configuration.stateKey("active-mandate"));try LocalSecrets.delete(configuration.stateKey("pending-grant"))
         mandate=stored;spent=value
     }
     func recoverGrant() async {
         guard !financialBusy else{return};financialBusy=true;defer{financialBusy=false}
         do {
-            guard let pending=try LocalSecrets.read(PendingGrant.self,key:"pending-grant") else{
+            guard let pending=try LocalSecrets.read(PendingGrant.self,key:configuration.stateKey("pending-grant")) else{
                 throw ProductError.unavailable("There is no pending mandate.")
             }
             try await finishGrant(pending)
         }catch{errorMessage=error.localizedDescription}
     }
     func fund(_ operation:WalletService.FundingOperation) async {
+        guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
+        let approvalGeneration=requestGeneration
+        func validateApproval() throws { guard foreground,!sleeping,requestGeneration==approvalGeneration else{throw ProductError.cancelled} }
         guard !financialBusy else{return}
         financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
         do {
             executionStatus="Verifying signature"
-            let hash=try await wallet.send(operation)
-            executionStatus="Waiting for Sepolia confirmation"
+            let hash=try await wallet.send(operation,validateApproval:validateApproval)
+            executionStatus="Waiting for \(configuration.networkName) confirmation"
             _=try await rpc.confirm(hash:hash)
-            if case .revoke=operation{try LocalSecrets.delete("active-mandate");mandate=nil}
+            if case .revoke=operation{try LocalSecrets.delete(configuration.stateKey("active-mandate"));mandate=nil}
             await refreshAccount()
         }catch{errorMessage=error.localizedDescription}
     }
     func execute(payload:String,provider:ServiceProvider) async {
+        guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
         guard !financialBusy else{return}
         guard foreground,!sleeping else{errorMessage="Wake Mate before making a request.";return}
         if let reason=proofUnavailable{errorMessage=reason;return}
@@ -287,11 +335,11 @@ final class CompanionModel:ObservableObject {
             lastProofMilliseconds=proof.elapsedMilliseconds
             guard proof.policyHash.lowercased()==stored.grant.policyHash.lowercased() else{throw ProductError.invalidResponse}
             executionStatus="Signing with the restricted execution key"
-            let signature=try await wallet.signAction(hash:proof.actionHash)
+            let signature=try await wallet.signAction(hash:proof.actionHash,validateApproval:checkApproval)
             try checkApproval()
             let submission=ExecutionSubmission(action:action,agentSignature:signature,proof:proof.bytes.base64EncodedString(),payload:payload,providerId:provider.id)
             let pending=PendingExecution(actionHash:proof.actionHash,proofHash:proof.proofHash,createdAt:Date(),submission:submission)
-            try LocalSecrets.write(pending,key:"pending-execution");pendingExecution=pending
+            try LocalSecrets.write(pending,key:configuration.stateKey("pending-execution"));pendingExecution=pending
             executionStatus="Sending approved text and confirming execution"
             let receipt=try await network.execute(action:action,signature:signature,proof:proof.bytes,payload:payload,providerID:provider.id)
             try await accept(receipt,pending:pending)
@@ -305,7 +353,7 @@ final class CompanionModel:ObservableObject {
               let value=UInt64(receipt.spentAfter) else{throw ProductError.invalidResponse}
         try await rpc.confirmExecution(receipt,pending:pending,vault:configuration.vault)
         spent=value;receipts.removeAll{$0.id==receipt.id};receipts.insert(receipt,at:0);receipts=Array(receipts.prefix(30))
-        try LocalSecrets.write(receipts,key:"receipts");try LocalSecrets.delete("pending-execution");pendingExecution=nil
+        try LocalSecrets.write(receipts,key:configuration.stateKey("receipts"));try LocalSecrets.delete(configuration.stateKey("pending-execution"));pendingExecution=nil
     }
     func recoverExecution() async {
         guard !financialBusy,let pending=pendingExecution else{return}
@@ -328,7 +376,7 @@ final class CompanionModel:ObservableObject {
         financialBusy=true;defer{financialBusy=false}
         do {
             try await network.cancel(actionHash:pending.actionHash)
-            try LocalSecrets.delete("pending-execution");pendingExecution=nil
+            try LocalSecrets.delete(configuration.stateKey("pending-execution"));pendingExecution=nil
         }catch{errorMessage=error.localizedDescription}
     }
     func registerIdentity(label:String) async {
@@ -341,7 +389,7 @@ final class CompanionModel:ObservableObject {
             let registered=try await network.claimName(label:label,owner:owner,agent:agent,signature:signature,nonce:nonce,expiresAt:expiresAt)
             let resolved=try await network.identity(name:registered.name)
             guard resolved.address.lowercased()==agent.lowercased(),resolved.owner.lowercased()==owner.lowercased() else{throw ProductError.invalidResponse}
-            try LocalSecrets.write(resolved,key:"mate-identity");identity=resolved
+            try LocalSecrets.write(resolved,key:configuration.stateKey("mate-identity"));identity=resolved
         }catch{errorMessage=error.localizedDescription}
     }
 }

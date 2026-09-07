@@ -74,7 +74,13 @@ final class ProductUITests: XCTestCase {
         tapPadding(app.buttons["open-local-proof"])
         XCTAssertTrue(app.buttons["generate-local-proof"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["generate-local-proof"].isHittable)
-        app.switches["Allow translation"].tap()
+        let permission=app.switches["Allow translation"]
+        XCTAssertEqual(permission.value as? String,"1")
+        // SwiftUI exposes a full row, but the actual UISwitch is on its trailing edge.
+        permission.coordinate(withNormalizedOffset:CGVector(dx:0.9,dy:0.5)).tap()
+        let disabled=NSPredicate(format:"value == %@","0")
+        expectation(for:disabled,evaluatedWith:permission)
+        waitForExpectations(timeout:5)
         app.buttons["generate-local-proof"].tap()
         XCTAssertTrue(app.staticTexts["No proof generated. This service is not allowed."].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Original proof accepted"].exists)

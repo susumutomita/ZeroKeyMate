@@ -6,7 +6,7 @@ A private iPhone companion that proves each paid AI request follows your rules.
 
 Mate is designed to keep everyday conversation on your iPhone. When you ask a specialist to translate or summarize something, you review the exact text, provider, recipient and price first. A ProveKit proof checks the request against your private spending policy; a narrowly scoped Ethereum vault enforces the signed execution. The language model has no authority to approve a payment.
 
-[日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Delivery schedule](docs/schedule.md) · [Prize strategy](docs/prize-strategy.md) · [Interim report](docs/interim-report.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
+[日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Delivery schedule](docs/schedule.md) · [Arc setup](docs/arc-setup.md) · [Prize strategy](docs/prize-strategy.md) · [Interim report](docs/interim-report.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
 
 <p align="center">
   <img src="docs/assets/home-simulator.png" width="260" alt="Earlier Japanese build of Mate: conversation, talk and rest controls, with the camera stopped.">
@@ -71,13 +71,13 @@ The stand supports the companion experience; it is optional for proving or payin
 3. **Prove and execute.** Prove that this specific request fits the committed policy. Verify the proof, owner grant and agent signature before transferring test USDC.
 4. **Get the result, even after a disconnect.** Recover the same signed request and receipt. Retrying a completed request cannot spend again.
 
-The local acceptance test exercises steps 3–4 with a real proof, HTTP services and Solidity contracts. The complete iPhone-to-public-Sepolia flow still needs live acceptance.
+The local acceptance test exercises steps 3–4 with a real proof, HTTP services and Solidity contracts. The complete iPhone-to-public-Arc flow still needs live acceptance.
 
 ## Why Ethereum and zero knowledge?
 
 An assistant's instructions are not a spending boundary. MateVault checks authority, expiry, revocation, spend state and replay on chain. Each action binds the chain, vault, mandate, concrete recipient, amount, service, disclosed text hash and nonce. The vault supports one configured token and a fixed transfer operation.
 
-The proof keeps the policy's budget, allowed-service mask and salt out of the public grant. The payment amount and recipient remain public; the specialist receives the text you approve. A human-readable ENS name helps select a recipient but cannot authorize spending.
+The proof keeps the policy's budget, allowed-service mask and salt out of the public grant. The payment amount and recipient remain public; the specialist receives the text you approve. Live Graph records select candidates; each quote separately binds the Arc settlement deployment. Registry identity does not authorize spending.
 
 **Trust boundary:** ProveKit verification runs off chain. MateVault trusts the configured attestor's signature on its result. A compromised attestor can approve a policy violation; collusion with the agent can spend beyond the private budget. This is not an on-chain ZK verifier. See the [full trust assumptions](docs/architecture.md#trust-assumptions).
 
@@ -87,13 +87,14 @@ The proof keeps the policy's budget, allowed-service mask and salt out of the pu
 | --- | --- | --- |
 | Native SwiftUI app | iOS Simulator/device SDK builds; CI exercises real screens and Keychain | Physical iPhone, camera, microphone, Foundation Models and DockKit |
 | ProveKit + Noir policy circuit | Real proof generation/verification, six invalid-witness rejections and API tamper tests | Proof generation latency and memory on the target iPhone |
-| MateVault | 12 contract tests on Anvil, including replay and authorization failures | Public Sepolia deployment and live receipts |
+| MateVault | 12 contract tests on Anvil, including replay and authorization failures | Public Arc deployment and live receipts |
 | API + specialist + recovery | Real proof → HTTP → vault → result, including API restart and retry without duplicate spend | Complete mobile/live-service flow |
 | Local specialist model | Actual Ollama translation and recovery checked locally | A separately configured, license-reviewed deployment |
 | Privy | Pinned iOS SDK and signing adapter compile | Live login and owner/agent signing |
-| ENSv2 + The Graph | Registration/resolution and discovery adapters implemented | Live registry, index schema, provider records and queries |
+| Arc + Circle Agent Stack | Arc chain/token binding and an allowlisted Circle Agent Wallet attestation adapter; both supported chain domains pass local acceptance | Actual Circle session, public vault and testnet receipts |
+| The Graph | Live indexed owner, agent wallet and endpoint validation; quote binds the settlement chain/vault/token | Live provider registration and query evidence |
 
-**Current scope: a working local prototype, with further app implementation and hardware/live acceptance still open.** The [product backlog](https://github.com/susumutomita/ZeroKeyMate/issues/4) includes unified cancellation of pending operations, a full-stack launcher, runtime pairing, broader conversation actions and expressive stand motion. Basic continuous voice is implemented, but its full acceptance criteria are not closed. [Implementation status](docs/validation.md#remaining-product-implementation).
+**Current scope: a working local prototype, with further app implementation and hardware/live acceptance still open.** The [product backlog](https://github.com/susumutomita/ZeroKeyMate/issues/4) tracks remaining acceptance, broader conversation actions and expressive stand motion. A foreground full-stack launcher, validated runtime pairing, and cancellation checks before signing are implemented. Basic continuous voice is implemented, but its full acceptance criteria are not closed. [Implementation status](docs/validation.md#remaining-product-implementation).
 
 Anvil payments are simulations. Default local discovery and model responses are labeled fixtures; the optional Ollama mode generates a real response. No unavailable integration is replaced by a success screen. [Detailed results](docs/validation.md).
 
@@ -130,7 +131,7 @@ For the physical phone, connect it over USB, unlock it, trust this Mac and enabl
 
 The UI, permission prompts and launch menu are in English. Voice input and read-aloud use English (US); typed conversation can respond in the user’s language. Keyboard opens conversation, microphone starts speech, moon stops camera/microphone and rests, sliders open settings, and clock opens activity. On-device conversation requires an eligible Apple Intelligence device/model; unavailable models are reported without a cloud fallback.
 
-If a signing identity is missing, run `make project`, open `apps/ios/ZeroKeyMate.xcodeproj`, and configure your Apple Account/Signing Team in Xcode before retrying. DockKit requires compatible physical hardware. These make targets launch the native app; API/provider startup is still separate. Detailed configuration is in [setup (日本語)](docs/setup.md) and [`.env.example`](.env.example).
+If a signing identity is missing, run `make project`, open `apps/ios/ZeroKeyMate.xcodeproj`, and configure your Apple Account/Signing Team in Xcode before retrying. DockKit requires compatible physical hardware. These make targets launch the native app. For the configured API and specialist together, use `make dev` (chooser), `make dev-simulator`, or `make dev-device`; Ctrl+C stops their services. **Settings → Configure connection** validates and saves the phone connection. Follow [Arc and live-service setup](docs/arc-setup.md); required accounts and test funds are not created automatically.
 
 ## Reproduce the proof and payment demo
 
@@ -144,7 +145,7 @@ npm run test:proofs
 npm run test:local
 ```
 
-This generates an actual proof and exercises the execution/recovery protocol on a disposable Anvil chain. It uses published test accounts and a test token; it is **local payment simulation**, not public Sepolia. See the [demo guide](docs/demo.md) for the real-model option, rejection checks and a three-minute walkthrough.
+This generates an actual proof and exercises the execution/recovery protocol on a disposable Anvil chain. It uses published test accounts and a test token; it is **local payment simulation**, not a public Arc or Sepolia payment. The acceptance script exercises both supported chain domains. See the [demo guide](docs/demo.md) for the real-model option, rejection checks and a three-minute walkthrough.
 
 To include ProveKit in the iOS app and run native acceptance on a usable Simulator:
 
@@ -165,7 +166,7 @@ flowchart LR
     I --> A[Execution API]
     P --> V[Rust proof verifier]
     A --> V
-    A --> D[The Graph candidates + ENS address check]
+    A --> D[The Graph candidates + bound quote]
     V --> T[Off-chain attestor]
     T --> C[MateVault: grant, action, replay, test USDC]
     A --> S[Specialist: prepare approved text]
@@ -174,7 +175,7 @@ flowchart LR
     S --> I
 ```
 
-The Graph and ENS paths require live configuration; local acceptance substitutes explicitly labeled discovery fixtures. The specialist independently checks the payment event before releasing its result. Settlement is not escrow: provider failure after payment has no automatic refund.
+The Graph path requires live configuration; local acceptance substitutes explicitly labeled discovery fixtures. The specialist independently checks the payment event before releasing its result. Settlement is not escrow: provider failure after payment has no automatic refund.
 
 | Code | Responsibility |
 | --- | --- |

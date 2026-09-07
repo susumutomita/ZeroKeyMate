@@ -24,10 +24,11 @@ export class Names {
   #queue=new SerialQueue();
   constructor(config,chain,journal) {
     Object.assign(this,{config,chain,journal});
-    this.lane=config.ensKey ? new TransactionLane({publicClient:chain.public,rpcURL:config.rpcURL,key:config.ensKey,journal}) : null;
+    this.lane=config.ensKey && (config.chainId??11155111)===11155111 ? new TransactionLane({publicClient:chain.public,rpcURL:config.rpcURL,key:config.ensKey,journal}) : null;
   }
   read(registry,functionName,args) {return this.chain.public.readContract({address:registry,abi:registryABI,functionName,args});}
   async registryFor(name) {
+    requireValue((this.config.chainId??11155111)===11155111,'ens_unavailable','ENS registration is deferred on Arc.',503);
     ensName.parse(name);
     let registry=deployment.rootRegistry;
     const labels=name.split('.').reverse();
@@ -50,6 +51,7 @@ export class Names {
     return {name,address:account,owner,description:String(description).slice(0,500)};
   }
   claim(input) {return this.#queue.run(async()=>{
+    requireValue((this.config.chainId??11155111)===11155111,'ens_unavailable','ENS registration is deferred on Arc.',503);
     const claim=nameClaimSchema.parse(input), config=this.config;
     requireValue(config.ensParent && config.ensRegistry && config.ensFactory && this.lane,
       'ens_unconfigured','ENSv2の親ドメイン・登録権限・リゾルバーファクトリーが未設定です。',503);

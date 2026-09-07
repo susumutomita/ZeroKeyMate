@@ -1,8 +1,9 @@
 import path from 'node:path';
+import {networkConfiguration,stateDirectory} from '../api/networks.mjs';
 import {pathToFileURL} from 'node:url';
 import {z} from 'zod';
 import {jsonServer,readJSON} from '../api/http.mjs';
-import {ROOT,httpsURL,safeURL,SEPOLIA_USDC} from '../api/config.mjs';
+import {ROOT,httpsURL,safeURL} from '../api/config.mjs';
 import {actionSchema,signatureSchema,address,hash32,uintString,actionDigest,sha256} from '../api/protocol.mjs';
 import {requireValue,ProductError,SerialQueue} from '../api/errors.mjs';
 import {Chain} from '../api/chain.mjs';
@@ -19,11 +20,11 @@ export class Specialist {
   async quote(service) {
     requireValue(service===this.config.service,'service_unavailable','この専門サービスは未対応です。',404);
     await this.model.ready();
-    return {service,price:this.config.price,recipient:this.config.recipient,expiresAt:Math.floor(Date.now()/1000)+120,ready:true};
+    return {chainId:this.config.chainId??11155111,vault:this.config.vault,token:this.config.token,service,price:this.config.price,recipient:this.config.recipient,expiresAt:Math.floor(Date.now()/1000)+120,ready:true};
   }
   prepare(input){return this.#queue.run(async()=>{
     const request=prepareSchema.parse(input),{action}=request;
-    const actionHash=actionDigest(11155111,this.config.vault,action);
+    const actionHash=actionDigest(this.config.chainId??11155111,this.config.vault,action);
     requireValue(action.service===this.config.service && action.amount===this.config.price
       && action.recipient.toLowerCase()===this.config.recipient.toLowerCase()
       && sha256(request.payload).toLowerCase()===action.requestHash.toLowerCase(),
@@ -68,11 +69,12 @@ export function providerHandler(specialist) {
   };
 }
 export function providerConfiguration(e=process.env) {
-  return z.object({rpcURL:httpsURL,vault:address,attestorAddress:address,token:address,
+  const network=networkConfiguration(e);
+  return z.object({chainId:z.number().int(),rpcURL:httpsURL,vault:address,attestorAddress:address,token:address,
     recipient:address,service:z.coerce.number().int().min(0).max(1),price:uintString.refine(v=>BigInt(v)>0n),
     modelURL:safeURL,model:z.string().min(1).max(200),apiToken:z.string().min(32).max(256),
     journalKey:z.string().regex(/^[a-fA-F0-9]{64}$/)}).parse({
-    rpcURL:e.SEPOLIA_RPC_URL,vault:e.MATE_VAULT_ADDRESS,attestorAddress:e.MATE_ATTESTOR_ADDRESS,token:SEPOLIA_USDC,
+    ...network,vault:e.MATE_VAULT_ADDRESS,attestorAddress:e.MATE_ATTESTOR_ADDRESS,
     recipient:e.PROVIDER_RECIPIENT,service:e.PROVIDER_SERVICE,price:e.PROVIDER_PRICE,
     modelURL:e.OLLAMA_URL||'http://127.0.0.1:11434',model:e.OLLAMA_MODEL,
     apiToken:e.PROVIDER_API_TOKEN,journalKey:e.PROVIDER_JOURNAL_KEY,
@@ -80,7 +82,7 @@ export function providerConfiguration(e=process.env) {
 }
 export async function startProvider(e=process.env) {
   const config=providerConfiguration(e);
-  const directory=path.resolve(e.PROVIDER_DATA_DIRECTORY||path.join(ROOT,'.data/provider'));
+  const directory=stateDirectory('provider',e);
   const release=processLock(path.join(directory,'provider.lock'));
   let journal;
   try {
@@ -88,7 +90,7 @@ export async function startProvider(e=process.env) {
     const chain=new Chain(config,journal);await chain.prepare();
     const specialist=new Specialist({config,chain,journal,model:new SpecialistModel(config)});
     const server=jsonServer({token:config.apiToken,handler:providerHandler(specialist),
-      publicHandler:route=>route==='/health'?{service:'ZeroKey Mate specialist',network:'sepolia',modelReadiness:'checked-per-quote'}:undefined});
+      publicHandler:route=>route==='/health'?{service:'ZeroKey Mate specialist',chainId:config.chainId,modelReadiness:'checked-per-quote'}:undefined});
     server.once('close',()=>{journal.close();release();});
     await new Promise((resolve,reject)=>{
       server.once('error',reject);
@@ -102,5 +104,5 @@ if(process.argv[1] && import.meta.url===pathToFileURL(path.resolve(process.argv[
   try {
     const server=await startProvider();console.log(`Specialist listening on port ${server.address().port}.`);
     for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>server.close());
-  }catch{console.error('専門サービスを起動できません。Sepolia・提供者・Ollamaの設定を確認してください。');process.exitCode=1;}
+  }catch{console.error('専門サービスを起動できません。ネットワーク・提供者・Ollamaの設定を確認してください。');process.exitCode=1;}
 }

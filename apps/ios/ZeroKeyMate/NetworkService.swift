@@ -34,7 +34,21 @@ struct ExecutionSubmission:Codable,Sendable {
 struct NetworkFailure:Error,LocalizedError {
     let code:String
     let message:String
-    var errorDescription:String?{message}
+    var errorDescription:String? {
+        switch code {
+        case "configuration_required","invalid_configuration","pairing_required": return "The execution service is not configured. Check the connection settings."
+        case "graph_unconfigured","graph_response": return "Provider discovery is unavailable. Check the service's Graph connection."
+        case "provider_changed": return "The provider, recipient or price changed. Review a fresh quote."
+        case "proof_rejected": return "The proof does not match this request. No new payment was authorized."
+        case "owner_signature","agent_signature","attestor_signature": return "The required signature could not be verified."
+        case "stale_mandate","mandate_not_found": return "The mandate is missing, expired or its spending state changed. Refresh your rules."
+        case "execution_cancelled": return "This execution was cancelled. Review a new request to continue."
+        case "circle_unavailable","circle_wallet": return "The Circle proof attestor is unavailable. Check its testnet login and configured wallet."
+        default:
+            if message.unicodeScalars.allSatisfy({$0.value<128}){return message}
+            return "The execution service could not complete this request. Check Activity before retrying a payment."
+        }
+    }
 }
 private final class NoRedirects:NSObject,URLSessionTaskDelegate,Sendable {
     func urlSession(_ session:URLSession,task:URLSessionTask,willPerformHTTPRedirection response:HTTPURLResponse,
@@ -72,6 +86,14 @@ actor NetworkService {
             throw ProductError.unavailable("Could not connect to the external service (HTTP \(http.statusCode)).")
         }
         return try JSONDecoder().decode(Response.self,from:data)
+    }
+    func validateDeployment() async throws {
+        struct Deployment:Decodable {let chainId:UInt64;let vault:String;let token:String;let actionVersion:String}
+        let value:Deployment=try await perform("/v1/configuration")
+        guard value.chainId==configuration.chainID, value.vault.lowercased()==configuration.vault.lowercased(),
+              value.token.lowercased()==configuration.token.lowercased(),value.actionVersion=="ZKM-ACT1" else {
+            throw ProductError.unavailable("The execution service uses a different network or vault. These settings have not been saved.")
+        }
     }
     func providers(service:MateService) async throws -> ProviderList {try await perform("/v1/providers?service=\(service.rawValue)")}
     func account(owner:String) async throws -> AccountState {
@@ -119,14 +141,15 @@ actor NetworkService {
 actor EthereumRPC {
     private let url:URL?
     private let session=URLSession(configuration:.ephemeral,delegate:NoRedirects(),delegateQueue:nil)
-    init(url:String){self.url=URL(string:url)}
+    private let chainID:UInt64
+    init(url:String,chainID:UInt64=11_155_111){self.url=URL(string:url);self.chainID=chainID}
     struct Log:Decodable,Sendable {let address:String;let topics:[String];let data:String}
     struct Receipt:Decodable,Sendable {let status:String;let transactionHash:String;let blockHash:String;let blockNumber:String;let logs:[Log]}
     private struct Block:Decodable {let hash:String;let number:String}
     private struct RPCError:Decodable {let code:Int;let message:String}
     private struct Response<T:Decodable>:Decodable {let jsonrpc:String;let id:Int;let result:T?;let error:RPCError?}
     private func call<T:Decodable>(method:String,params:[Any]) async throws -> T? {
-        guard let url,url.scheme == "https" else {throw ProductError.unavailable("Sepolia RPC is not configured.")}
+        guard let url,url.scheme == "https" else {throw ProductError.unavailable("Settlement RPC is not configured.")}
         var request=URLRequest(url:url);request.httpMethod="POST";request.timeoutInterval=20
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.httpBody=try JSONSerialization.data(withJSONObject:["jsonrpc":"2.0","id":1,"method":method,"params":params])
@@ -134,16 +157,16 @@ actor EthereumRPC {
         guard let http=response as? HTTPURLResponse,http.statusCode == 200,data.count < 1_000_000 else {throw ProductError.invalidResponse}
         let decoded=try JSONDecoder().decode(Response<T>.self,from:data)
         guard decoded.jsonrpc=="2.0",decoded.id==1 else{throw ProductError.invalidResponse}
-        guard decoded.error == nil else {throw ProductError.unavailable("Could not verify the operation through Sepolia RPC.")}
+        guard decoded.error == nil else {throw ProductError.unavailable("Could not verify the operation through Settlement RPC.")}
         return decoded.result
     }
-    func ensureSepolia() async throws {
+    func ensureNetwork() async throws {
         let chain:String?=try await call(method:"eth_chainId",params:[])
-        guard chain?.lowercased() == "0xaa36a7" else {throw ProductError.unavailable("The connected network is not Sepolia. Signing and payment have been stopped.")}
+        guard [UInt64(11_155_111),5_042_002].contains(chainID), chain?.lowercased() == "0x" + String(chainID,radix:16) else {throw ProductError.unavailable("The connected network does not match this installation. Signing and payment have been stopped.")}
     }
     func confirm(hash:String) async throws -> Receipt {
         _=try CanonicalBytes.hex(hash,count:32)
-        try await ensureSepolia()
+        try await ensureNetwork()
         for _ in 0..<60 {
             try Task.checkCancellation()
             if let receipt:Receipt=try await call(method:"eth_getTransactionReceipt",params:[hash]) {

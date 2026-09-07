@@ -25,6 +25,13 @@ jobs:
       - run: make build-ios
       - run: make build-device
       - run: make test-ios
+      - name: Summarize iOS acceptance
+        if: always()
+        run: |
+          for result in .build/native-evidence/*.xcresult; do
+            [ -d "$result" ] || continue
+            xcrun xcresulttool get test-results summary --path "$result"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
