@@ -40,17 +40,6 @@ struct LocalProofSheet: View {
                 Text("Translation · Previously spent: 0 USDC")
                 Text("This exercise generates a fresh request ID and uses example Sepolia addresses. It cannot authorize a payment. In the payment flow, the proof binds the actual network, vault, recipient, price, text hash, expiry and replay ID.").font(.footnote)
             }.disabled(model.running)
-            Section("3. Prove locally") {
-                Button("Generate and verify proof") {
-                    model.prove(budget: budget, amount: amount, allowsTranslation: allowsTranslation)
-                }.disabled(model.running).accessibilityIdentifier("generate-local-proof")
-                if model.running {
-                    ProgressView("Computing on this device…")
-                    Button("Discard this run", role: .cancel) { model.invalidate() }
-                    Text("Native proving may take time. Discarding hides its result; it cannot interrupt a native call already in progress.").font(.footnote)
-                }
-                if let message = model.message { Text(message).accessibilityIdentifier("local-proof-message") }
-            }
             if let evidence = model.evidence {
                 Section("Verified on this device") {
                     Label("Original proof accepted", systemImage: "checkmark.shield")
@@ -86,6 +75,24 @@ struct LocalProofSheet: View {
                 Text("Set the price above your limit, or turn off translation. Mate refuses to generate a proof at preflight. That local refusal is separate from the cryptographic modified-proof check above.")
                 Text("Settlement currently relies on the server verifier's signed attestation; the vault does not verify ProveKit proofs directly. This exercise demonstrates the native circuit, not server or blockchain enforcement.").font(.footnote)
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 8) {
+                Button("Generate and verify proof") {
+                    model.prove(budget: budget, amount: amount, allowsTranslation: allowsTranslation)
+                }
+                .buttonStyle(.borderedProminent).controlSize(.large)
+                .disabled(model.running).accessibilityIdentifier("generate-local-proof")
+                if model.running {
+                    ProgressView("Computing on this device…")
+                    Button("Discard this run", role: .cancel) { model.invalidate() }
+                    Text("Discarding hides the result. A native call already in progress must finish.").font(.caption)
+                }
+                if let message = model.message {
+                    Text(message).font(.footnote).accessibilityIdentifier("local-proof-message")
+                }
+            }
+            .frame(maxWidth: .infinity).padding().background(.regularMaterial)
         }
         .navigationTitle("Local ZK").navigationBarTitleDisplayMode(.inline)
         .onChange(of: budget) { _, _ in model.invalidate() }

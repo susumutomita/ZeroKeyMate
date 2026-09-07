@@ -71,8 +71,9 @@ final class ProductUITests: XCTestCase {
     }
     func testLocalProofPreflightDoesNotPretendToGenerateProof() {
         let app = launch()
-        app.buttons["open-local-proof"].tap()
+        tapPadding(app.buttons["open-local-proof"])
         XCTAssertTrue(app.buttons["generate-local-proof"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["generate-local-proof"].isHittable)
         app.switches["Allow translation"].tap()
         app.buttons["generate-local-proof"].tap()
         XCTAssertTrue(app.staticTexts["No proof generated. This service is not allowed."].waitForExistence(timeout: 5))

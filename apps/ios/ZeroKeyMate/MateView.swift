@@ -90,8 +90,10 @@ private struct CompanionHome:View {
                             .padding(.horizontal,12)
                     }
                     if !landscape, !model.financialBusy {
-                        Button("Try private rules on this device", systemImage:"checkmark.shield") { model.sheet = .localProof }
-                            .font(.system(size:14,weight:.medium)).frame(minHeight:44)
+                        Button { model.stopVoice(); model.sheet = .localProof } label: {
+                            Label("Try private rules on this device",systemImage:"checkmark.shield")
+                                .font(.system(size:14,weight:.medium)).frame(minHeight:44).contentShape(Rectangle())
+                        }
                             .accessibilityIdentifier("open-local-proof")
                     }
                     if let draft=model.draft,!model.financialBusy {
