@@ -67,9 +67,9 @@ private struct CompanionHome:View {
                         if let identity=model.identity{Text(identity.name).font(.system(size:11,weight:.medium)).foregroundStyle(Finish.secondary).lineLimit(1)}
                     }
                     Spacer(minLength:12)
-                    Button{model.sheet = .activity}label:{Image(systemName:"clock").font(.system(size:19,weight:.regular)).frame(width:44,height:44)}
+                    Button{model.sheet = .activity}label:{Image(systemName:"clock").font(.system(size:19,weight:.regular)).frame(width:44,height:44).contentShape(Rectangle())}
                         .accessibilityLabel("実行履歴").accessibilityIdentifier("open-activity")
-                    Button{model.sheet = .settings}label:{Image(systemName:"slider.horizontal.3").font(.system(size:19,weight:.regular)).frame(width:44,height:44)}
+                    Button{model.sheet = .settings}label:{Image(systemName:"slider.horizontal.3").font(.system(size:19,weight:.regular)).frame(width:44,height:44).contentShape(Rectangle())}
                         .accessibilityLabel("設定").accessibilityIdentifier("open-settings")
                 }.padding(.horizontal,landscape ? 40:28).padding(.top,landscape ? 8:18)
                 Spacer(minLength:10)
@@ -94,7 +94,7 @@ private struct CompanionHome:View {
                 }.padding(.horizontal,30).frame(minHeight:landscape ? 42:112)
                 Spacer(minLength:landscape ? 6:18)
                 HStack(spacing:landscape ? 28:38){
-                    Button{model.sheet = .conversation}label:{Image(systemName:"keyboard").font(.system(size:21,weight:.regular)).frame(width:52,height:52)}
+                    Button{model.sheet = .conversation}label:{Image(systemName:"keyboard").font(.system(size:21,weight:.regular)).frame(width:52,height:52).contentShape(Rectangle())}
                         .accessibilityLabel("文字で話す").accessibilityIdentifier("open-conversation")
                     Button{
                         if model.sleeping{model.wake()}else{Task{await model.toggleVoice()}}
@@ -105,7 +105,7 @@ private struct CompanionHome:View {
                     }.disabled((model.thinking && !model.voiceSessionActive) || model.financialBusy)
                         .accessibilityLabel(model.sleeping ? "Mateを起こす":model.voiceSessionActive ? "連続会話を停止":voice.requestingPermission ? "音声の開始を中止":voice.listening ? "音声入力を終了":"話す")
                         .accessibilityIdentifier("talk-button")
-                    Button{model.rest()}label:{Image(systemName:"moon").font(.system(size:21,weight:.regular)).frame(width:52,height:52)}
+                    Button{model.rest()}label:{Image(systemName:"moon").font(.system(size:21,weight:.regular)).frame(width:52,height:52).contentShape(Rectangle())}
                         .accessibilityLabel("カメラとマイクを停止して休む").accessibilityIdentifier("rest-button")
                 }
                 HStack(spacing:7){
