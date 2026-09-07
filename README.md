@@ -6,7 +6,7 @@ A private iPhone companion that proves each paid AI request follows your rules.
 
 Mate is designed to keep everyday conversation on your iPhone. When you ask a specialist to translate or summarize something, you review the exact text, provider, recipient and price first. A ProveKit proof checks the request against your private spending policy; a narrowly scoped Ethereum vault enforces the signed execution. The language model has no authority to approve a payment.
 
-[日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
+[日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Delivery schedule](docs/schedule.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
 
 <p align="center">
   <img src="docs/assets/home-simulator.png" width="260" alt="Earlier Japanese build of Mate: conversation, talk and rest controls, with the camera stopped.">
@@ -16,6 +16,33 @@ Mate is designed to keep everyday conversation on your iPhone. When you ask a sp
 The screenshots above show the earlier Japanese build. The current UI is English; updated runtime screenshots are pending.
 
 <p align="center"><em>Actual iOS Simulator captures: home → Rest. These screens do not demonstrate live conversation, DockKit tracking or a payment. <a href="docs/assets/README.md">Capture provenance</a>.</em></p>
+
+## Who is Mate for?
+
+Mate is a desk companion for people who want help from AI specialists while keeping control of what they share and spend. Everyday conversation is designed to stay on the iPhone. A paid external task begins with a specific review: this text, this provider, this recipient and this price.
+
+For example: **“Translate this Japanese meeting note into English. Allow translation only, with a total limit of 5 test USDC until tonight.”** The owner sets those terms in **Your rules**, reviews the proposed text and quote, and approves the request. The intended mobile flow proves compliance on the iPhone, verifies the proof, pays the specialist and returns the translation. Conversational rule setup and the complete mobile flow still need acceptance; the local protocol demo is the verified part today.
+
+## Use cases
+
+| Situation | What the user does | What Mate is intended to provide |
+| --- | --- | --- |
+| Share a meeting note with an overseas teammate | Select only the Japanese text to translate, allow translation and set a spending limit | An English translation without disclosing the rest of the conversation or the private spending policy |
+| Get a shorter version of a long note | Request a summary and review the exact excerpt and quote | A summary of the approved text; no unrelated notes or camera frames attached |
+| Recover after a connection failure | Check the pending request in **Activity** | Recover the same request and receipt without a second payment; demonstrated in the local integration test |
+
+These are use cases for the prototype, not claims that all three have been validated on an iPhone. Current specialist tasks are translation and summarization. Purchases, unrestricted web browsing and general autonomous wallet control are outside this demo.
+
+## Why a stand, on-device AI and client-side ZK?
+
+| Part | Purpose |
+| --- | --- |
+| Compatible Belkin / DockKit stand | Gives the desk companion a physical presence and can support system tracking while the camera is explicitly active. Hardware acceptance remains open. |
+| On-device AI | Handles ordinary conversation locally on supported devices. |
+| Client-side ProveKit proof | Proves that the concrete paid request complies with a committed private policy, without publishing its budget, allowed-service mask or salt. Target-iPhone performance remains unverified. |
+| Ethereum vault | Checks signed authority, the concrete action, expiry, revocation and replay; transfers test USDC. It trusts the off-chain proof attestor for private-policy compliance. |
+
+The stand supports the companion experience; it is optional for proving or paying. ZK does not encrypt speech or video, guarantee the quality of a translation, or prove a provider's trustworthiness. The specialist receives the approved text, and payment amounts and recipients are public. The prototype uses test funds only.
 
 ## The moment we want to make possible
 

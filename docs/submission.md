@@ -22,6 +22,10 @@ The working local demonstration combines real cryptographic proofs, HTTP service
 
 Further app work includes unified cancellation across pending operations, full-stack startup, runtime pairing, conversational setup and expressive stand motion. This submission describes the currently demonstrated local protocol and native UI, not completion of the entire [product backlog](validation.md#remaining-product-implementation).
 
+## Example use case
+
+A user wants to share a Japanese meeting note with an overseas teammate. They allow translation with a total limit of 5 test USDC until that evening, review only the text to disclose and the quoted price, and request the translation. The intended iPhone flow produces the policy proof locally and returns the result after verified payment. The current local demo validates the proof/payment/recovery protocol; it does not establish the complete mobile experience. Summarization is the other implemented specialist task. The stand supports the desk-companion experience but is optional for proof generation and payment.
+
 ## How it is made
 
 The app uses SwiftUI, Foundation Models, on-device Speech, AVFoundation and DockKit. A shared Swift package defines the versioned mandate/action encoding and validates execution evidence. Sensor intent is separate from hardware state, so stopping during startup, backgrounding or detaching cannot silently restore capture.
@@ -61,7 +65,7 @@ Codex assisted with implementation, debugging, automated validation and this sub
 
 | Field | Current value / next action |
 | --- | --- |
-| Event and deadline | Not supplied. Confirm the exact official event URL and dashboard deadline. |
+| Event and deadline | Event not yet confirmed. If ETHOnline 2026: September 13, 12:00 EDT / September 14, 01:00 JST. See the sourced [proposed schedule](schedule.md). |
 | Track and eligible new work | Not selected. Map [existing commits](development-history.md) to the event's start/end window; disclose pre-existing work. |
 | Team members and contribution statements | Not supplied. Use each entrant's actual name, role and work. |
 | Repository | [ZeroKeyMate](https://github.com/susumutomita/ZeroKeyMate); currently submit the [review branch](https://github.com/susumutomita/ZeroKeyMate/tree/codex/complete-local-runtime) / exact reviewed commit, not an older main. |
