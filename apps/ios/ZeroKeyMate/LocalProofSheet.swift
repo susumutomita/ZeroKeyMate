@@ -88,6 +88,10 @@ struct LocalProofSheet: View {
                     Button("Discard this run", role: .cancel) { model.invalidate() }
                     Text("Discarding hides the result. A native call already in progress must finish.").font(.caption)
                 }
+                if model.evidence != nil {
+                    Label("Proof verified. Scroll to inspect and share.",systemImage:"checkmark.shield")
+                        .font(.footnote).accessibilityIdentifier("local-proof-ready")
+                }
                 if let message = model.message {
                     Text(L10n.text(message)).font(.footnote).accessibilityIdentifier("local-proof-message")
                 }

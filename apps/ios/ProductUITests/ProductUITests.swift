@@ -86,6 +86,27 @@ final class ProductUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Original proof accepted"].exists)
         capture("07-local-proof-preflight")
     }
+    func testNativeLocalProofCanBeGeneratedAndPreparedForSharing() throws {
+#if MATE_NATIVE_PROOFS
+        let app=launch()
+        tapPadding(app.buttons["open-local-proof"])
+        app.buttons["generate-local-proof"].tap()
+        XCTAssertTrue(app.descendants(matching:.any)["local-proof-ready"].waitForExistence(timeout:120))
+        let prepare=app.buttons["Prepare proof file for sharing"]
+        for _ in 0..<6 {
+            if prepare.exists && prepare.isHittable {break}
+            app.swipeUp()
+        }
+        XCTAssertTrue(prepare.isHittable)
+        XCTAssertTrue(app.staticTexts["Original proof accepted"].exists)
+        XCTAssertTrue(app.staticTexts["Modified proof rejected"].exists)
+        prepare.tap()
+        XCTAssertTrue(app.buttons["Share proof file"].waitForExistence(timeout:5))
+        capture("09-native-proof-ready-to-share")
+#else
+        throw XCTSkip("This source-only build explicitly has no native prover. Run the native acceptance workflow.")
+#endif
+    }
     func testLanguageSwitchPersistsAndLocalProofRefusalIsTranslated() {
         let app=launch()
         app.buttons["open-settings"].tap()

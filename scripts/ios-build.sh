@@ -7,10 +7,11 @@ export CLANG_MODULE_CACHE_PATH="$ROOT/.build/ModuleCache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$ROOT/.build/ModuleCache"
 export VERITY_SWIFT_SDK_MODE=source-only
 export MATE_NATIVE_PROOFS=0
+export MATE_SWIFT_RUNTIME_FLAG=MATE_SOURCE_ONLY_PROOFS
 case "${MATE_PROOF_RUNTIME:-auto}" in auto|native|source-only) ;; *) echo 'Invalid MATE_PROOF_RUNTIME.' >&2;exit 2;;esac
 if [[ "${MATE_PROOF_RUNTIME:-auto}" != source-only && -f .tools/verity/output/Verity.xcframework/mate-runtime.json ]]; then
   python3 scripts/validate-native-runtime.py
-  export VERITY_SWIFT_SDK_MODE=native MATE_NATIVE_PROOFS=1
+  export VERITY_SWIFT_SDK_MODE=native MATE_NATIVE_PROOFS=1 MATE_SWIFT_RUNTIME_FLAG=MATE_NATIVE_PROOFS
 elif [[ "${MATE_PROOF_RUNTIME:-auto}" == native ]]; then
   echo 'The native runtime has not been built.' >&2;exit 1
 fi
