@@ -31,6 +31,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # Restore build outputs only after the pinned source checkout exists.
+      - uses: actions/checkout@v4
+        with:
+          repository: worldfnd/provekit
+          ref: 4e011438c813ba2fb159e080879c41b0ab564053
+          path: .tools/provekit-source
+          persist-credentials: false
       - uses: actions/cache@v4
         with:
           path: |
