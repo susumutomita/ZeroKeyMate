@@ -92,15 +92,33 @@ final class ProductUITests: XCTestCase {
         tapPadding(app.buttons["open-local-proof"])
         app.buttons["generate-local-proof"].tap()
         XCTAssertTrue(app.descendants(matching:.any)["local-proof-ready"].waitForExistence(timeout:120))
-        let prepare=app.buttons["Prepare proof file for sharing"]
-        for _ in 0..<6 {
-            if prepare.exists && prepare.isHittable && prepare.frame.maxY < app.buttons["generate-local-proof"].frame.minY {break}
-            app.swipeUp()
+        func fullyVisible(_ element:XCUIElement) -> Bool {
+            element.exists && element.isHittable &&
+                element.frame.minY > app.navigationBars["Local ZK"].frame.maxY &&
+                element.frame.maxY < app.buttons["generate-local-proof"].frame.minY
         }
-        XCTAssertTrue(prepare.isHittable)
-        XCTAssertLessThan(prepare.frame.maxY,app.buttons["generate-local-proof"].frame.minY)
-        XCTAssertTrue(app.staticTexts["Original proof accepted"].exists)
-        XCTAssertTrue(app.staticTexts["Modified proof rejected"].exists)
+        func scrollDown() {
+            // Small drags with a pause avoid flinging past lazily rendered Form rows.
+            app.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.7))
+                .press(forDuration:0.1,
+                    thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.45)),
+                    withVelocity:.slow,thenHoldForDuration:0.2)
+        }
+        let original=app.staticTexts["Original proof accepted"]
+        let modified=app.staticTexts["Modified proof rejected"]
+        for _ in 0..<12 {
+            if fullyVisible(original) && fullyVisible(modified) {break}
+            scrollDown()
+        }
+        XCTAssertTrue(fullyVisible(original))
+        XCTAssertTrue(fullyVisible(modified))
+        capture("09-native-proof-verified")
+        let prepare=app.buttons["Prepare proof file for sharing"]
+        for _ in 0..<12 {
+            if fullyVisible(prepare) {break}
+            scrollDown()
+        }
+        XCTAssertTrue(fullyVisible(prepare))
         prepare.tap()
         XCTAssertTrue(app.buttons["Share proof file"].waitForExistence(timeout:5))
         capture("09-native-proof-ready-to-share")
