@@ -9,11 +9,11 @@ Mate is designed to keep everyday conversation on your iPhone. When you ask a sp
 [日本語](docs/README.ja.md) · [Demo guide](docs/demo.md) · [Submission copy](docs/submission.md) · [Delivery schedule](docs/schedule.md) · [Arc setup](docs/arc-setup.md) · [Prize strategy](docs/prize-strategy.md) · [Interim report](docs/interim-report.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md)
 
 <p align="center">
-  <img src="docs/assets/home-simulator.png" width="260" alt="Earlier Japanese build of Mate: conversation, talk and rest controls, with the camera stopped.">
-  <img src="docs/assets/rest-simulator.png" width="260" alt="Mate resting after the Rest control is pressed, with the camera stopped.">
+  <img src="docs/assets/home-english.png" width="260" alt="English Mate home: local proof entry, conversation controls and camera off.">
+  <img src="docs/assets/rest-english.png" width="260" alt="Mate resting after the Rest control is pressed, with the camera stopped.">
 </p>
 
-The screenshots above show the earlier Japanese build. The current UI is English; updated runtime screenshots are pending.
+The screenshots above are actual English Simulator captures from the passing home/accessibility test. They show the local-proof entry point, not proof-generation results.
 
 <p align="center"><em>Actual iOS Simulator captures: home → Rest. These screens do not demonstrate live conversation, DockKit tracking or a payment. <a href="docs/assets/README.md">Capture provenance</a>.</em></p>
 

@@ -4,7 +4,7 @@
 
 [English README](../README.md) · [ETHGlobal提出文案](submission.md) · [デモ台本](demo.md) · [開発履歴・AI利用](development-history.md)
 
-iPhoneとDockKitスタンドで使う、端末内で会話する相棒です。外部へ翻訳・要約を依頼するときは、送る文章・提供者・宛先・料金を確認してから、承認済みの条件を満たすProveKit証明と限定された実行署名を送ります。決済はSepoliaのテストUSDC専用です。
+iPhoneとDockKitスタンドで使う、端末内で会話する相棒です。外部へ翻訳・要約を依頼するときは、送る文章・提供者・宛先・料金を確認してから、承認済みの条件を満たすProveKit証明と限定された実行署名を送ります。決済はArc TestnetのテストUSDCが中心で、既存のSepolia設定にも対応します。公開ネットワークでの一連の実行は未検証です。
 
 現在はローカルで証明・実契約・HTTP・実モデル・復元を確認したプロトタイプです。ローカル決済はAnvilでのシミュレーションです。実機DockKitと外部サービスのライブ接続は未確認です。提出対象の実装は [PR #12のブランチ](https://github.com/susumutomita/ZeroKeyMate/tree/codex/complete-local-runtime) にあります。新規取得の手順は [English README](../README.md#run-the-app) を参照してください。
 
@@ -99,3 +99,7 @@ make native-runtime       # 公開ソースからiOSのProveKitをビルド
 公開出典と依存ライセンスは [SOURCES](SOURCES.md)、信頼条件は [architecture](architecture.md)、実機確認は [device-checklist](device-checklist.md) に記録します。無関係な非公開コードは実装元にしません。正式なクリーンルーム監査の認証ではありません。
 
 ProveKitはポリシー適合性を証明します。クラウドの映像・音声の暗号化や実世界の本人確認は行いません。現行契約はオフチェーン検証器の署名を信頼します。カード認証・任意のコントラクト操作・本番資金は対象外です。Apache-2.0 [LICENSE](../LICENSE) を維持します。
+
+## Arcと接続設定
+
+`make dev` はAPI・専門サービスを起動してからシミュレーター／iPhoneを選びます。直接指定は `make dev-simulator` または `make dev-device`。Ctrl+Cで起動したサービスを停止します。アプリだけなら従来どおり `make start` を使えます。アプリの **Settings → Configure connection** でAPIと決済先を検証してKeychainへ保存できます。[Arc設定手順](arc-setup.md)を参照してください。Circleの規約同意・ログイン、Privy／The Graphの設定、テスト資金は別途必要です。

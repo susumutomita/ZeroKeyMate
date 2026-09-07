@@ -47,7 +47,7 @@ If the real-model mode was not run, say “model fixture” in the narration and
 ## Evidence to keep on screen
 
 - The command and its actual successful exit, including whether the test says `actual Ollama` or `model fixture`.
-- The `LOCAL PAYMENT SIMULATION` context: Anvil, test token, published test accounts; no public Sepolia explorer link.
+- The `LOCAL PAYMENT SIMULATION` context: Anvil, test token, published test accounts; no public Arc or Sepolia explorer link.
 - The [recovery assertions](../services/api/test/local.acceptance.mjs): reconstructed API/journal, identical receipt, owner balance `9_900_000` and model invocation count `1`.
 - The [proof-boundary tests](../services/api/test/crypto.acceptance.mjs), with actual verifier use and rejection results.
 - A source commit and [validation record](validation.md) matching the footage. Keep credentials, `.env`, pairing tokens and private keys out of the recording.
@@ -65,5 +65,5 @@ Be ready to answer:
 - **Who enforces the private budget?** The trusted ProveKit verifier/attestor checks it. The contract independently enforces grant/action signatures, expiry, revocation and replay. A colluding attestor and agent can exceed the private budget.
 - **What is private?** Budget, allowed-service mask, salt and local conversation are withheld. The approved text goes to the specialist; payment metadata is public. Server operators can decrypt their journals.
 - **What if the provider disappears after payment?** Stored requests/results support recovery, but this is not escrow and there is no automatic refund.
-- **Why Arc, Privy and The Graph?** Arc is the planned settlement target, Privy supplies owner and execution wallets, and The Graph supplies provider candidates. Full live acceptance remains pending; provider discovery never gives spending authority. ENS is deferred.
+- **Why Arc, Privy and The Graph?** Arc Testnet is the implemented settlement target (public acceptance pending), Privy supplies owner and execution wallets, and The Graph supplies provider candidates. Full live acceptance remains pending; provider discovery never gives spending authority. ENS is deferred.
 - **Did this run on DockKit hardware?** No physical acceptance has been recorded. Build, Simulator and local-chain evidence are listed separately.

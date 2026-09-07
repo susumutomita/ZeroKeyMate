@@ -18,9 +18,9 @@ Mate is a native SwiftUI companion designed for an iPhone and a DockKit stand. I
 
 On Ethereum, MateVault checks the owner grant, agent signature, action binding, expiry, revocation and replay before transferring test USDC. The language model cannot grant itself payment authority. The specialist prepares a result, independently verifies the canonical payment event and then releases it. If the connection fails, an encrypted journal and the same signed request allow recovery without a second payment.
 
-The working local demonstration combines real cryptographic proofs, HTTP services, Solidity execution and an actual Ollama translation. Settlement runs on Anvil and discovery is a labeled fixture. Physical DockKit, mobile proof performance and live Privy/ENS/The Graph/public-Sepolia acceptance remain open. The proof is verified off chain by an attestor trusted by the vault; this prototype does not claim trustless on-chain ZK verification.
+The working local demonstration combines real cryptographic proofs, HTTP services, Solidity execution and an actual Ollama translation. Settlement runs on Anvil and discovery is a labeled fixture. Physical DockKit, mobile proof performance and live Privy/Circle/The Graph/public-Arc acceptance remain open. The proof is verified off chain by an attestor trusted by the vault; this prototype does not claim trustless on-chain ZK verification.
 
-Further app work includes unified cancellation across pending operations, full-stack startup, runtime pairing, conversational setup and expressive stand motion. This submission describes the currently demonstrated local protocol and native UI, not completion of the entire [product backlog](validation.md#remaining-product-implementation).
+Request invalidation before signing, foreground full-stack startup and validated runtime pairing are implemented. Arc settlement binding and a Circle Agent Wallet proof-attestation adapter are locally tested; live sponsor operation remains pending. Further product work includes conversational setup and expressive stand motion. This submission describes the currently demonstrated local protocol and native UI, not completion of the entire [product backlog](validation.md#remaining-product-implementation).
 
 ## Example use case
 
@@ -50,7 +50,7 @@ These are implementation notes, not assertions that a partner is sponsoring the 
 | Technology | Meaningful role | Evidence to show | Current gap |
 | --- | --- | --- | --- |
 | ProveKit / Noir | Proves the paid action satisfies a private policy | [`circuits`](../circuits), [`services/verifier`](../services/verifier), `npm run test:proofs` | Mobile runtime/performance acceptance |
-| Ethereum / test USDC | Enforces signed authority and prevents repeat spending | [`MateVault.sol`](../contracts/src/MateVault.sol), `make test-contracts`, local recovery demo | Public Sepolia contract/transaction links |
+| Ethereum / test USDC | Enforces signed authority and prevents repeat spending | [`MateVault.sol`](../contracts/src/MateVault.sol), `make test-contracts`, local recovery demo | Public Arc contract/transaction links |
 | Privy | Owner and agent wallet roles, EIP-712 signing | [`WalletService.swift`](../apps/ios/ZeroKeyMate/WalletService.swift) | Actual login and signing session |
 | ENSv2 | Owner-held companion name and recipient address resolution | [`names.mjs`](../services/api/names.mjs), [`discovery.mjs`](../services/api/discovery.mjs) | Live registration and root resolution |
 | The Graph | Supplies provider records used in candidate selection | [`discovery.mjs`](../services/api/discovery.mjs) | Live query, schema and resulting provider decision |

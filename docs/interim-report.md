@@ -49,3 +49,7 @@ Codex assisted with implementation, debugging, tests and documentation. The huma
 | Report body | Prepared above |
 | Prize strategy | Proposed, evidence gaps recorded |
 | Form submission / receipt | Submitted, as reported by the entrant on 2026-09-07. Submission receipt not independently checked. |
+
+## Implementation update after the submitted check-in
+
+Arc settlement binding, Circle Agent Wallet proof-attestation adapter, validated runtime connection settings and foreground full-stack startup are now implemented. The earlier report above is preserved as a dated status, not rewritten as if these features existed at submission. Live Circle/Privy/Graph acceptance and the physical-iPhone proof-to-payment flow remain pending.

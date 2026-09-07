@@ -32,7 +32,7 @@ This is an aggressive planning estimate. Apple signing/device availability, on-d
 ## Priorities and ownership
 
 - **Implementation first:** #6 correctness and #5 source completeness audit. The #5 title refers to source recovery, but this plan does not authorize importing unrelated private code.
-- **Minimum necessary demo plumbing:** the needed parts of #7 startup and #8 connection setup; existing setup steps can remain documented if reliable. Full one-command orchestration and polished pairing remain broader product work.
+- **Minimum necessary demo plumbing:** the needed parts of #7 startup and #8 connection setup; existing setup steps can remain documented if reliable. Foreground `make dev` orchestration and validated in-app connection settings are implemented; phone-reachable HTTPS provisioning and full onboarding acceptance remain.
 - **After the core demo:** expanded conversational commands (#9), full continuous-voice acceptance (#10) and expressive stand motion (#11). Do not call these completed because the smaller demo works.
 - **Entrant actions:** confirm event/track, supply access through the normal local setup, operate unavailable physical hardware, review contributions and record the narration. Submission itself is a separate entrant action; no organizer submission has been made.
 

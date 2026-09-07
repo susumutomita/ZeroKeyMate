@@ -22,7 +22,7 @@ This is an off-chain ProveKit verifier plus an on-chain attestor signature, not 
 
 The prover/verifier binaries, circuit, preparation keys and their distribution are trusted. A hash manifest checks consistency, not authenticity if an attacker can replace both. Proofs do not encrypt cloud audio/video or establish real-world identity. There is no cloud audio/video channel in this app.
 
-ENS registry owners/administrators and the configured Sepolia RPC are additional naming/chain trust assumptions. The Graph supplies current candidates; the allow list constrains endpoints and expected records. Registry reputation is not proof of service quality. ENSv2 writes allocate a one-year owner-held name with an immutable public address resolver; the owner can choose a different resolver using registry permissions.
+The configured Arc or Sepolia RPC is a chain trust assumption. Optional legacy Sepolia ENS naming additionally trusts registry owners/administrators. The Arc provider-selection path does not claim ENS resolution. The Graph supplies current candidates; the allow list constrains endpoints and expected records. Registry reputation is not proof of service quality. ENSv2 writes allocate a one-year owner-held name with an immutable public address resolver; the owner can choose a different resolver using registry permissions.
 
 ## Execution and recovery
 
@@ -41,3 +41,5 @@ Private policies, notes and wallet roles remain in the iPhone Keychain. Conversa
 HTTP uses per-installation/per-provider bearer capabilities, JSON/body/concurrency limits and no browser origins. Redirects are rejected. No raw request, frame, microphone sample, signature, credential or upstream exception is logged. The model gets the explicitly approved text and fixed service instruction, with no tools.
 
 The API can run with a truthful unavailable status when chain configuration is missing. The specialist will not quote a missing model as ready. Source-only iOS builds explicitly disable proving. Simulator, SDK builds, cryptographic tests, local chain simulation, and real hardware/live service acceptance are recorded separately.
+
+Arc mode uses chain 5042002 and the six-decimal USDC ERC-20 interface. Circle Agent Stack can hold the off-chain attestor key and sign only the versioned public action/proof hash approval. It is not the owner or relayer wallet. Graph registration identity remains Sepolia and is checked separately from the quote’s settlement chain, vault and token. Journal deployment binding and mobile pending-operation guards prevent silent reuse of another settlement context.

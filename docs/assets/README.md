@@ -1,6 +1,6 @@
 # Screenshot provenance
 
-These PNGs are unmodified screenshots exported from this repository's XCTest result bundle. They show the real app UI in Japanese, without injected wallets, model replies, proofs or payments.
+The original `*-simulator.png` files are unmodified screenshots exported from this repository's XCTest result bundle. They show the real app UI in Japanese, without injected wallets, model replies, proofs or payments.
 
 | Asset | XCTest attachment | Device/runtime |
 | --- | --- | --- |
@@ -14,3 +14,7 @@ Source: [CI run 34072016837](https://github.com/susumutomita/ZeroKeyMate/actions
 Artifact: `baseline-native-acceptance`, ID `10000887957`, bundle `acceptance-20260907T011042Z.xcresult`. Downloaded ZIP SHA-256: `dfc95d4f6dbdc775673e58d92775db246d37789777c25571edb938a3ae4fbd74`.
 
 The images demonstrate presentation and the tested home-to-Rest UI transition. They do not establish physical camera/microphone state, Foundation Models availability, DockKit tracking, native proof generation or a live payment. No synthetic screenshots, generated product imagery or altered result text are used.
+
+## English home and Rest
+
+`home-english.png` and `rest-english.png` are unmodified attachments from the passing `testPortraitHomeDoesNotStartSensorsAndControlsRemainAccessible` test in [CI run 34130391198](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34130391198), commit `07e7a96`. The bundle is `acceptance-20260907T140245Z.xcresult`; iPhone 17 Pro / iOS Simulator 26.2. Attachment UUIDs are `5EFA0068-72CC-4AB9-B2B9-D38E4C40C985` (home) and `A9BB25B5-C837-4FE4-A0E9-C4ACE1CAD8D7` (Rest). The home accessibility audit passed. That run failed a different proof-screen toggle test, subsequently corrected; these images do not claim a wholly passing run or native proving.
