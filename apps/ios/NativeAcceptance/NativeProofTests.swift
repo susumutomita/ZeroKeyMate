@@ -33,7 +33,11 @@ final class NativeProofTests: XCTestCase {
         XCTAssertTrue(exerciseRejected)
         let directory=FileManager.default.temporaryDirectory.appendingPathComponent("mate-native-evidence",isDirectory:true)
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
-        try proof.bytes.write(to:directory.appendingPathComponent("native-proof.np"))
+        let file=directory.appendingPathComponent("native-proof.np")
+        try proof.bytes.write(to:file)
+        let attachment=XCTAttachment(contentsOfFile:file)
+        attachment.name="native-proof.np";attachment.lifetime = .keepAlways
+        add(attachment)
         print("NATIVE_PROOF_EVIDENCE bytes=\(proof.bytes.count) milliseconds=\(proof.elapsedMilliseconds) sha256=\(proof.proofHash)")
     }
 

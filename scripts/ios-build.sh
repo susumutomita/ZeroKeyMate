@@ -39,6 +39,6 @@ case "${1:-project}" in
     xcodebuild -quiet -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug \
       -destination "$destination" -derivedDataPath "$derived" \
       -clonedSourcePackagesDirPath "$ROOT/.build/SourcePackages" -packageCachePath "$ROOT/.build/PackageCache" \
-      -disablePackageRepositoryCache "${extra[@]}" ARCHS=arm64 "${action[@]}" ;;
+      -disablePackageRepositoryCache "${extra[@]}" ARCHS=arm64 IPHONEOS_DEPLOYMENT_TARGET=26.0 "${action[@]}" ;;
   *) echo 'Usage: ios-build.sh project|simulator|device|test' >&2;exit 2 ;;
 esac
