@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LocalProofSheet: View {
+    let requestTranslation: () -> Void
     @StateObject private var model = LocalProofModel()
     @Environment(\.scenePhase) private var scenePhase
     @State private var budget = "5"
@@ -70,6 +71,11 @@ struct LocalProofSheet: View {
                     Text(evidence.proof.proofHash).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
                     Text("A payment verifier also receives the public request, price and prior spending. Successful requests can reveal a lower bound on your budget. ZK does not hide public payments or encrypt the text sent to a provider.").font(.footnote)
                 }
+            }
+            Section("Use private rules for a real request") {
+                Button("Review a translation request", action: requestTranslation)
+                    .accessibilityIdentifier("proof-to-translation")
+                Text("The paid flow requires a configured execution service, wallet funds and a separately approved mandate. This offline exercise does not create that approval.").font(.footnote)
             }
             Section("Try the boundary") {
                 Text("Set the price above your limit, or turn off translation. Mate refuses to generate a proof at preflight. That local refusal is separate from the cryptographic modified-proof check above.")

@@ -29,7 +29,7 @@ struct MateView:View {
                         case .identity:IdentitySheet(model:model)
                         case .activity:ActivitySheet(model:model)
                         case .disclosure:DisclosureSheet(model:model)
-                        case .localProof:LocalProofSheet()
+                        case .localProof:LocalProofSheet { model.makeDraft(service:.translation) }
                         }
                     }
                     .toolbar{ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}}
@@ -383,6 +383,19 @@ private struct DisclosureSheet:View {
                 Text("Only this text\nleaves your device.").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
                 SectionNote(text:"This text is sent with the recipient, price, signature and proof. Conversation history, camera video, local notes and your total budget are not sent. Remove any unnecessary personal information.")
             }
+            Section("Before a paid request") {
+                if !model.configuration.paymentsConfigured {
+                    SectionNote(text:"This build has no valid execution-service configuration. Local ZK is still available; payment and provider execution are unavailable until setup is complete.")
+                } else if model.wallet.agentAddress == nil {
+                    Button("1. Set up and fund your wallet") { model.sheet = .wallet }
+                } else if model.mandate == nil {
+                    Button("2. Approve your private spending rules") { model.sheet = .rules }
+                    Button("Check wallet funds") { model.sheet = .wallet }
+                } else {
+                    Label("Spending mandate available",systemImage:"checkmark.shield")
+                    SectionNote(text:"The current mandate and remaining allowance are checked again before proof generation.")
+                }
+            }
             Section("Text to share"){
                 TextEditor(text:$payload).frame(minHeight:170).scrollContentBackground(.hidden).font(.body)
                     .accessibilityIdentifier("disclosure-text").disabled(model.financialBusy)
@@ -416,7 +429,7 @@ private struct DisclosureSheet:View {
                         let approvedPayload=payload
                         Task{await model.execute(payload:approvedPayload,provider:selected)}
                     }.listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
-                    if model.mandate == nil{SectionNote(text:"Approve a mandate in Your rules first.")}
+                    if model.mandate == nil{SectionNote(text:"Complete the setup steps above, then return to review this saved request.")}
                 }
             }
             if let status=model.executionStatus{Section{ProgressView(status)}}
