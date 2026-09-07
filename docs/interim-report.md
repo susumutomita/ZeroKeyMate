@@ -1,6 +1,6 @@
 # ZeroKey Mate — interim progress report
 
-Prepared 2026-09-07. **Ready for mapping to the organizer's form; not submitted.** The event, interim-report deadline and submission URL remain unconfirmed. This is a factual report body; replace form headings/lengths when the actual form is available. Do not include this preparation note in the submitted description.
+Prepared 2026-09-07. **Ready for mapping to the organizer's form; not submitted.** The event is confirmed as ETHOnline 2026. The first check-in form is https://ethglobal.com/events/ethonline2026/check-in?step=1; its deadline was not shown in the form. This is a factual report body; replace form headings/lengths when the actual form is available. Do not include this preparation note in the submitted description.
 
 ## Project
 
@@ -28,7 +28,7 @@ The private budget is checked by an off-chain proof verifier/attestor trusted by
 
 ## Proposed prizes and delivery
 
-If our event is ETHOnline 2026, the proposed order is Privy financial flow, The Graph AI use case, then ENSv2 if its live integration can be demonstrated. No prize eligibility or final selection is claimed yet. See the [requirements/evidence matrix](prize-strategy.md).
+The user-approved priority is Arc/Circle Agent Stack, Privy financial flow, then The Graph AI use case. Arc integration is planned and unimplemented; ENSv2 is deferred. No prize eligibility or final selection is claimed yet. See the [requirements/evidence matrix](prize-strategy.md).
 
 The proposed delivery plan completes the essential mobile flow by September 10, freezes the demonstrated scope on September 11, records a three-minute human-narrated English demo on September 12 and targets submission on September 13 at 18:00 JST. The actual event and interim-report deadline must be confirmed; these dates are planning targets. If mobile/live acceptance remains blocked, the presentation will explicitly separate app UI from the verified local protocol demonstration.
 
@@ -44,8 +44,8 @@ Codex assisted with implementation, debugging, tests and documentation. The huma
 
 | Item | Status |
 | --- | --- |
-| Actual event / entrant pool | Awaiting entrant confirmation |
-| Interim-report form and deadline | Awaiting URL or organizer instructions |
+| Actual event / entrant pool | ETHOnline 2026 / Building from Scratch, observed in dashboard |
+| Interim-report form and deadline | Check-in 1 found and filled; deadline not shown |
 | Report body | Prepared above |
 | Prize strategy | Proposed, evidence gaps recorded |
-| Form submission / receipt | Not submitted; no confirmation received |
+| Form submission / receipt | Not submitted; required confidence self-assessment awaits entrant. Final project details separately await GitHub account confirmation. |

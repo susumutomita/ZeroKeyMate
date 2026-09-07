@@ -1,6 +1,6 @@
 # ETHGlobal submission copy
 
-Prepared on 2026-09-07 for the current [review branch / PR #12](https://github.com/susumutomita/ZeroKeyMate/pull/12). The text below describes the implemented prototype. The exact event, track and partner prizes have not been supplied, so eligibility is not claimed. Final form field names and length limits must be checked in that event's Hacker Dashboard.
+Prepared on 2026-09-07 for the current [review branch / PR #12](https://github.com/susumutomita/ZeroKeyMate/pull/12). The text below describes the implemented prototype. ETHOnline 2026 and the selected Building from Scratch pool were confirmed in the entrant dashboard. Eligibility is not claimed; proposed targets are Arc, Privy and The Graph. Final form field names and length limits must be checked in that event's Hacker Dashboard.
 
 ## Project name
 
@@ -65,13 +65,13 @@ Codex assisted with implementation, debugging, automated validation and this sub
 
 | Field | Current value / next action |
 | --- | --- |
-| Event and deadline | Event not yet confirmed. If ETHOnline 2026: September 13, 12:00 EDT / September 14, 01:00 JST. See the sourced [proposed schedule](schedule.md). |
+| Event and deadline | ETHOnline 2026 confirmed in dashboard: September 13, 12:00 EDT / September 14, 01:00 JST. See the sourced [proposed schedule](schedule.md). |
 | Track and eligible new work | Not selected. Map [existing commits](development-history.md) to the event's start/end window; disclose pre-existing work. |
 | Team members and contribution statements | Not supplied. Use each entrant's actual name, role and work. |
 | Repository | [ZeroKeyMate](https://github.com/susumutomita/ZeroKeyMate); currently submit the [review branch](https://github.com/susumutomita/ZeroKeyMate/tree/codex/complete-local-runtime) / exact reviewed commit, not an older main. |
 | Demo video | Not recorded/uploaded. [Three-minute script and capture plan](demo.md). |
 | App / deployment link | No public install or live deployment claimed. Provide source/build instructions, and add verified testnet links if deployed. |
-| Partner prizes and feedback | Proposed priorities: Privy financial flow, The Graph AI use case, ENSv2 conditional. Event/pool confirmation and live evidence are pending; none selected in the form. See [strategy](prize-strategy.md). |
+| Partner prizes and feedback | Proposed priorities: Arc/Circle Agent Stack, Privy financial flow, The Graph AI use case. Live evidence is pending; none selected in the form. See [strategy](prize-strategy.md). |
 | AI/spec workflow disclosure | This document and [development history](development-history.md); add any earlier prompts/specs actually used before final submission. |
 
 ## Official rules to check
