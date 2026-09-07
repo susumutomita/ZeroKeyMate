@@ -145,3 +145,7 @@ Ran `.tools/bin/provekit-cli prove --prover .build/proofs/mate_policy.pkp --inpu
 - The offline screen now offers explicit `.np` proof export for independent verification. No private witness is included. The export path builds successfully; a real iPhone-to-PC sharing/verification round trip remains unverified.
 - `npm run test:proofs`: passed all three real Rust verifier checks (valid proof, altered proof rejected, substituted statement rejected).
 - Re-ran `make test SWIFT_TEST_FLAGS=--disable-sandbox` and the native-resource `make build-ios` after adding export: both passed.
+
+- Final native-library simulator and unsigned device SDK builds passed after sharing-lifetime handling. Public proof export files remain in the OS temporary directory while a share extension may be reading them; changing inputs removes the UI reference rather than deleting an in-flight share.
+- Readiness inspection still reports missing Privy, execution API, Graph and specialist configuration. This expected non-release result is not integration acceptance.
+- On `dc85ddf`, cryptographic CI [34125544860](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34125544860) passed. CI [34125544854](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34125544854) completed contract enforcement and SDK builds; UI acceptance was still running when this note was written.

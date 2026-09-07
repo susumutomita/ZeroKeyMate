@@ -28,7 +28,8 @@ final class LocalProofModel: ObservableObject {
     }
 
     private func clearExport() {
-        if let exportURL { try? FileManager.default.removeItem(at: exportURL) }
+        // A share extension may still read this public proof after backgrounding.
+        // Let the OS reclaim the temporary file; only remove its UI reference.
         exportURL = nil
     }
 
