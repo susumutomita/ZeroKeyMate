@@ -63,3 +63,10 @@ The replacement CI and normal setup build current sources instead of referring t
 - The adapter sets `DO_NOT_TRACK=1`. CLI login, email OTP and acceptance of Circle's terms remain explicit operator actions. No authentication email was sent by this implementation run.
 
 Privy lifecycle: [Swift setup](https://docs.privy.io/basics/swift/setup) and [2.0 migration](https://docs.privy.io/basics/swift/advanced/migrating-to-2.0). The app initializes the SDK once per process, awaits readiness, and requires restart when initialized app credentials change.
+
+
+### Gaze tracking update (2026-09-08)
+
+- Apple [AVCaptureDevice.RotationCoordinator](https://developer.apple.com/documentation/avfoundation/avcapturedevice/rotationcoordinator): rotate captured frames consistently before Vision analysis.
+- Apple [AVCaptureConnection.isVideoMirrored](https://developer.apple.com/documentation/avfoundation/avcaptureconnection/isvideomirrored): video data output physically mirrors delivered buffers.
+- Apple [DockAccessory](https://developer.apple.com/documentation/dockkit/dockaccessory) and [system tracking](https://developer.apple.com/documentation/dockkit/dockaccessorymanager/setsystemtrackingenabled(_:)): retain system motor tracking and read tracked-subject telemetry. The local Xcode SDK interfaces were checked. No external dependency or copied private implementation was added.

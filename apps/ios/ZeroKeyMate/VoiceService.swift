@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 @preconcurrency import Speech
 import Foundation
+import MateCore
 
 @MainActor
 final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
@@ -19,6 +20,8 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
     private var recognition:SFSpeechRecognitionTask?
     private var tapInstalled=false
     private var generation:UInt64=0
+    private var turn:VoiceTurn?
+    private var deadlineTask:Task<Void,Never>?
     private var currentUtterance:AVSpeechUtterance?
     override init(){super.init();synthesizer.delegate=self}
 
@@ -52,6 +55,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             guard format.sampleRate>0,format.channelCount>0 else {throw ProductError.unavailable("Could not read the microphone input format.")}
             input.installTap(onBus:0,bufferSize:1024,format:format){buffer,_ in request.append(buffer)}
             tapInstalled=true
+            turn=VoiceTurn(now:ProcessInfo.processInfo.systemUptime)
             recognition=recognizer.recognitionTask(with:request){[weak self] result,error in
                 let text=result?.bestTranscription.formattedString
                 let final=result?.isFinal ?? false
@@ -59,23 +63,41 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
                 Task{@MainActor [weak self] in
                     guard let self,self.generation==token else{return}
                     if let text{self.transcript=text}
-                    if final {
-                        let completed=self.transcript;self.stopListening()
-                        if !completed.isEmpty{self.onFinal?(completed)}
-                    }else if failed {
+                    if final || text != nil {
+                        let outcome=self.turn?.update(self.transcript,now:ProcessInfo.processInfo.systemUptime,final:final) ?? .waiting
+                        self.complete(outcome)
+                    }
+                    if failed,self.generation==token {
                         self.stopListening();self.errorMessage="Voice input was interrupted. You can continue with the keyboard."
                         self.onInputInterrupted?()
                     }
                 }
             }
             engine.prepare();try engine.start();listening=true
+            deadlineTask=Task{[weak self] in
+                while !Task.isCancelled {
+                    do{try await Task.sleep(for:.milliseconds(250))}catch{return}
+                    guard let self,self.generation==token,self.listening else{return}
+                    self.complete(self.turn?.poll(now:ProcessInfo.processInfo.systemUptime) ?? .waiting)
+                }
+            }
         }catch{stopListening();errorMessage=error.localizedDescription}
+    }
+    private func complete(_ outcome:VoiceTurn.Outcome) {
+        switch outcome {
+        case .waiting:break
+        case .submit(let text):stopListening();onFinal?(text)
+        case .silence:
+            stopListening();errorMessage="Conversation stopped after silence. Tap Talk to start again, or use the keyboard."
+            onInputInterrupted?()
+        }
     }
     @discardableResult func finish() -> String {
         let value=transcript;stopListening();return value
     }
     private func stopListening(){
         generation &+= 1;requestingPermission=false
+        deadlineTask?.cancel();deadlineTask=nil;turn=nil
         if engine.isRunning{engine.stop()}
         if tapInstalled{engine.inputNode.removeTap(onBus:0);tapInstalled=false}
         request?.endAudio();recognition?.cancel();recognition=nil;request=nil;recognizer=nil
@@ -91,7 +113,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             let utterance=AVSpeechUtterance(string:text)
             utterance.voice=AVSpeechSynthesisVoice(language:L10n.language.speechLocale);utterance.rate=0.49
             currentUtterance=utterance;speaking=true;synthesizer.speak(utterance)
-        }catch{errorMessage="Could not start reading aloud."}
+        }catch{currentUtterance=nil;speaking=false;errorMessage="Could not start reading aloud.";onInputInterrupted?()}
     }
     func stop(){stopListening();synthesizer.stopSpeaking(at:.immediate);currentUtterance=nil;speaking=false}
     nonisolated func speechSynthesizer(_ synthesizer:AVSpeechSynthesizer,didFinish utterance:AVSpeechUtterance){

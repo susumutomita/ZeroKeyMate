@@ -9,14 +9,18 @@ final class ProductUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout: 15))
+        app.buttons["companion-face"].tap()
+        XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["talk-button"].isHittable)
         return app
     }
     private func closeSheet(_ app: XCUIApplication) {
         app.buttons["close-sheet"].tap()
         XCTAssertTrue(app.buttons["close-sheet"].waitForNonExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["open-conversation"].isHittable)
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:5))
+        app.buttons["companion-face"].tap()
+        XCTAssertTrue(app.buttons["open-conversation"].waitForExistence(timeout:5))
     }
     private func tapPadding(_ button: XCUIElement) {
         // A reported 44pt frame alone does not prove the transparent padding
@@ -41,6 +45,15 @@ final class ProductUITests: XCTestCase {
             XCTAssertGreaterThanOrEqual(button.frame.height, 44, id)
         }
     }
+    func testFaceHasNoVisibleTextOrToolbar() {
+        let app=launch()
+        app.buttons["close-sheet"].tap()
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:5))
+        XCTAssertFalse(app.buttons["talk-button"].exists)
+        XCTAssertFalse(app.buttons["open-settings"].exists)
+        XCTAssertEqual(app.staticTexts.count,0)
+        capture("face-only-home")
+    }
     func testPortraitHomeDoesNotStartSensorsAndControlsRemainAccessible() throws {
         let app = launch()
         assertVisibleControls(app)
@@ -48,7 +61,8 @@ final class ProductUITests: XCTestCase {
         capture("01-home-portrait")
         try app.performAccessibilityAudit(for: [.contrast, .elementDetection, .hitRegion, .sufficientElementDescription])
         app.buttons["rest-button"].tap()
-        XCTAssertTrue(app.staticTexts["Taking a rest."].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:3))
+        XCTAssertEqual(app.buttons["companion-face"].value as? String,"Taking a rest.")
         capture("02-resting")
     }
     func testConversationSettingsAndEmptyActivityAreRealScreens() throws {
@@ -147,6 +161,8 @@ final class ProductUITests: XCTestCase {
         capture("08-japanese-proof-refusal")
         closeSheet(app)
         app.terminate();app.launch()
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:15))
+        app.buttons["companion-face"].tap()
         XCTAssertTrue(app.staticTexts["カメラ停止"].waitForExistence(timeout:15))
         app.buttons["open-settings"].tap()
         XCTAssertTrue(app.navigationBars["設定"].waitForExistence(timeout:5))
@@ -158,13 +174,18 @@ final class ProductUITests: XCTestCase {
     }
     func testLandscapeControlsAreNotClipped() {
         let app = launch()
+        app.buttons["close-sheet"].tap()
         XCUIDevice.shared.orientation = .landscapeLeft
-        XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout: 5))
-        // Wait for UIKit's actual orientation transition, not fabricated view state.
         let predicate = NSPredicate { _, _ in app.windows.firstMatch.frame.width > app.windows.firstMatch.frame.height }
         expectation(for: predicate, evaluatedWith: nil)
         waitForExpectations(timeout: 8)
-        capture("06-home-landscape")
-        assertVisibleControls(app)
+        let face=app.buttons["companion-face"]
+        XCTAssertTrue(face.isHittable)
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(face.frame))
+        XCTAssertEqual(app.staticTexts.count,0)
+        capture("06-face-landscape")
+        face.tap()
+        XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.buttons["talk-button"].isHittable)
     }
 }

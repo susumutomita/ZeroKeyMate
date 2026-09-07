@@ -28,9 +28,14 @@ struct PendingExecution:Codable,Sendable {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case conversation,settings,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
-    @Published var sheet:Sheet? { didSet { if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() } } }
-    @Published var errorMessage:String?
+    enum Sheet:String,Identifiable {case controls,conversation,settings,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
+    @Published var sheet:Sheet? {
+        didSet {
+            if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
+            if let sheet,sheet != .conversation { stopVoice();cancelConversation() }
+        }
+    }
+    @Published var errorMessage:String? { didSet { if errorMessage != nil { stopVoice() } } }
     @Published private(set) var messages:[ConversationMessage]=[]
     @Published private(set) var thinking=false
     @Published private(set) var financialBusy=false
@@ -66,6 +71,7 @@ final class CompanionModel:ObservableObject {
     private var rpc:EthereumRPC
     private var conversationTask:Task<Void,Never>?
     private var conversationGeneration:UInt64=0
+    private var voiceGeneration:UInt64=0
     private var requestGeneration=UUID()
     private var started=false
     private var configurationGeneration=UUID()
@@ -81,7 +87,8 @@ final class CompanionModel:ObservableObject {
         voice.onFinal={[weak self] text in self?.send(text)}
         voice.onPlaybackFinished={[weak self] in self?.resumeListening()}
         voice.onInputInterrupted={[weak self] in self?.stopVoice()}
-        sensors.onDetach={[weak self] in self?.stopVoice()}
+        sensors.onDetach={[weak self] in self?.rest()}
+        sensors.onInterruption={[weak self] in self?.rest()}
         NotificationCenter.default.publisher(for:AVAudioSession.interruptionNotification)
             .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.stopVoice()}.store(in:&notifications)
         NotificationCenter.default.publisher(for:AVAudioSession.mediaServicesWereResetNotification)
@@ -148,12 +155,14 @@ final class CompanionModel:ObservableObject {
         if !active{requestGeneration=UUID();stopVoice();cancelConversation()}
         else if !stateLoaded {Task{await start()}}
     }
-    func stopVoice(){voiceSessionActive=false;voice.stop()}
+    func stopVoice(){voiceGeneration &+= 1;voiceSessionActive=false;voice.stop()}
     private func resumeListening() {
+        let generation=voiceGeneration
         Task{[weak self] in
-            guard let self,self.voiceSessionActive,self.foreground,!self.sleeping,!self.thinking,!self.financialBusy else{return}
+            guard let self,self.voiceGeneration==generation,self.voiceSessionActive,self.foreground,!self.sleeping,!self.thinking,!self.financialBusy,
+                  self.sheet == nil || self.sheet == .conversation else{return}
             await self.voice.start()
-            if !self.voice.listening{self.voiceSessionActive=false}
+            if self.voiceGeneration==generation,!self.voice.listening{self.voiceSessionActive=false}
         }
     }
     func rest(){requestGeneration=UUID();sleeping=true;stopVoice();sensors.stopCapture();cancelConversation()}
@@ -196,12 +205,19 @@ final class CompanionModel:ObservableObject {
             }
         }
     }
+    func startCompanion() async {
+        guard foreground,!financialBusy,!thinking else{return}
+        sleeping=false;continuousConversation=true
+        sensors.startCapture()
+        if !voiceSessionActive,!voice.listening {await toggleVoice()}
+    }
     func toggleVoice() async {
         if voiceSessionActive{stopVoice();cancelConversation()}
         else if voice.requestingPermission{stopVoice()}
         else if voice.listening{let text=voice.finish();send(text)}
         else{
             guard !thinking,!financialBusy,foreground else{return};sleeping=false
+            voiceGeneration &+= 1
             voiceSessionActive=continuousConversation
             await voice.start()
             if !voice.listening{voiceSessionActive=false}

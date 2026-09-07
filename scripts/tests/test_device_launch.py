@@ -28,6 +28,18 @@ class DeviceLaunchTests(unittest.TestCase):
         offline = device("00008110-0000000000000002", connectionProperties={"tunnelState": "disconnected", "pairingState": "paired"})
         self.assertEqual(launch.choose_device(result(offline, device())), device()["hardwareProperties"]["udid"])
 
+    def test_disconnected_pairing_can_only_be_selected_for_connection_probe(self):
+        offline = device(connectionProperties={"tunnelState": "disconnected", "pairingState": "paired"})
+        with self.assertRaises(ValueError):
+            launch.choose_device(result(offline))
+        self.assertEqual(launch.choose_device(result(offline), allow_disconnected=True), offline["hardwareProperties"]["udid"])
+        other = device("00008110-0000000000000002", connectionProperties={"tunnelState": "disconnected", "pairingState": "paired"})
+        with self.assertRaises(ValueError):
+            launch.choose_device(result(offline, other), allow_disconnected=True)
+        unpaired = device(connectionProperties={"tunnelState": "disconnected", "pairingState": "unpaired"})
+        with self.assertRaises(ValueError):
+            launch.choose_device(result(unpaired), allow_disconnected=True)
+
     def test_does_not_guess_between_two_phones(self):
         devices = result(device(), device("00008110-0000000000000002"))
         with self.assertRaises(ValueError):

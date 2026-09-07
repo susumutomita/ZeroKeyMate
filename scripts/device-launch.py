@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 
-def choose_device(document, requested="auto"):
+def choose_device(document, requested="auto", *, allow_disconnected=False):
     if document.get("info", {}).get("outcome") != "success":
         raise ValueError("Could not list iPhones. Check CoreDeviceService and the connection in Xcode.")
     candidates = []
@@ -27,7 +27,7 @@ def choose_device(document, requested="auto"):
         udid = hardware.get("udid", "")
         if not version or int(version[1]) < 26 or not re.fullmatch(r"[0-9A-Fa-f-]{20,40}", udid):
             continue
-        if connection.get("tunnelState") != "connected" or connection.get("pairingState") != "paired":
+        if connection.get("pairingState") != "paired" or (not allow_disconnected and connection.get("tunnelState") != "connected"):
             continue
         if requested != "auto" and requested not in (udid, device.get("identifier")):
             continue
@@ -91,7 +91,22 @@ def main():
             run(["xcrun", "devicectl", "--timeout", "20", "list", "devices", "--json-output", str(output)])
         except subprocess.SubprocessError as error:
             raise ValueError("Could not connect to CoreDeviceService to select an iPhone. Check the connection in Xcode Devices and Simulators. Nothing was installed.") from error
-        print(choose_device(json.loads(output.read_text()), sys.argv[2] if len(sys.argv) > 2 else "auto"))
+        requested = sys.argv[2] if len(sys.argv) > 2 else "auto"
+        document = json.loads(output.read_text())
+        try:
+            selected = choose_device(document, requested)
+        except ValueError:
+            # CoreDevice lists Wi-Fi pairings before opening their on-demand tunnel.
+            # Select only one eligible pairing, then prove a live connection before
+            # handing its UDID to the build/install path. Never unpair or trust devices.
+            candidate = choose_device(document, requested, allow_disconnected=True)
+            try:
+                run(["xcrun", "devicectl", "--timeout", "20", "device", "info", "details", "--device", candidate])
+                run(["xcrun", "devicectl", "--timeout", "20", "list", "devices", "--json-output", str(output)])
+                selected = choose_device(json.loads(output.read_text()), candidate)
+            except (subprocess.SubprocessError, ValueError) as error:
+                raise ValueError("The paired iPhone could not be connected. Unlock it and connect USB or the same Wi-Fi network, then retry. Nothing was installed.") from error
+        print(selected)
 
 
 if __name__ == "__main__":

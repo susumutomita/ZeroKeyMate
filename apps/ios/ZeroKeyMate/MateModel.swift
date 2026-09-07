@@ -15,7 +15,13 @@ final class MateModel:ObservableObject {
     @Published private(set) var dockMessage:String?
     @Published private(set) var captureRequested=false
     @Published private(set) var horizontalFocus=0.0
+    @Published private(set) var verticalFocus=0.0
+    @Published private(set) var detectedFaces=0
+    @Published private(set) var dockTrackingSubjects=0
+    @Published private(set) var dockTrackingButtonEnabled=false
+    private var trackingRetryAt=Date.distantPast
     var onDetach:(()->Void)?
+    var onInterruption:(()->Void)?
     private var observation:FrameObservation?
     private let camera=CameraService()
     private let dock=DockService()
@@ -39,10 +45,14 @@ final class MateModel:ObservableObject {
                 Task{@MainActor [weak self] in
                     guard let self,self.intent.shouldCapture,self.cameraRunning else{return}
                     self.observation=value
+                    self.detectedFaces=value.faceCount
                     self.horizontalFocus=max(-1,min(1,value.horizontalFocus ?? 0))
+                    self.verticalFocus=max(-1,min(1,value.verticalFocus ?? 0))
+                    if self.lastTrackingRequest == nil,Date()>=self.trackingRetryAt {self.scheduleReconciliation()}
                 }
             }
         }
+        dock.onTrackingSubjects={[weak self] count in self?.dockTrackingSubjects=count}
         dock.observe{[weak self] error in
             guard let self else{return}
             let wasConnected=self.dockConnected
@@ -50,6 +60,7 @@ final class MateModel:ObservableObject {
                 self.lastTrackingRequest=nil
             }
             self.lastTrackingButtonEnabled=self.dock.trackingButtonEnabled
+            self.dockTrackingButtonEnabled=self.dock.trackingButtonEnabled
             self.dockConnected=self.dock.isConnected;self.dockMessage=error
             if wasConnected && !self.dockConnected{self.intent.requestStop();self.onDetach?()}
             self.scheduleReconciliation()
@@ -58,7 +69,7 @@ final class MateModel:ObservableObject {
             NotificationCenter.default.publisher(for:name).receive(on:DispatchQueue.main).sink{[weak self] _ in
                 guard let self,self.cameraRunning || self.isTransitioning else{return}
                 self.message="The camera was interrupted. Tap Start camera to resume."
-                self.intent.requestStop();self.scheduleReconciliation()
+                self.intent.requestStop();self.scheduleReconciliation();self.onInterruption?()
             }.store(in:&notifications)
         }
     }
@@ -73,7 +84,7 @@ final class MateModel:ObservableObject {
     func stopCapture(){intent.requestStop();scheduleReconciliation()}
     private func scheduleReconciliation() {
         revision &+= 1;captureRequested=intent.shouldCapture
-        if !intent.shouldCapture{observation=nil;horizontalFocus=0}
+        if !intent.shouldCapture{observation=nil;horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0}
         guard reconciliationTask == nil else{return}
         reconciliationTask=Task{[weak self] in
             guard let self else{return}
@@ -104,13 +115,17 @@ final class MateModel:ObservableObject {
             if !intent.shouldCapture && cameraRunning {
                 cameraPhase = .stopping
                 await camera.stop();cameraRunning=false;cameraPhase = .off
-                observation=nil;horizontalFocus=0
+                observation=nil;horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0
             }
             let wantsTracking=cameraRunning && intent.shouldCapture && dock.isConnected && dock.trackingButtonEnabled
-            if lastTrackingRequest != wantsTracking {
-                lastTrackingRequest=wantsTracking
-                do{try await dock.setTrackingEnabled(wantsTracking);trackingEnabled=wantsTracking}
-                catch{trackingEnabled=nil;dockMessage=L10n.format("Could not verify tracking settings: %@",error.localizedDescription)}
+            if lastTrackingRequest != wantsTracking, !wantsTracking || Date()>=trackingRetryAt {
+                do{
+                    try await dock.setTrackingEnabled(wantsTracking)
+                    lastTrackingRequest=wantsTracking;trackingEnabled=wantsTracking;trackingRetryAt = .distantPast
+                }catch{
+                    lastTrackingRequest=nil;trackingEnabled=nil;trackingRetryAt=Date().addingTimeInterval(2)
+                    dockMessage=L10n.format("Could not verify tracking settings: %@",error.localizedDescription)
+                }
             }
         }while processedRevision != revision
     }

@@ -13,13 +13,13 @@ Mate is designed to keep everyday conversation on your iPhone. When you ask a sp
   <img src="docs/assets/rest-english.png" width="260" alt="Mate resting after the Rest control is pressed, with the camera stopped.">
 </p>
 
-The screenshots above are actual English Simulator captures from the passing home/accessibility test. They show the local-proof entry point, not proof-generation results.
+The screenshots above are earlier English Simulator captures, before the face-only home screen update. They show the local-proof entry point, not proof-generation results.
 
 <p align="center"><em>Actual iOS Simulator captures: home → Rest. These screens do not demonstrate live conversation, DockKit tracking or a payment. <a href="docs/assets/README.md">Capture provenance</a>.</em></p>
 
 ## Start with local ZK
 
-Tap **Try private rules on this device** on the home screen. Enter a private spending limit and a public translation price, then tap **Generate and verify proof**. The app runs the production ProveKit circuit and verifier locally and reports the actual prove-plus-verify time, proof size and commitments. It also modifies a copy of the proof and checks that the native verifier rejects it. No wallet or API configuration is required for this exercise; the native runtime and circuit resources must be bundled at build time.
+Tap Mate’s face to open the controls, then choose **Try private rules on this device**. Enter a private spending limit and a public translation price, then tap **Generate and verify proof**. The app runs the production ProveKit circuit and verifier locally and reports the actual prove-plus-verify time, proof size and commitments. It also modifies a copy of the proof and checks that the native verifier rejects it. No wallet or API configuration is required for this exercise; the native runtime and circuit resources must be bundled at build time.
 
 After installation, try it in airplane mode. Change the limit or permission and the previous evidence is cleared. A request outside the rules is rejected at preflight and labeled **No proof generated**; this is distinct from cryptographic rejection of a modified proof. Closing the screen or backgrounding discards its result, although an in-progress native call must finish before resources can be released.
 
@@ -129,7 +129,7 @@ For the physical phone, connect it over USB, unlock it, trust this Mac and enabl
 
 `configure` creates an ignored `.env` containing local pairing/journal keys and preserves an existing file. It does not create wallets, fund an account or deploy contracts. A fresh clone can open the UI without payment credentials. Source-only builds explicitly disable proving and paid execution until the real runtime and circuit are built.
 
-The app defaults to English. **Settings → Language** switches between English and Japanese and persists across launches. App text, proof/refusal messages, voice recognition and read-aloud follow that choice (en-US / ja-JP). Changing language stops camera, voice and pending conversation; resume explicitly. Conversation uses the selected language unless you request another. iOS permission dialogs use the iPhone’s app-language setting; the app bundles both translations. The Mac launch menu remains English. Keyboard opens conversation, microphone starts speech, moon stops camera/microphone and rests, sliders open settings, and clock opens activity. On-device conversation requires an eligible Apple Intelligence device/model; unavailable models are reported without a cloud fallback.
+The app defaults to English. **Settings → Language** switches between English and Japanese and persists across launches. App text, proof/refusal messages, voice recognition and read-aloud follow that choice (en-US / ja-JP). Changing language stops camera, voice and pending conversation; resume explicitly. Conversation uses the selected language unless you request another. iOS permission dialogs use the iPhone’s app-language setting; the app bundles both translations. The Mac launch menu remains English. The home screen is only Mate’s eyes. Tap the face to open the separate controls panel; touch and hold the face to rest and stop sensors. Controls provides voice, keyboard, settings, activity and local proof entry points. On-device conversation requires an eligible Apple Intelligence device/model; unavailable models are reported without a cloud fallback.
 
 If a signing identity is missing, run `make project`, open `apps/ios/ZeroKeyMate.xcodeproj`, and configure your Apple Account/Signing Team in Xcode before retrying. DockKit requires compatible physical hardware. These make targets launch the native app. For the configured API and specialist together, use `make dev` (chooser), `make dev-simulator`, or `make dev-device`; Ctrl+C stops their services. **Settings → Configure connection** validates and saves the phone connection. Follow [Arc and live-service setup](docs/arc-setup.md); required accounts and test funds are not created automatically.
 
@@ -199,9 +199,9 @@ Original project code is licensed under [Apache-2.0](LICENSE). Public sources an
 
 ### Start and stop
 
-Run `make start`, then enter `1` for Simulator or `2` for a connected iPhone. In the app, tap **Talk** for voice input, or the keyboard for text. Start the camera separately in **Settings → Start camera**.
+Run `make start`, then enter `1` for Simulator or `2` for a connected iPhone. In the app, tap the face to open **Controls**, then tap **Start companion** to explicitly start camera tracking and continuous on-device voice together. **Talk** starts voice alone; the keyboard opens text conversation. Camera can also be started separately in **Settings → Start camera**. The eyes follow the detected face in both directions; the controls panel reports whether a face is detected. Settings reports the stand connection, hardware tracking-button state and whether DockKit reports a tracked subject.
 
-Tap the moon (**Rest**) to stop the camera and microphone and pause conversation. **Settings → Stop camera** stops only the camera. Backgrounding the app or detaching a connected DockKit stand stops capture and voice; returning or reattaching does not restart them. Wait for **Camera off** before treating capture as stopped. Rest does not revoke a spending mandate or undo a submitted transaction; revoke mandates in **Your rules** and inspect pending transactions in **Activity**.
+Touch and hold the face, or choose **Rest and stop camera and microphone** in Controls, to stop sensors and pause conversation. **Settings → Stop camera** stops only the camera. Backgrounding the app or detaching a connected DockKit stand stops capture and voice; returning or reattaching does not restart them. Wait for **Camera off** before treating capture as stopped. Rest does not revoke a spending mandate or undo a submitted transaction; revoke mandates in **Your rules** and inspect pending transactions in **Activity**.
 
 A compatible DockKit stand is optional. Mounting the phone alone does not launch Mate or start capture. With Mate open, explicitly start the camera; system tracking is requested only while capture is active, a stand is connected and its tracking button is enabled. Physical stand connection and tracking remain unverified.
 

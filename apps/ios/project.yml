@@ -39,6 +39,7 @@ targets:
       - package: Verity
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.companion
         INFOPLIST_KEY_CFBundleDisplayName: Mate
         INFOPLIST_KEY_NSCameraUsageDescription: Recognize your surroundings on this device and enable DockKit tracking. Video is never saved or sent externally.
