@@ -29,7 +29,7 @@ struct MateView:View {
                         case .identity:IdentitySheet(model:model)
                         case .activity:ActivitySheet(model:model)
                         case .disclosure:DisclosureSheet(model:model)
-                        case .localProof:LocalProofSheet { model.makeDraft(service:.translation) }
+                        case .localProof:LocalProofSheet(proofs:model.proofs) { model.makeDraft(service:.translation) }
                         }
                     }
                     .toolbar{ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}}

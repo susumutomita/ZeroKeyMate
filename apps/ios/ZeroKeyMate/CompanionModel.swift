@@ -60,7 +60,8 @@ final class CompanionModel:ObservableObject {
     let voice=VoiceService()
     let wallet:WalletService
     private let conversation=ConversationService()
-    private let proofs=ProofService()
+    // A single actor serializes native work across payment and offline screens.
+    let proofs=ProofService()
     private let network:NetworkService
     private let rpc:EthereumRPC
     private var conversationTask:Task<Void,Never>?

@@ -2,7 +2,12 @@ import SwiftUI
 
 struct LocalProofSheet: View {
     let requestTranslation: () -> Void
-    @StateObject private var model = LocalProofModel()
+    @StateObject private var model: LocalProofModel
+
+    init(proofs: ProofService, requestTranslation: @escaping () -> Void) {
+        _model = StateObject(wrappedValue: LocalProofModel(proofs: proofs))
+        self.requestTranslation = requestTranslation
+    }
     @Environment(\.scenePhase) private var scenePhase
     @State private var budget = "5"
     @State private var amount = "0.01"
@@ -74,7 +79,7 @@ struct LocalProofSheet: View {
             }
             Section("Use private rules for a real request") {
                 Button("Review a translation request", action: requestTranslation)
-                    .accessibilityIdentifier("proof-to-translation")
+                    .accessibilityIdentifier("proof-to-translation").disabled(model.running)
                 Text("The paid flow requires a configured execution service, wallet funds and a separately approved mandate. This offline exercise does not create that approval.").font(.footnote)
             }
             Section("Try the boundary") {

@@ -13,7 +13,9 @@ final class LocalProofModel: ObservableObject {
     @Published private(set) var evidence: Evidence?
     @Published private(set) var message: String?
     @Published private(set) var exportURL: URL?
-    private let proofs = ProofService()
+    private let proofs: ProofService
+
+    init(proofs: ProofService) { self.proofs = proofs }
     private var task: Task<Void, Never>?
     private var generation = UUID()
 
