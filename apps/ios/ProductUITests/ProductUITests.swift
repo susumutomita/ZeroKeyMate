@@ -94,10 +94,11 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching:.any)["local-proof-ready"].waitForExistence(timeout:120))
         let prepare=app.buttons["Prepare proof file for sharing"]
         for _ in 0..<6 {
-            if prepare.exists && prepare.isHittable {break}
+            if prepare.exists && prepare.isHittable && prepare.frame.maxY < app.buttons["generate-local-proof"].frame.minY {break}
             app.swipeUp()
         }
         XCTAssertTrue(prepare.isHittable)
+        XCTAssertLessThan(prepare.frame.maxY,app.buttons["generate-local-proof"].frame.minY)
         XCTAssertTrue(app.staticTexts["Original proof accepted"].exists)
         XCTAssertTrue(app.staticTexts["Modified proof rejected"].exists)
         prepare.tap()

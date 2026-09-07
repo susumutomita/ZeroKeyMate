@@ -14,6 +14,7 @@ struct LocalProofSheet: View {
     @State private var allowsTranslation = true
 
     var body: some View {
+        VStack(spacing:0) {
         Form {
             Section {
                 Text("Prove permission.\nKeep your rules private.").font(.title2)
@@ -76,7 +77,6 @@ struct LocalProofSheet: View {
                 Text("Settlement currently relies on the server verifier's signed attestation; the vault does not verify ProveKit proofs directly. This exercise demonstrates the native circuit, not server or blockchain enforcement.").font(.footnote)
             }
         }
-        .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
                 Button("Generate and verify proof") {
                     model.prove(budget: budget, amount: amount, allowsTranslation: allowsTranslation)

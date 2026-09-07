@@ -46,6 +46,13 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: make build-device
       - run: ./mate --verify
+      - name: Summarize native acceptance
+        if: always()
+        run: |
+          for result in .build/native-evidence/*.xcresult; do
+            [ -d "$result" ] || continue
+            xcrun xcresulttool get test-results summary --path "$result"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
