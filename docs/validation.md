@@ -131,3 +131,13 @@ Start/stop, DockKit tracking prerequisites and an optional user-created Shortcut
 ### Fresh local proof for interim reporting — 2026-09-07
 
 Ran `.tools/bin/provekit-cli prove --prover .build/proofs/mate_policy.pkp --input .build/proofs/valid.toml --out .build/proofs/progress-report.np` and then `verify --verifier .build/proofs/mate_policy.pkv --proof .build/proofs/progress-report.np`. Both exited 0. The new proof SHA-256 is `5e6ac2f174e789b7c0515829c1d3abe27c36a0cf37ccc8725fae936949dc8261`. Logs are `.build/validation/progress-prove.log` and `progress-verify.log`. Proof-resource and both-target native-library integrity checks also passed. This generates a fresh proof from the existing prepared scheme on the Mac; it does not claim circuit recompilation or iPhone runtime execution.
+
+
+## Local ZK entry point — 2026-09-07
+
+- Added an offline screen backed by the production native ProveKit circuit and verifier. It reports real proof bytes, hashes and elapsed prove/verify time, and checks a modified proof with the native verifier. No network or wallet dependency is present in the exercise model.
+- Private-input edits, dismissal and backgrounding discard stale evidence. Native work is cooperative at call boundaries, not forcibly interrupted.
+- Paid-request approval now expires across background/rest transitions and draft replacement; provider responses from a previous draft are ignored. Payload/provider controls are locked while a payment is running. Already-submitted requests remain recoverable in Activity.
+- `make test SWIFT_TEST_FLAGS=--disable-sandbox`: passed (19 Swift, 22 Node, 5 Python).
+- `CFFIXED_USER_HOME="$PWD/.build/xcode-user" MATE_NESTED_SANDBOX=1 make build-ios`: passed with the validated native runtime and circuit resources. CoreSimulatorService is unavailable in the managed shell; this does not constitute a simulator launch or physical-device test.
+- Added UI acceptance for the local preflight refusal and extended native proof acceptance to cover the exercise verifier. Their execution on iOS remains pending CI/native-device acceptance; source-only CI cannot execute native ProveKit.

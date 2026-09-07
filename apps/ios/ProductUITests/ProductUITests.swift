@@ -69,6 +69,16 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No executions yet."].waitForExistence(timeout: 5))
         capture("05-activity-empty")
     }
+    func testLocalProofPreflightDoesNotPretendToGenerateProof() {
+        let app = launch()
+        app.buttons["open-local-proof"].tap()
+        XCTAssertTrue(app.buttons["generate-local-proof"].waitForExistence(timeout: 5))
+        app.switches["Allow translation"].tap()
+        app.buttons["generate-local-proof"].tap()
+        XCTAssertTrue(app.staticTexts["No proof generated. This service is not allowed."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Original proof accepted"].exists)
+        capture("07-local-proof-preflight")
+    }
     func testLandscapeControlsAreNotClipped() {
         let app = launch()
         XCUIDevice.shared.orientation = .landscapeLeft

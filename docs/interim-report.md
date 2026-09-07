@@ -1,6 +1,6 @@
 # ZeroKey Mate — interim progress report
 
-Prepared 2026-09-07. **Ready for mapping to the organizer's form; not submitted.** The event is confirmed as ETHOnline 2026. The first check-in form is https://ethglobal.com/events/ethonline2026/check-in?step=1; its deadline was not shown in the form. This is a factual report body; replace form headings/lengths when the actual form is available. Do not include this preparation note in the submitted description.
+Prepared 2026-09-07. **Submitted, as reported by the entrant on 2026-09-07; receipt not independently checked.** The event is confirmed as ETHOnline 2026. The first check-in form is https://ethglobal.com/events/ethonline2026/check-in?step=1; its deadline was not shown in the form. This is a factual report body; replace form headings/lengths when the actual form is available. Do not include this preparation note in the submitted description.
 
 ## Project
 
@@ -48,4 +48,4 @@ Codex assisted with implementation, debugging, tests and documentation. The huma
 | Interim-report form and deadline | Check-in 1 found and filled; deadline not shown |
 | Report body | Prepared above |
 | Prize strategy | Proposed, evidence gaps recorded |
-| Form submission / receipt | Not submitted; required confidence self-assessment awaits entrant. Final project details separately await GitHub account confirmation. |
+| Form submission / receipt | Submitted, as reported by the entrant on 2026-09-07. Submission receipt not independently checked. |

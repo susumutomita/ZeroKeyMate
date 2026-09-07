@@ -28,7 +28,7 @@ struct PendingExecution:Codable,Sendable {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case conversation,settings,rules,wallet,identity,activity,disclosure;var id:String{rawValue}}
+    enum Sheet:String,Identifiable {case conversation,settings,rules,wallet,identity,activity,disclosure,localProof;var id:String{rawValue}}
     @Published var sheet:Sheet?
     @Published var errorMessage:String?
     @Published private(set) var messages:[ConversationMessage]=[]
@@ -47,7 +47,7 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var discovering=false
     @Published private(set) var lastProofMilliseconds:Int?
     @Published private(set) var pendingExecution:PendingExecution?
-    @Published var draft:DisclosureDraft?
+    @Published var draft:DisclosureDraft? { didSet { requestGeneration = UUID() } }
     @Published var localNotes=""
     @Published var readAloud=true
     @Published var continuousConversation=false {
@@ -65,6 +65,7 @@ final class CompanionModel:ObservableObject {
     private let rpc:EthereumRPC
     private var conversationTask:Task<Void,Never>?
     private var conversationGeneration:UInt64=0
+    private var requestGeneration=UUID()
     private var started=false
     private var foreground=true
     private var notifications=Set<AnyCancellable>()
@@ -103,7 +104,7 @@ final class CompanionModel:ObservableObject {
     }
     func setForeground(_ active:Bool) {
         foreground=active;sensors.setForeground(active)
-        if !active{stopVoice();cancelConversation()}
+        if !active{requestGeneration=UUID();stopVoice();cancelConversation()}
     }
     func stopVoice(){voiceSessionActive=false;voice.stop()}
     private func resumeListening() {
@@ -113,7 +114,7 @@ final class CompanionModel:ObservableObject {
             if !self.voice.listening{self.voiceSessionActive=false}
         }
     }
-    func rest(){sleeping=true;stopVoice();sensors.stopCapture();cancelConversation()}
+    func rest(){requestGeneration=UUID();sleeping=true;stopVoice();sensors.stopCapture();cancelConversation()}
     func wake(){sleeping=false}
     func saveNotes() {
         guard localNotes.utf8.count<=2_000 else{errorMessage="Keep notes within 2,000 bytes.";return}
@@ -165,14 +166,16 @@ final class CompanionModel:ObservableObject {
         }
     }
     func makeDraft(service:MateService,text:String="") {
+        guard !financialBusy else{return}
         stopVoice();providers=[];discoveryEvidence=nil
         draft=DisclosureDraft(service:service,text:text);sheet = .disclosure
     }
     func findProviders(service:MateService) async {
-        guard !discovering else{return};discovering=true;providers=[];discoveryEvidence=nil
+        guard !discovering, let draftID=draft?.id, draft?.service==service else{return};discovering=true;providers=[];discoveryEvidence=nil
         defer{discovering=false}
         do {
             let response=try await network.providers(service:service)
+            guard draft?.id==draftID, foreground, !sleeping else{return}
             guard response.providers.allSatisfy({$0.service==service.rawValue && UInt64($0.price) != nil}) else{throw ProductError.invalidResponse}
             providers=response.providers;discoveryEvidence="The Graph · block \(response.indexedBlock)"
             if providers.isEmpty{throw ProductError.unavailable("No active provider meets these requirements. No preset alternative will be substituted.")}
@@ -256,13 +259,19 @@ final class CompanionModel:ObservableObject {
         guard foreground,!sleeping else{errorMessage="Wake Mate before making a request.";return}
         if let reason=proofUnavailable{errorMessage=reason;return}
         guard pendingExecution == nil else{errorMessage="A transaction is awaiting confirmation. Check Activity before retrying to avoid duplicate execution.";return}
-        guard let stored=mandate,let service=MateService(rawValue:provider.service),let amount=UInt64(provider.price),
+        guard let approvedDraft=draft, let stored=mandate,let service=MateService(rawValue:provider.service),let amount=UInt64(provider.price),
+              approvedDraft.service==service,
               providers.contains(provider),!payload.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,
               payload.utf8.count<=8_000 else{errorMessage="Check the mandate, provider and text to share.";return}
+        let ticket=requestGeneration
+        func checkApproval() throws {
+            guard foreground, !sleeping, requestGeneration==ticket, draft?.id==approvedDraft.id else{throw ProductError.cancelled}
+        }
         financialBusy=true;stopVoice();defer{financialBusy=false;executionStatus=nil}
         do {
             executionStatus="Checking approved terms"
             let state=try await network.mandate(id:stored.id)
+            try checkApproval()
             let now=UInt64(Date().timeIntervalSince1970)
             guard !state.revoked,state.validUntil>now+15,state.policyHash.lowercased()==stored.grant.policyHash.lowercased(),
                   state.owner.lowercased()==wallet.ownerAddress?.lowercased(),state.agent.lowercased()==wallet.agentAddress?.lowercased(),
@@ -273,19 +282,21 @@ final class CompanionModel:ObservableObject {
                 requestHash:LocalSecrets.hash(Data(payload.utf8)),spentBefore:spentBefore)
             executionStatus="Generating a proof on this iPhone"
             let proof=try await proofs.prove(policy:stored.policy,action:action,chainID:configuration.chainID,vault:configuration.vault)
-            guard foreground,!sleeping else{throw ProductError.cancelled}
+            try checkApproval()
             lastProofMilliseconds=proof.elapsedMilliseconds
             guard proof.policyHash.lowercased()==stored.grant.policyHash.lowercased() else{throw ProductError.invalidResponse}
             executionStatus="Signing with the restricted execution key"
             let signature=try await wallet.signAction(hash:proof.actionHash)
-            guard foreground,!sleeping else{throw ProductError.cancelled}
+            try checkApproval()
             let submission=ExecutionSubmission(action:action,agentSignature:signature,proof:proof.bytes.base64EncodedString(),payload:payload,providerId:provider.id)
             let pending=PendingExecution(actionHash:proof.actionHash,proofHash:proof.proofHash,createdAt:Date(),submission:submission)
             try LocalSecrets.write(pending,key:"pending-execution");pendingExecution=pending
             executionStatus="Sending approved text and confirming execution"
             let receipt=try await network.execute(action:action,signature:signature,proof:proof.bytes,payload:payload,providerID:provider.id)
             try await accept(receipt,pending:pending)
-            messages.append(ConversationMessage(isUser:false,text:receipt.result));draft=nil;sheet = .activity
+            if requestGeneration==ticket {
+                messages.append(ConversationMessage(isUser:false,text:receipt.result));draft=nil;sheet = .activity
+            }
         }catch{errorMessage=error.localizedDescription}
     }
     private func accept(_ receipt:ExecutionReceipt,pending:PendingExecution) async throws {

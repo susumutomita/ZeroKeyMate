@@ -29,6 +29,8 @@ final class NativeProofTests: XCTestCase {
         var rejected=false
         do {rejected = try !verifier.verify(proof:Proof(data:changed))} catch {rejected=true}
         XCTAssertTrue(rejected,"A tampered native proof must be rejected")
+        let exerciseRejected = try await ProofService().rejectsTamperedCopy(of: proof)
+        XCTAssertTrue(exerciseRejected)
         let directory=FileManager.default.temporaryDirectory.appendingPathComponent("mate-native-evidence",isDirectory:true)
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         try proof.bytes.write(to:directory.appendingPathComponent("native-proof.np"))

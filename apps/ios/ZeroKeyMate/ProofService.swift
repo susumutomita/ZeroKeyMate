@@ -75,4 +75,18 @@ actor ProofService {
         return VerifiedLocalProof(bytes: proof.data, policyHash: policyHash, actionHash: actionHash,
             elapsedMilliseconds: Int(Date().timeIntervalSince(start) * 1000))
     }
+    /// Negative verification uses the same native verifier, never a UI-only comparison.
+    func rejectsTamperedCopy(of proof: VerifiedLocalProof) throws -> Bool {
+        try Task.checkCancellation()
+        try prepare()
+        guard let keys = keyData, !proof.bytes.isEmpty else { throw ProductError.invalidResponse }
+        let runtime = try Verity(backend: .provekit)
+        let verifier = try runtime.loadVerifier(data: keys.1)
+        defer { verifier.close() }
+        var changed = proof.bytes
+        changed[changed.count / 2] ^= 1
+        do { return try !verifier.verify(proof: Proof(data: changed)) }
+        catch { return true }
+    }
+
 }

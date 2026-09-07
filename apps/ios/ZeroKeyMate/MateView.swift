@@ -29,6 +29,7 @@ struct MateView:View {
                         case .identity:IdentitySheet(model:model)
                         case .activity:ActivitySheet(model:model)
                         case .disclosure:DisclosureSheet(model:model)
+                        case .localProof:LocalProofSheet()
                         }
                     }
                     .toolbar{ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}}
@@ -87,6 +88,11 @@ private struct CompanionHome:View {
                     }else if let last=model.messages.last,!last.isUser,!landscape {
                         Text(last.text).font(.system(size:15)).foregroundStyle(Finish.secondary).multilineTextAlignment(.center).lineLimit(3)
                             .padding(.horizontal,12)
+                    }
+                    if !landscape, !model.financialBusy {
+                        Button("Try private rules on this device", systemImage:"checkmark.shield") { model.sheet = .localProof }
+                            .font(.system(size:14,weight:.medium)).frame(minHeight:44)
+                            .accessibilityIdentifier("open-local-proof")
                     }
                     if let draft=model.draft,!model.financialBusy {
                         Button{model.sheet = .disclosure}label:{Label("Review \(draft.service.title.lowercased()) request",systemImage:"arrow.up.right").font(.system(size:14,weight:.medium)).padding(.vertical,10)}
@@ -217,6 +223,7 @@ private struct SettingsSheet:View {
                 SectionNote(text:"When enabled, tap Talk to resume on-device voice input after each reply. Stop, Rest, backgrounding the app or undocking ends the session.")
             }
             Section("Delegation"){
+                Button("Try private rules on this device",systemImage:"checkmark.shield"){model.sheet = .localProof}
                 Button{model.sheet = .rules}label:{Label("Your rules",systemImage:"checkmark.shield")}
                 Button{model.sheet = .wallet}label:{Label("Wallet",systemImage:"creditcard")}
                 Button{model.sheet = .identity}label:{Label("Mate's name",systemImage:"at")}
@@ -378,7 +385,8 @@ private struct DisclosureSheet:View {
             }
             Section("Text to share"){
                 TextEditor(text:$payload).frame(minHeight:170).scrollContentBackground(.hidden).font(.body)
-                    .accessibilityIdentifier("disclosure-text")
+                    .accessibilityIdentifier("disclosure-text").disabled(model.financialBusy)
+                    .onChange(of:payload){_,text in model.draft?.text=text}
             }
             Section("Provider"){
                 if model.discovering{ProgressView("Searching live registrations")}
@@ -392,7 +400,7 @@ private struct DisclosureSheet:View {
                             }
                             Spacer();if selectedID==provider.id{Image(systemName:"checkmark")}
                         }.padding(.vertical,6)
-                    }
+                    }.disabled(model.financialBusy)
                 }
                 if let evidence=model.discoveryEvidence{SectionNote(text:evidence)}
                 Button("Find providers"){if let draft=model.draft{Task{await model.findProviders(service:draft.service)}}}.disabled(model.discovering || model.financialBusy)

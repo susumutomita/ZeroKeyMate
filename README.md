@@ -17,6 +17,16 @@ The screenshots above show the earlier Japanese build. The current UI is English
 
 <p align="center"><em>Actual iOS Simulator captures: home → Rest. These screens do not demonstrate live conversation, DockKit tracking or a payment. <a href="docs/assets/README.md">Capture provenance</a>.</em></p>
 
+## Start with local ZK
+
+Tap **Try private rules on this device** on the home screen. Enter a private spending limit and a public translation price, then tap **Generate and verify proof**. The app runs the production ProveKit circuit and verifier locally and reports the actual prove-plus-verify time, proof size and commitments. It also modifies a copy of the proof and checks that the native verifier rejects it. No wallet or API configuration is required for this exercise; the native runtime and circuit resources must be bundled at build time.
+
+After installation, try it in airplane mode. Change the limit or permission and the previous evidence is cleared. A request outside the rules is rejected at preflight and labeled **No proof generated**; this is distinct from cryptographic rejection of a modified proof. Closing the screen or backgrounding discards its result, although an in-progress native call must finish before resources can be released.
+
+This is an **offline proof exercise**, using fresh request identifiers and example Sepolia addresses, with no payment or wallet signature. The paid execution flow separately binds the actual transaction context. Physical-iPhone measurements and the new screen's runtime acceptance remain pending; a simulator build is not device evidence.
+
+The private budget, allowed-service mask and salt are not sent to a verifier. Public spending and successful requests can still reveal information such as a lower bound on the budget. The current vault trusts the server's signed proof-verification attestation; it does not verify ProveKit directly on-chain.
+
 ## Who is Mate for?
 
 Mate is a desk companion for people who want help from AI specialists while keeping control of what they share and spend. Everyday conversation is designed to stay on the iPhone. A paid external task begins with a specific review: this text, this provider, this recipient and this price.
