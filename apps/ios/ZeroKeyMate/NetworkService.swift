@@ -24,6 +24,24 @@ struct ExecutionReceipt:Codable,Identifiable,Sendable {
     let spentAfter:String
 }
 struct MateIdentity:Codable,Sendable {let name:String;let address:String;let owner:String;let description:String}
+struct ExecutionSubmission:Codable,Sendable {
+    let action:MandateAction
+    let agentSignature:String
+    let proof:String
+    let payload:String
+    let providerId:String
+}
+struct NetworkFailure:Error,LocalizedError {
+    let code:String
+    let message:String
+    var errorDescription:String?{message}
+}
+private final class NoRedirects:NSObject,URLSessionTaskDelegate,Sendable {
+    func urlSession(_ session:URLSession,task:URLSessionTask,willPerformHTTPRedirection response:HTTPURLResponse,
+                    newRequest request:URLRequest,completionHandler:@escaping (URLRequest?)->Void) {
+        completionHandler(nil)
+    }
+}
 
 actor NetworkService {
     private struct Failure:Decodable {let error:String;let message:String}
@@ -34,7 +52,7 @@ actor NetworkService {
         let settings=URLSessionConfiguration.ephemeral
         settings.httpCookieStorage=nil;settings.urlCache=nil
         settings.timeoutIntervalForRequest=120;settings.timeoutIntervalForResource=180
-        session=URLSession(configuration:settings)
+        session=URLSession(configuration:settings,delegate:NoRedirects(),delegateQueue:nil)
     }
     private func perform<Response:Decodable>(_ path:String,method:String="GET",body:Data?=nil) async throws -> Response {
         guard !configuration.apiToken.isEmpty,let base=URL(string:configuration.apiURL),
@@ -50,7 +68,7 @@ actor NetworkService {
         let (data,response)=try await session.data(for:request)
         guard let http=response as? HTTPURLResponse,data.count < 2_000_000 else {throw ProductError.invalidResponse}
         guard (200..<300).contains(http.statusCode) else {
-            if let failure=try? JSONDecoder().decode(Failure.self,from:data) {throw ProductError.unavailable(failure.message)}
+            if let failure=try? JSONDecoder().decode(Failure.self,from:data) {throw NetworkFailure(code:failure.error,message:failure.message)}
             throw ProductError.unavailable("外部サービスに接続できませんでした（HTTP \(http.statusCode)）。")
         }
         return try JSONDecoder().decode(Response.self,from:data)
@@ -69,9 +87,18 @@ actor NetworkService {
         return try await perform("/v1/grants",method:"POST",body:JSONEncoder().encode(Request(grant:grant,signature:signature)))
     }
     func execute(action:MandateAction,signature:String,proof:Data,payload:String,providerID:String) async throws -> ExecutionReceipt {
-        struct Request:Encodable {let action:MandateAction;let agentSignature:String;let proof:String;let payload:String;let providerId:String}
-        let request=Request(action:action,agentSignature:signature,proof:proof.base64EncodedString(),payload:payload,providerId:providerID)
+        let request=ExecutionSubmission(action:action,agentSignature:signature,proof:proof.base64EncodedString(),payload:payload,providerId:providerID)
+        return try await submit(request)
+    }
+    func submit(_ request:ExecutionSubmission) async throws -> ExecutionReceipt {
         return try await perform("/v1/execute",method:"POST",body:JSONEncoder().encode(request))
+    }
+    func cancel(actionHash:String) async throws {
+        struct Request:Encodable{let actionHash:String}
+        struct Response:Decodable{let actionHash:String;let status:String}
+        _=try CanonicalBytes.hex(actionHash,count:32)
+        let result:Response=try await perform("/v1/executions/cancel",method:"POST",body:JSONEncoder().encode(Request(actionHash:actionHash)))
+        guard result.actionHash.lowercased()==actionHash.lowercased(),result.status=="cancelled" else{throw ProductError.invalidResponse}
     }
     func receipt(actionHash:String) async throws -> ExecutionReceipt {
         _=try CanonicalBytes.hex(actionHash,count:32)
@@ -91,12 +118,14 @@ actor NetworkService {
 
 actor EthereumRPC {
     private let url:URL?
-    private let session=URLSession(configuration:.ephemeral)
+    private let session=URLSession(configuration:.ephemeral,delegate:NoRedirects(),delegateQueue:nil)
     init(url:String){self.url=URL(string:url)}
-    struct Receipt:Decodable,Sendable {let status:String;let transactionHash:String;let blockHash:String;let blockNumber:String}
+    struct Log:Decodable,Sendable {let address:String;let topics:[String];let data:String}
+    struct Receipt:Decodable,Sendable {let status:String;let transactionHash:String;let blockHash:String;let blockNumber:String;let logs:[Log]}
+    private struct Block:Decodable {let hash:String;let number:String}
     private struct RPCError:Decodable {let code:Int;let message:String}
-    private struct Response<T:Decodable>:Decodable {let result:T?;let error:RPCError?}
-    private func call<T:Decodable>(method:String,params:[String]) async throws -> T? {
+    private struct Response<T:Decodable>:Decodable {let jsonrpc:String;let id:Int;let result:T?;let error:RPCError?}
+    private func call<T:Decodable>(method:String,params:[Any]) async throws -> T? {
         guard let url,url.scheme == "https" else {throw ProductError.unavailable("Sepolia RPCの設定がありません。")}
         var request=URLRequest(url:url);request.httpMethod="POST";request.timeoutInterval=20
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
@@ -104,6 +133,7 @@ actor EthereumRPC {
         let (data,response)=try await session.data(for:request)
         guard let http=response as? HTTPURLResponse,http.statusCode == 200,data.count < 1_000_000 else {throw ProductError.invalidResponse}
         let decoded=try JSONDecoder().decode(Response<T>.self,from:data)
+        guard decoded.jsonrpc=="2.0",decoded.id==1 else{throw ProductError.invalidResponse}
         guard decoded.error == nil else {throw ProductError.unavailable("Sepolia RPCで操作を確認できませんでした。")}
         return decoded.result
     }
@@ -120,10 +150,27 @@ actor EthereumRPC {
                 guard receipt.transactionHash.lowercased() == hash.lowercased(),receipt.status == "0x1" else {
                     throw ProductError.unavailable("取引は取り消されました。実行成功として記録していません。")
                 }
-                return receipt
+                let latest:String?=try await call(method:"eth_blockNumber",params:[])
+                guard let height=UInt64(receipt.blockNumber.dropFirst(2),radix:16),height<UInt64.max,
+                      let head=latest.flatMap({UInt64($0.dropFirst(2),radix:16)}) else{throw ProductError.invalidResponse}
+                if head>height {
+                    let block:Block?=try await call(method:"eth_getBlockByNumber",params:[receipt.blockNumber,false])
+                    guard block?.hash.lowercased()==receipt.blockHash.lowercased() else{throw ProductError.invalidResponse}
+                    return receipt
+                }
             }
             try await Task.sleep(for:.seconds(2))
         }
         throw ProductError.unavailable("取引は送信済みですが、まだ確定を確認できません。再送せず、取引履歴を確認してください。")
+    }
+    func confirmExecution(_ result:ExecutionReceipt,pending:PendingExecution,vault:String) async throws {
+        let receipt=try await confirm(hash:result.transactionHash)
+        guard let spent=UInt64(result.spentAfter),let height=UInt64(receipt.blockNumber.dropFirst(2),radix:16),
+              String(height)==result.blockNumber else{throw ProductError.invalidResponse}
+        let matches=receipt.logs.filter { log in
+            (try? ExecutionEvidence.validate(address:log.address,topics:log.topics,data:log.data,vault:vault,
+                actionHash:pending.actionHash,proofHash:pending.proofHash,spentAfter:spent,action:pending.submission?.action)) != nil
+        }
+        guard matches.count==1 else{throw ProductError.invalidResponse}
     }
 }

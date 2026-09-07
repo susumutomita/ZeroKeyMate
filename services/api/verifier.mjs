@@ -33,7 +33,7 @@ export class ProofVerifier {
   }
   async verify(base64, expected) {
     requireValue(typeof base64 === 'string' && base64.length > 0 && base64.length <= Math.ceil(MAX_PROOF / 3) * 4
-      && /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64),
+      && base64.length % 4 === 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(base64),
       'invalid_proof', '証明の形式が正しくありません。');
     const bytes = Buffer.from(base64, 'base64');
     requireValue(bytes.length > 0 && bytes.length <= MAX_PROOF && bytes.toString('base64') === base64,

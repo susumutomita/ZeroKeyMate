@@ -13,6 +13,7 @@ apps/ios/*.xcodeproj/
 apps/ios/Generated/
 apps/ios/ZeroKeyMate/Resources/Proofs/
 apps/ios/ZeroKeyMate/Resources/Configuration.json
+apps/ios/ZeroKeyMate/Resources/Selectors.json
 .env
 .env.*
 !.env.example

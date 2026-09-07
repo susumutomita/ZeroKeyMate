@@ -23,6 +23,7 @@ struct PendingExecution:Codable,Sendable {
     let actionHash:String
     let proofHash:String
     let createdAt:Date
+    var submission:ExecutionSubmission? = nil
 }
 
 @MainActor
@@ -35,6 +36,7 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var financialBusy=false
     @Published private(set) var executionStatus:String?
     @Published private(set) var modelUnavailable:String?
+    @Published private(set) var proofUnavailable:String? = "証明ランタイムを確認しています。"
     @Published private(set) var mandate:StoredMandate?
     @Published private(set) var spent:UInt64=0
     @Published private(set) var account:AccountState?
@@ -48,6 +50,10 @@ final class CompanionModel:ObservableObject {
     @Published var draft:DisclosureDraft?
     @Published var localNotes=""
     @Published var readAloud=true
+    @Published var continuousConversation=false {
+        didSet{if !continuousConversation{stopVoice()}}
+    }
+    @Published private(set) var voiceSessionActive=false
     @Published var sleeping=false
     let configuration:AppConfiguration
     let sensors=MateModel()
@@ -69,12 +75,18 @@ final class CompanionModel:ObservableObject {
         network=NetworkService(configuration:configuration)
         rpc=EthereumRPC(url:configuration.rpcURL)
         voice.onFinal={[weak self] text in self?.send(text)}
+        voice.onPlaybackFinished={[weak self] in self?.resumeListening()}
+        voice.onInputInterrupted={[weak self] in self?.stopVoice()}
+        sensors.onDetach={[weak self] in self?.stopVoice()}
         NotificationCenter.default.publisher(for:AVAudioSession.interruptionNotification)
-            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.voice.stop()}.store(in:&notifications)
+            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.stopVoice()}.store(in:&notifications)
+        NotificationCenter.default.publisher(for:AVAudioSession.mediaServicesWereResetNotification)
+            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.stopVoice()}.store(in:&notifications)
     }
     func start() async {
         guard !started else{return};started=true
         modelUnavailable=await conversation.availability()
+        do{try await proofs.prepare();proofUnavailable=nil}catch{proofUnavailable=error.localizedDescription}
         do {
             mandate=try LocalSecrets.read(StoredMandate.self,key:"active-mandate")
             if let mandate{_=try mandate.policy.material()}
@@ -91,15 +103,23 @@ final class CompanionModel:ObservableObject {
     }
     func setForeground(_ active:Bool) {
         foreground=active;sensors.setForeground(active)
-        if !active{voice.stop();cancelConversation()}
+        if !active{stopVoice();cancelConversation()}
     }
-    func rest(){sleeping=true;voice.stop();sensors.stopCapture();cancelConversation()}
+    func stopVoice(){voiceSessionActive=false;voice.stop()}
+    private func resumeListening() {
+        Task{[weak self] in
+            guard let self,self.voiceSessionActive,self.foreground,!self.sleeping,!self.thinking,!self.financialBusy else{return}
+            await self.voice.start()
+            if !self.voice.listening{self.voiceSessionActive=false}
+        }
+    }
+    func rest(){sleeping=true;stopVoice();sensors.stopCapture();cancelConversation()}
     func wake(){sleeping=false}
     func saveNotes() {
         guard localNotes.utf8.count<=2_000 else{errorMessage="メモは2,000バイト以内にしてください。";return}
         do{try LocalSecrets.write(localNotes,key:"local-notes")}catch{errorMessage=error.localizedDescription}
     }
-    func clearConversation(){cancelConversation();voice.stop();messages=[];draft=nil}
+    func clearConversation(){cancelConversation();stopVoice();messages=[];draft=nil}
     func send(_ text:String) {
         let input=text.trimmingCharacters(in:.whitespacesAndNewlines)
         guard !thinking,!financialBusy,!input.isEmpty,foreground else{return}
@@ -112,7 +132,12 @@ final class CompanionModel:ObservableObject {
         let notes=localNotes
         conversationTask=Task{[weak self] in
             guard let self else{return}
-            defer{if self.conversationGeneration==generation{self.thinking=false}}
+            defer{
+                if self.conversationGeneration==generation {
+                    self.thinking=false
+                    if !self.voice.speaking{self.resumeListening()}
+                }
+            }
             do {
                 let response=try await self.conversation.reply(to:input,history:history,
                     observations:self.sensors.currentObservation,notes:notes)
@@ -124,16 +149,23 @@ final class CompanionModel:ObservableObject {
                 }
                 if self.readAloud{self.voice.speak(response.text)}
             }catch is CancellationError{}catch{
-                if self.conversationGeneration==generation{self.errorMessage=error.localizedDescription}
+                if self.conversationGeneration==generation{self.stopVoice();self.errorMessage=error.localizedDescription}
             }
         }
     }
     func toggleVoice() async {
-        if voice.listening{let text=voice.finish();send(text)}
-        else{guard !thinking,!financialBusy,foreground else{return};sleeping=false;await voice.start()}
+        if voiceSessionActive{stopVoice();cancelConversation()}
+        else if voice.requestingPermission{stopVoice()}
+        else if voice.listening{let text=voice.finish();send(text)}
+        else{
+            guard !thinking,!financialBusy,foreground else{return};sleeping=false
+            voiceSessionActive=continuousConversation
+            await voice.start()
+            if !voice.listening{voiceSessionActive=false}
+        }
     }
     func makeDraft(service:MateService,text:String="") {
-        voice.stop();providers=[];discoveryEvidence=nil
+        stopVoice();providers=[];discoveryEvidence=nil
         draft=DisclosureDraft(service:service,text:text);sheet = .disclosure
     }
     func findProviders(service:MateService) async {
@@ -168,7 +200,7 @@ final class CompanionModel:ObservableObject {
         guard let owner=wallet.ownerAddress,let agent=wallet.agentAddress,configuration.paymentsConfigured else{
             errorMessage="先にウォレットとSepoliaの接続を設定してください。";return
         }
-        financialBusy=true;voice.stop();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
+        financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
         do {
             guard try LocalSecrets.read(PendingGrant.self,key:"pending-grant") == nil else{
                 throw ProductError.unavailable("確認待ちの委任があります。先に復元して状態を確認してください。")
@@ -209,7 +241,7 @@ final class CompanionModel:ObservableObject {
     }
     func fund(_ operation:WalletService.FundingOperation) async {
         guard !financialBusy else{return}
-        financialBusy=true;voice.stop();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
+        financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
         do {
             executionStatus="署名を確認しています"
             let hash=try await wallet.send(operation)
@@ -221,11 +253,13 @@ final class CompanionModel:ObservableObject {
     }
     func execute(payload:String,provider:ServiceProvider) async {
         guard !financialBusy else{return}
+        guard foreground,!sleeping else{errorMessage="Mateを起こしてから依頼してください。";return}
+        if let reason=proofUnavailable{errorMessage=reason;return}
         guard pendingExecution == nil else{errorMessage="確認待ちの取引があります。履歴から結果を確認し、二重実行を避けてください。";return}
         guard let stored=mandate,let service=MateService(rawValue:provider.service),let amount=UInt64(provider.price),
               providers.contains(provider),!payload.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,
               payload.utf8.count<=8_000 else{errorMessage="委任・提供者・送信する文章を確認してください。";return}
-        financialBusy=true;voice.stop();defer{financialBusy=false;executionStatus=nil}
+        financialBusy=true;stopVoice();defer{financialBusy=false;executionStatus=nil}
         do {
             executionStatus="承認済みの条件を確認しています"
             let state=try await network.mandate(id:stored.id)
@@ -239,13 +273,14 @@ final class CompanionModel:ObservableObject {
                 requestHash:LocalSecrets.hash(Data(payload.utf8)),spentBefore:spentBefore)
             executionStatus="このiPhoneで証明を生成しています"
             let proof=try await proofs.prove(policy:stored.policy,action:action,chainID:configuration.chainID,vault:configuration.vault)
-            guard foreground else{throw ProductError.cancelled}
+            guard foreground,!sleeping else{throw ProductError.cancelled}
             lastProofMilliseconds=proof.elapsedMilliseconds
             guard proof.policyHash.lowercased()==stored.grant.policyHash.lowercased() else{throw ProductError.invalidResponse}
             executionStatus="限定された実行キーで署名しています"
             let signature=try await wallet.signAction(hash:proof.actionHash)
-            guard foreground else{throw ProductError.cancelled}
-            let pending=PendingExecution(actionHash:proof.actionHash,proofHash:proof.proofHash,createdAt:Date())
+            guard foreground,!sleeping else{throw ProductError.cancelled}
+            let submission=ExecutionSubmission(action:action,agentSignature:signature,proof:proof.bytes.base64EncodedString(),payload:payload,providerId:provider.id)
+            let pending=PendingExecution(actionHash:proof.actionHash,proofHash:proof.proofHash,createdAt:Date(),submission:submission)
             try LocalSecrets.write(pending,key:"pending-execution");pendingExecution=pending
             executionStatus="承認した文章を送信し、実行を確認しています"
             let receipt=try await network.execute(action:action,signature:signature,proof:proof.bytes,payload:payload,providerID:provider.id)
@@ -256,19 +291,37 @@ final class CompanionModel:ObservableObject {
     private func accept(_ receipt:ExecutionReceipt,pending:PendingExecution) async throws {
         guard receipt.actionHash.lowercased()==pending.actionHash.lowercased(),receipt.proofHash.lowercased()==pending.proofHash.lowercased(),
               let value=UInt64(receipt.spentAfter) else{throw ProductError.invalidResponse}
-        _=try await rpc.confirm(hash:receipt.transactionHash)
+        try await rpc.confirmExecution(receipt,pending:pending,vault:configuration.vault)
         spent=value;receipts.removeAll{$0.id==receipt.id};receipts.insert(receipt,at:0);receipts=Array(receipts.prefix(30))
         try LocalSecrets.write(receipts,key:"receipts");try LocalSecrets.delete("pending-execution");pendingExecution=nil
     }
     func recoverExecution() async {
         guard !financialBusy,let pending=pendingExecution else{return}
         financialBusy=true;defer{financialBusy=false}
-        do{let receipt=try await network.receipt(actionHash:pending.actionHash);try await accept(receipt,pending:pending)}
+        do {
+            let receipt:ExecutionReceipt
+            do{receipt=try await network.receipt(actionHash:pending.actionHash)}
+            catch let failure as NetworkFailure where failure.code=="execution_not_found" {
+                guard let submission=pending.submission else{
+                    throw ProductError.unavailable("送信内容を復元できません。未送金の取り消しを確認してください。")
+                }
+                receipt=try await network.submit(submission)
+            }
+            try await accept(receipt,pending:pending)
+        }
         catch{errorMessage=error.localizedDescription}
+    }
+    func cancelPendingExecution() async {
+        guard !financialBusy,let pending=pendingExecution else{return}
+        financialBusy=true;defer{financialBusy=false}
+        do {
+            try await network.cancel(actionHash:pending.actionHash)
+            try LocalSecrets.delete("pending-execution");pendingExecution=nil
+        }catch{errorMessage=error.localizedDescription}
     }
     func registerIdentity(label:String) async {
         guard !financialBusy,let owner=wallet.ownerAddress,let agent=wallet.agentAddress else{return}
-        financialBusy=true;voice.stop();sensors.stopCapture();defer{financialBusy=false}
+        financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false}
         do {
             let nonce=CanonicalBytes.hexString(try LocalSecrets.random32())
             let expiresAt=UInt64(Date().timeIntervalSince1970)+600

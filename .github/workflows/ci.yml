@@ -11,20 +11,39 @@ concurrency:
 jobs:
   ios:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
-      - name: Toolchain
-        run: |
-          swift --version
-          xcodebuild -version
-      - name: Test portable lifecycle logic
-        run: make test
-      - name: Install project generator
-        run: brew install xcodegen
-      - name: Generate Xcode project
-        run: make project
-      - name: Build simulator
-        run: xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
-      - name: Build device SDK without signing
-        run: xcodebuild -project apps/ios/ZeroKeyMate.xcodeproj -scheme ZeroKeyMate -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath DerivedDataDevice CODE_SIGNING_ALLOWED=NO build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: make test
+      - run: make build-ios
+      - run: make build-device
+      - run: make test-ios
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baseline-native-acceptance
+          path: .build/native-evidence
+          include-hidden-files: true
+  enforcement:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=low
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.1
+      - run: npm test
+      - run: make test-contracts

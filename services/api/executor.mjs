@@ -22,6 +22,7 @@ export class Executor {
     const id=`execution:${actionHash}`;
     let existing=this.journal.get(id);
     if(existing){
+      requireValue(existing.state!=='cancelled','execution_cancelled','この依頼は取り消されています。',409);
       const saved=existing.value.request;
       requireValue(saved.providerId===request.providerId && saved.payload===request.payload
         && saved.agentSignature.toLowerCase()===request.agentSignature.toLowerCase()
@@ -46,7 +47,17 @@ export class Executor {
     const id=`execution:${actionHash.toLowerCase()}`;
     const existing=this.journal.get(id);
     requireValue(existing,'execution_not_found','依頼がまだ届いていません。同じ依頼を再送してください。',404);
+    requireValue(existing.state!=='cancelled','execution_cancelled','この依頼は取り消されています。',409);
     return this.#advance(id,existing);
+  });}
+  cancel(actionHash){return this.#queue.run(async()=>{
+    const id=`execution:${actionHash.toLowerCase()}`;
+    const existing=this.journal.get(id);
+    requireValue(!existing || ['authorized','cancelled'].includes(existing.state),
+      'payment_pending','支払いが開始済み、または確認待ちです。結果を照会してください。',409);
+    // A durable tombstone also rejects a delayed first submission after cancellation.
+    this.journal.put(id,'cancelled',{actionHash:actionHash.toLowerCase()});
+    return {actionHash:actionHash.toLowerCase(),status:'cancelled'};
   });}
   async #advance(id,entry){
     let {state,value}=entry;

@@ -63,12 +63,13 @@ private struct CompanionHome:View {
                 HStack(alignment:.firstTextBaseline){
                     VStack(alignment:.leading,spacing:5){
                         Text("Mate.").font(.system(size:32,weight:.medium,design:.rounded)).tracking(-1.2)
+                            .accessibilityLabel("メイト").accessibilityAddTraits(.isHeader)
                         if let identity=model.identity{Text(identity.name).font(.system(size:11,weight:.medium)).foregroundStyle(Finish.secondary).lineLimit(1)}
                     }
                     Spacer(minLength:12)
-                    Button{model.sheet = .activity}label:{Image(systemName:"clock").font(.system(size:19,weight:.regular)).frame(width:44,height:44)}
+                    Button{model.sheet = .activity}label:{Image(systemName:"clock").font(.system(size:19,weight:.regular)).frame(width:44,height:44).contentShape(Rectangle())}
                         .accessibilityLabel("実行履歴").accessibilityIdentifier("open-activity")
-                    Button{model.sheet = .settings}label:{Image(systemName:"slider.horizontal.3").font(.system(size:19,weight:.regular)).frame(width:44,height:44)}
+                    Button{model.sheet = .settings}label:{Image(systemName:"slider.horizontal.3").font(.system(size:19,weight:.regular)).frame(width:44,height:44).contentShape(Rectangle())}
                         .accessibilityLabel("設定").accessibilityIdentifier("open-settings")
                 }.padding(.horizontal,landscape ? 40:28).padding(.top,landscape ? 8:18)
                 Spacer(minLength:10)
@@ -93,23 +94,23 @@ private struct CompanionHome:View {
                 }.padding(.horizontal,30).frame(minHeight:landscape ? 42:112)
                 Spacer(minLength:landscape ? 6:18)
                 HStack(spacing:landscape ? 28:38){
-                    Button{model.sheet = .conversation}label:{Image(systemName:"keyboard").font(.system(size:21,weight:.regular)).frame(width:52,height:52)}
+                    Button{model.sheet = .conversation}label:{Image(systemName:"keyboard").font(.system(size:21,weight:.regular)).frame(width:52,height:52).contentShape(Rectangle())}
                         .accessibilityLabel("文字で話す").accessibilityIdentifier("open-conversation")
                     Button{
                         if model.sleeping{model.wake()}else{Task{await model.toggleVoice()}}
                     }label:{
-                        Image(systemName:model.sleeping ? "sun.max":voice.listening ? "stop.fill":"mic.fill")
+                        Image(systemName:model.sleeping ? "sun.max":voice.listening || voice.requestingPermission || model.voiceSessionActive ? "stop.fill":"mic.fill")
                             .font(.system(size:25,weight:.medium)).foregroundStyle(Finish.paper)
                             .frame(width:76,height:76).background(Finish.ink,in:Circle())
-                    }.disabled(model.thinking || model.financialBusy || voice.requestingPermission)
-                        .accessibilityLabel(model.sleeping ? "Mateを起こす":voice.listening ? "音声入力を終了":"話す")
+                    }.disabled((model.thinking && !model.voiceSessionActive) || model.financialBusy)
+                        .accessibilityLabel(model.sleeping ? "Mateを起こす":model.voiceSessionActive ? "連続会話を停止":voice.requestingPermission ? "音声の開始を中止":voice.listening ? "音声入力を終了":"話す")
                         .accessibilityIdentifier("talk-button")
-                    Button{model.rest()}label:{Image(systemName:"moon").font(.system(size:21,weight:.regular)).frame(width:52,height:52)}
+                    Button{model.rest()}label:{Image(systemName:"moon").font(.system(size:21,weight:.regular)).frame(width:52,height:52).contentShape(Rectangle())}
                         .accessibilityLabel("カメラとマイクを停止して休む").accessibilityIdentifier("rest-button")
                 }
                 HStack(spacing:7){
                     Image(systemName:sensors.cameraPhase == .on ? "eye":"eye.slash").font(.system(size:11))
-                    Text(sensors.cameraPhase == .on ? "カメラ使用中・端末内処理":sensors.isTransitioning ? "カメラを切り替え中":"カメラ停止中")
+                    Text(sensors.cameraPhase == .on ? "カメラ使用中・端末内処理":sensors.cameraPhase == .starting ? "カメラ起動中":sensors.cameraPhase == .stopping ? "カメラ停止処理中":"カメラ停止中")
                     if sensors.dockConnected{Text("·");Text("Dock 接続済み")}
                 }.font(.system(size:11,weight:.medium)).foregroundStyle(Finish.secondary)
                     .padding(.top,landscape ? 10:21).padding(.bottom,landscape ? 8:18)
@@ -191,7 +192,7 @@ private struct ConversationSheet:View {
                 TextField("メッセージ",text:$input,axis:.vertical).lineLimit(1...5).font(.system(size:17))
                     .accessibilityIdentifier("message-input")
                 Button{let value=input;input="";model.send(value)}label:{Image(systemName:"arrow.up").font(.system(size:17,weight:.semibold)).frame(width:44,height:44).foregroundStyle(Finish.paper).background(Finish.ink,in:Circle())}
-                    .disabled(input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || model.thinking)
+                    .disabled(input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || model.thinking || model.financialBusy)
                     .accessibilityLabel("送信").accessibilityIdentifier("send-message")
             }.padding(.horizontal,22).padding(.vertical,14)
         }.background(Finish.paper).navigationTitle("会話").navigationBarTitleDisplayMode(.inline)
@@ -205,13 +206,15 @@ private struct SettingsSheet:View {
         Form{
             Section("感覚"){
                 HStack{Label("カメラ",systemImage:"eye");Spacer();Text(sensors.cameraPhase.rawValue).font(.footnote).foregroundStyle(.secondary)}
-                Button(sensors.captureRequested ? "カメラを停止":"カメラを開始"){
+                Button(sensors.captureRequested ? "カメラを停止":sensors.isTransitioning ? "停止を待っています":"カメラを開始"){
                     if sensors.captureRequested{sensors.stopCapture()}else{sensors.startCapture()}
-                }.accessibilityIdentifier("toggle-camera")
+                }.disabled(!sensors.captureRequested && sensors.isTransitioning).accessibilityIdentifier("toggle-camera")
                 SectionNote(text:"認識するのは物体の大まかな分類と顔の位置です。本人特定は行いません。映像は保存・外部送信しません。")
                 if let message=sensors.message{SectionNote(text:message)}
                 if let message=sensors.dockMessage{SectionNote(text:message)}
                 Toggle("返答を読み上げる",isOn:$model.readAloud)
+                Toggle("続けて話す",isOn:$model.continuousConversation)
+                SectionNote(text:"オンにして「話す」を押すと、返答後も端末内の音声入力を再開します。「停止」か「休む」、バックグラウンドへの移動、スタンドから外す操作で終了します。")
             }
             Section("任せること"){
                 Button{model.sheet = .rules}label:{Label("あなたのルール",systemImage:"checkmark.shield")}
@@ -231,6 +234,9 @@ private struct SettingsSheet:View {
                 LabeledContent("決済ネットワーク",value:"Sepolia テストネット")
                 LabeledContent("ウォレット設定",value:model.configuration.walletConfigured ? "設定済み":"未設定")
                 LabeledContent("外部実行の設定",value:model.configuration.paymentsConfigured ? "設定済み":"未設定")
+                LabeledContent("端末内の証明",value:model.proofUnavailable == nil ? "利用可能":"利用不可")
+                if let reason=model.proofUnavailable{SectionNote(text:reason)}
+                SectionNote(text:"音声は「話す」を押したときだけ端末内で文字に変換します。権限の確認中も同じボタンで中止できます。")
                 SectionNote(text:"ZKは非公開の利用条件を検証します。送金先・金額は公開されます。現在の決済方式は、証明を検証するサーバーの署名を信頼します。")
             }
             Section{Button("会話を消去",role:.destructive){model.clearConversation()}}
@@ -347,8 +353,11 @@ private struct IdentitySheet:View {
             }else{
                 Section("新しい名前"){
                     TextField("例 amedama",text:$label).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    if !model.configuration.ensParent.isEmpty{Text("\(label).\(model.configuration.ensParent)").font(.footnote)}
                     SectionNote(text:"半角英数字とハイフン、3〜32文字。名前の管理者はあなた、名前が指すアドレスはMateです。")
-                    Button("署名して名前を登録"){Task{await model.registerIdentity(label:label)}}.disabled(model.financialBusy || label.count<3)
+                    SectionNote(text:"登録期間は1年です。親ドメインの管理者にも名前を変更・解除する権限があります。")
+                    Button("署名して名前を登録"){Task{await model.registerIdentity(label:label)}}.disabled(model.financialBusy || label.count<3 || model.configuration.ensParent.isEmpty)
+                    if model.configuration.ensParent.isEmpty{SectionNote(text:"ENSの親ドメインが未設定です。設定後に登録できます。")}
                 }
             }
             Section{SectionNote(text:"名前は信頼性や支払権限の証明ではありません。支払いは名前ではなく、確定したアドレスと取引内容に結び付けて承認します。")}
@@ -365,7 +374,7 @@ private struct DisclosureSheet:View {
         Form{
             Section{
                 Text("外に送るのは、\nこの文章だけ。").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
-                SectionNote(text:"会話の続きやカメラ映像、端末内のメモ、予算の全体は送信しません。文章に不要な個人情報がないか確認してください。")
+                SectionNote(text:"この文章に宛先・料金・署名・証明を添えて送信します。会話の続きやカメラ映像、端末内のメモ、予算の全体は送信しません。文章に不要な個人情報がないか確認してください。")
             }
             Section("送信する文章"){
                 TextEditor(text:$payload).frame(minHeight:170).scrollContentBackground(.hidden).font(.body)
@@ -415,9 +424,10 @@ private struct ActivitySheet:View {
         List{
             if let pending=model.pendingExecution {
                 Section("結果の確認待ち"){
-                    SectionNote(text:"送信後の結果がまだ確定していません。新しい支払いは停止しています。同じ依頼を再送しないでください。")
+                    SectionNote(text:"結果がまだ確定していません。照会で未受信だった場合は、保存済みの同じ署名・依頼識別子で再送します。新しい支払いは停止しています。")
                     Text(pending.actionHash).font(.system(size:11,design:.monospaced)).textSelection(.enabled)
                     Button("結果を照会"){Task{await model.recoverExecution()}}.disabled(model.financialBusy)
+                    Button("未送金なら依頼を取り消す",role:.destructive){Task{await model.cancelPendingExecution()}}.disabled(model.financialBusy)
                 }
             }
             if model.receipts.isEmpty {

@@ -43,6 +43,6 @@ export function configuration(e=process.env){
  }catch(error){if(error instanceof ProductError)throw error;throw new ProductError('invalid_configuration','接続設定の形式を確認してください。',503);}
 }
 export function loadArtifact(name){
- requireValue(['MateVault','MateProxy','MateResolverFactory'].includes(name),'artifact_name','未対応のコントラクトです。',503);
+ requireValue(['MateVault','MateResolverFactory'].includes(name),'artifact_name','未対応のコントラクトです。',503);
  return JSON.parse(fs.readFileSync(path.join(ROOT,'.build/contracts',`${name}.json`),'utf8'));
 }

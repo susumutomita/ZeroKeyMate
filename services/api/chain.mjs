@@ -58,8 +58,8 @@ export class Chain {
     this.config=config;
     this.public=createPublicClient({chain:sepolia,transport:http(config.rpcURL,{retryCount:1,timeout:20_000})});
     this.abi=loadArtifact('MateVault').abi;
-    this.lane=new TransactionLane({publicClient:this.public,rpcURL:config.rpcURL,key:config.relayerKey,journal});
-    this.attestor=privateKeyToAccount(config.attestorKey);
+    this.lane=config.relayerKey ? new TransactionLane({publicClient:this.public,rpcURL:config.rpcURL,key:config.relayerKey,journal}) : null;
+    this.attestor=config.attestorKey ? privateKeyToAccount(config.attestorKey) : null;
   }
   async prepare(){
     requireValue(await this.public.getChainId()===11155111,'wrong_chain','Sepolia以外への接続は許可しません。',503);
@@ -67,7 +67,7 @@ export class Chain {
       this.public.getCode({address:this.config.vault}),this.read('token'),this.read('attestor'),
     ]);
     requireValue(code && code!=='0x' && token.toLowerCase()===this.config.token.toLowerCase()
-      && attestor.toLowerCase()===this.attestor.address.toLowerCase(),'vault_configuration','コントラクトと設定が一致しません。',503);
+      && attestor.toLowerCase()===(this.attestor?.address||this.config.attestorAddress)?.toLowerCase(),'vault_configuration','コントラクトと設定が一致しません。',503);
     const decimals=await this.public.readContract({address:token,abi:tokenABI,functionName:'decimals'});
     requireValue(decimals===6,'token_decimals','6桁のテストUSDCのみ利用できます。',503);
   }

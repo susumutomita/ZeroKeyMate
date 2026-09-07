@@ -22,8 +22,9 @@ settings:
     DEVELOPMENT_TEAM: '$(MATE_DEVELOPMENT_TEAM)'
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
-    MARKETING_VERSION: '0.2.0'
-    CURRENT_PROJECT_VERSION: '2'
+    MARKETING_VERSION: '0.3.0'
+    CURRENT_PROJECT_VERSION: '3'
+    GCC_PREPROCESSOR_DEFINITIONS: '$(inherited) MATE_NATIVE_PROOFS=${MATE_NATIVE_PROOFS}'
 targets:
   ZeroKeyMate:
     type: application
@@ -42,6 +43,7 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: 周りの大まかな様子をこの端末内で認識し、DockKitの追尾に使います。映像は保存・外部送信しません。
         INFOPLIST_KEY_NSMicrophoneUsageDescription: 話すボタンを押したときだけ、端末内の音声認識に使います。
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: 音声を文字に変換します。端末内認識が使えない場合は文字入力に切り替えます。
+        INFOPLIST_KEY_NSFaceIDUsageDescription: 表示した委任条件やテストUSDC操作を承認するときに使用します。
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: あなたのMacで動く専門サービスに、承認した依頼内容だけを送ります。
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight

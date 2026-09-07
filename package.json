@@ -1,12 +1,16 @@
 {
   "name": "zerokey-mate",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
-  "engines": { "node": ">=22.16.0 <23" },
+  "engines": { "node": "^22.16.0 || ^24.0.0" },
   "scripts": {
-    "test": "node --test services/api/test/*.test.mjs",
+    "test": "node --test services/api/test/*.test.mjs services/provider/test/*.test.mjs",
+    "configure": "node scripts/configure.mjs",
+    "unlock": "node --env-file-if-exists=.env scripts/unlock.mjs",
     "test:contracts": "node --test contracts/test/*.test.mjs",
+    "test:proofs": "node --test services/api/test/crypto.acceptance.mjs",
+    "test:local": "node --test services/api/test/local.acceptance.mjs",
     "compile:contracts": "node scripts/compile-contracts.mjs",
     "api": "node --env-file-if-exists=.env services/api/server.mjs",
     "provider": "node --env-file-if-exists=.env services/provider/server.mjs"
@@ -17,5 +21,5 @@
     "zod": "3.24.4"
   },
   "devDependencies": { "solc": "0.8.30" },
-  "overrides": { "tmp": "0.2.6" }
+  "overrides": { "tmp": "0.2.7" }
 }

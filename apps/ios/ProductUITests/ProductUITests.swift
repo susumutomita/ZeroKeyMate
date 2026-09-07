@@ -10,7 +10,19 @@ final class ProductUITests: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         app.launch()
         XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["talk-button"].isHittable)
         return app
+    }
+    private func closeSheet(_ app: XCUIApplication) {
+        app.buttons["close-sheet"].tap()
+        XCTAssertTrue(app.buttons["close-sheet"].waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["open-conversation"].isHittable)
+    }
+    private func tapPadding(_ button: XCUIElement) {
+        // A reported 44pt frame alone does not prove the transparent padding
+        // accepts touches. Exercise the label's actual interaction shape.
+        XCTAssertTrue(button.isHittable)
+        button.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.1)).tap()
     }
     private func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
@@ -42,15 +54,18 @@ final class ProductUITests: XCTestCase {
     func testConversationSettingsAndEmptyActivityAreRealScreens() throws {
         let app = launch()
         app.buttons["open-conversation"].tap()
-        XCTAssertTrue(app.textFields["message-input"].waitForExistence(timeout: 5)
-            || app.textViews["message-input"].waitForExistence(timeout: 5))
+        let input = app.descendants(matching: .any).matching(identifier: "message-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
         capture("03-conversation-empty")
-        app.buttons["close-sheet"].tap()
-        app.buttons["open-settings"].tap()
+        closeSheet(app)
+        tapPadding(app.buttons["open-conversation"])
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        closeSheet(app)
+        tapPadding(app.buttons["open-settings"])
         XCTAssertTrue(app.buttons["toggle-camera"].waitForExistence(timeout: 5))
         capture("04-settings")
-        app.buttons["close-sheet"].tap()
-        app.buttons["open-activity"].tap()
+        closeSheet(app)
+        tapPadding(app.buttons["open-activity"])
         XCTAssertTrue(app.staticTexts["まだ、何も実行していません。"].waitForExistence(timeout: 5))
         capture("05-activity-empty")
     }

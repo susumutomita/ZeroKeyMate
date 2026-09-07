@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#if MATE_NATIVE_PROOFS
+
 typedef struct PKProver PKProver;
 typedef struct {
     uint8_t *ptr;
@@ -17,3 +19,4 @@ extern int pk_prove_inputs(const PKProver *prover, const char *inputs,
 int pk_prove_json(const PKProver *prover, const char *inputs, PKBuf *out_proof) {
     return pk_prove_inputs(prover, inputs, PK_INPUT_JSON, out_proof);
 }
+#endif
