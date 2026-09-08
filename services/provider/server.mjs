@@ -10,15 +10,17 @@ import {Chain} from '../api/chain.mjs';
 import {Journal} from '../api/journal.mjs';
 import {processLock} from '../api/process-lock.mjs';
 import {SpecialistModel} from './model.mjs';
+import {ProofVerifier} from '../api/verifier.mjs';
 
 const prepareSchema=z.object({action:actionSchema,agentSignature:signatureSchema,
-  payload:z.string().min(1).refine(v=>Buffer.byteLength(v)<=8_000),proofHash:hash32}).strict();
+  payload:z.string().min(1).refine(v=>Buffer.byteLength(v)<=8_000),proofHash:hash32,proof:z.string().min(4).max(11_184_812).optional()}).strict();
 const releaseSchema=z.object({actionHash:hash32,transactionHash:hash32,proofHash:hash32}).strict();
 export class Specialist {
   #queue=new SerialQueue();
-  constructor({config,chain,journal,model}){Object.assign(this,{config,chain,journal,model});}
+  constructor({config,chain,journal,model,verifier}){Object.assign(this,{config,chain,journal,model,verifier});}
   async quote(service) {
     requireValue(service===this.config.service,'service_unavailable','この専門サービスは未対応です。',404);
+    await this.verifier.prepare();
     await this.model.ready();
     return {chainId:this.config.chainId??11155111,vault:this.config.vault,token:this.config.token,service,price:this.config.price,recipient:this.config.recipient,expiresAt:Math.floor(Date.now()/1000)+120,ready:true};
   }
@@ -33,19 +35,28 @@ export class Specialist {
     if(previous) {
       requireValue(previous.value.request.proofHash===request.proofHash
         && previous.value.request.agentSignature===request.agentSignature,'work_conflict','同じ依頼の証明・署名が変わっています。',409);
-      return {actionHash,status:'ready'};
+      if(['ready','complete'].includes(previous.state))return {actionHash,status:'ready'};
     }
     const state=await this.chain.state(action.mandateId),now=Math.floor(Date.now()/1000);
     requireValue(!state.revoked && state.validUntil>=action.expiresAt && action.expiresAt>now+10 && state.spent===action.spentBefore,
       'stale_mandate','委任が失効したか、利用状態が変わっています。',409);
     requireValue(await this.chain.verifyAgent(action,request.agentSignature,state),'agent_signature','実行キーの署名が無効です。',403);
+    requireValue(this.verifier && request.proof,'proof_required','A client-generated ZK proof is required.',422);
+    const verified=await this.verifier.verify(request.proof,{policyHash:state.policyHash,actionHash,action});
+    requireValue(verified.proofHash.toLowerCase()===request.proofHash.toLowerCase(),
+      'proof_mismatch','The verified proof does not match the payment commitment.',409);
+    // Retain approved text and public evidence encrypted; the proof is transient.
+    const {proof,...publicRequest}=request;
+    this.journal.put(id,'verified',{request:publicRequest,proofVerified:true,receivedAt:Date.now()});
     const result=await this.model.run(action.service,request.payload);
-    this.journal.put(id,'ready',{request,result});
+    this.journal.put(id,'ready',{request:publicRequest,result,proofVerified:true,receivedAt:Date.now()});
     return {actionHash,status:'ready'};
   });}
   release(input){return this.#queue.run(async()=>{
     const request=releaseSchema.parse(input),id=`work:${request.actionHash.toLowerCase()}`,entry=this.journal.get(id);
     requireValue(entry,'work_missing','準備済みの依頼がありません。',404);
+    requireValue(['ready','complete'].includes(entry.state) && typeof entry.value.result==='string' && entry.value.result.trim(),
+      'work_not_ready','The result is not prepared. Retry preparation before delivery.',409);
     requireValue(entry.value.request.proofHash.toLowerCase()===request.proofHash.toLowerCase(),
       'proof_mismatch','支払いの証明ハッシュが一致しません。',409);
     // Independently read the canonical vault event before disclosing any result,
@@ -63,7 +74,7 @@ export function providerHandler(specialist) {
       return specialist.quote(Number(url.searchParams.get('service')));
     }
     requireValue(!url.search,'invalid_request','この操作はクエリを受け付けません。');
-    if(request.method==='POST' && url.pathname==='/v1/prepare')return specialist.prepare(await readJSON(request,32_000));
+    if(request.method==='POST' && url.pathname==='/v1/prepare')return specialist.prepare(await readJSON(request));
     if(request.method==='POST' && url.pathname==='/v1/release')return specialist.release(await readJSON(request,2_000));
     throw new ProductError('not_found','この操作はありません。',404);
   };
@@ -88,7 +99,10 @@ export async function startProvider(e=process.env) {
   try {
     journal=new Journal(path.join(directory,'provider.sqlite'),config.journalKey);
     const chain=new Chain(config,journal);await chain.prepare();
-    const specialist=new Specialist({config,chain,journal,model:new SpecialistModel(config)});
+    const verifier=new ProofVerifier({binary:e.MATE_VERIFIER_BINARY||path.join(ROOT,'services/verifier/target/release/mate-verify'),
+      verifier:path.join(ROOT,'.build/proofs/mate_policy.pkv'),manifest:path.join(ROOT,'.build/proofs/manifest.json')});
+    await verifier.prepare();
+    const specialist=new Specialist({config,chain,journal,verifier,model:new SpecialistModel(config)});
     const server=jsonServer({token:config.apiToken,handler:providerHandler(specialist),
       publicHandler:route=>route==='/health'?{service:'ZeroKey Mate specialist',chainId:config.chainId,modelReadiness:'checked-per-quote'}:undefined});
     server.once('close',()=>{journal.close();release();});
@@ -97,6 +111,7 @@ export async function startProvider(e=process.env) {
       server.listen(z.coerce.number().int().min(1).max(65535).parse(e.PROVIDER_PORT||8788),
         z.enum(['127.0.0.1','::1','0.0.0.0']).parse(e.PROVIDER_BIND_HOST||'127.0.0.1'),resolve);
     });
+    server.specialist=specialist;
     return server;
   }catch(error){journal?.close();release();throw error;}
 }

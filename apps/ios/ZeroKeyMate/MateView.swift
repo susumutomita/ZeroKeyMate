@@ -173,6 +173,13 @@ private struct ControlsSheet:View {
                 if let message=sensors.message{SectionNote(text:message)}
                 if let reason=model.modelUnavailable{SectionNote(text:reason)}
             }
+            if let consent=model.agentDelegation {
+                Section("Agent permission") {
+                    Text("One approved shop · up to \(TokenAmount(units:consent.maximumAmount).display) test USDC per request")
+                    Text("Expires: \(Date(timeIntervalSince1970:Double(consent.validUntil)).formatted())").font(.footnote)
+                    Button("Stop automatic orders",role:.destructive){model.stopAgentDelegation()}
+                }
+            }
             Section {
                 Button("Settings"){model.sheet = .settings}.accessibilityIdentifier("open-settings")
                 Button("How Mate works"){model.sheet = .welcome}.accessibilityIdentifier("open-welcome")
@@ -548,6 +555,12 @@ private struct DisclosureSheet:View {
                 SectionNote(text:"Candidates come from current registrations on The Graph. Feedback counts alone do not guarantee safety.")
             }
             if let selected {
+                Section("Let Mate handle future requests") {
+                    Text("Allow the text in future explicit requests to be sent to this shop without asking again. The signed mandate's total budget and expiry still apply.").font(.footnote)
+                    Text("\(selected.name) · up to \(TokenAmount(units:UInt64(selected.price) ?? 0).display) test USDC per request")
+                    Button("Authorize this shop and limit") {Task{await model.permitAgent(provider:selected)}}
+                        .disabled(model.financialBusy || model.mandate == nil)
+                }
                 Section("Payment recipient"){
                     Text(selected.recipient).font(.system(size:12,design:.monospaced)).textSelection(.enabled)
                     SectionNote(text:"The proof and signature bind this address, price and text. The recipient cannot change after approval.")

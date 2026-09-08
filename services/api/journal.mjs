@@ -51,6 +51,11 @@ export class Journal {
       ON CONFLICT(id) DO UPDATE SET state=excluded.state,ciphertext=excluded.ciphertext,updated_at=excluded.updated_at`)
       .run(id, state, encrypted, Date.now());
   }
+  recentWork(limit=50) {
+    if (!Number.isInteger(limit) || limit<1 || limit>100) throw new Error('Invalid limit');
+    return this.#database.prepare("SELECT id FROM entries WHERE id LIKE 'work:%' ORDER BY updated_at DESC, id LIMIT ?")
+      .all(limit).map(row => ({id:row.id,...this.get(row.id)}));
+  }
   pending(prefix) {
     return this.#database.prepare("SELECT id FROM entries WHERE state IN ('prepared','broadcast') AND id LIKE ?")
       .all(`${prefix}%`).map(row => ({id: row.id, ...this.get(row.id)}));

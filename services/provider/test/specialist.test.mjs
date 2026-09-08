@@ -24,7 +24,7 @@ test('prepared work is withheld when independent onchain payment verification fa
   assert.equal(journal.get(`work:${hash}`).state,'ready');
 });
 test('an unavailable actual model is never advertised as ready',async()=>{
-  const specialist=new Specialist({config,model:{ready:async()=>{throw new Error('model not installed');}}});
+  const specialist=new Specialist({config,verifier:{prepare:async()=>{}},model:{ready:async()=>{throw new Error('model not installed');}}});
   await assert.rejects(specialist.quote(0),/model not installed/);
   await assert.rejects(specialist.quote(1),{code:'service_unavailable'});
 });

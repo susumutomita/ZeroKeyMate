@@ -2,6 +2,10 @@ import Foundation
 import XCTest
 @testable import ZeroKeyMate
 
+private actor ChatOnlyPlanner:AgentPlanning {
+    func request(from input:String) async throws -> AgentRequest? {nil}
+}
+
 private actor SuspendedConversation:ConversationResponding {
     private var continuation:CheckedContinuation<ConversationReply,Error>?
     func availability() -> String? {nil}
@@ -37,7 +41,7 @@ final class ConversationTests:XCTestCase {
     }
     func testReadingConversationAndOpeningControlsDoNotDiscardPendingReply() async throws {
         let service=SuspendedConversation()
-        let model=CompanionModel(conversation:service)
+        let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
         model.readAloud=false
         XCTAssertTrue(model.sleeping)
         model.send("hello")
@@ -55,7 +59,7 @@ final class ConversationTests:XCTestCase {
     func testSettingsAndBackgroundDiscardLateReplies() async throws {
         for background in [false,true] {
             let service=SuspendedConversation()
-            let model=CompanionModel(conversation:service)
+            let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
             model.readAloud=false
             model.send("hello")
             try await waitUntil{await service.waiting}

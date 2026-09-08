@@ -66,7 +66,7 @@ export class Executor {
     if(state==='authorized'){
       // Prepare actual work before money moves. Provider withholds the result until payment.
       const prepared=await this.discovery.call(provider,'/v1/prepare',{
-        action:request.action,agentSignature:request.agentSignature,payload:request.payload,proofHash,
+        action:request.action,agentSignature:request.agentSignature,payload:request.payload,proofHash,proof:request.proof,
       });
       requireValue(prepared.actionHash===actionDigest(this.config.chainId??11155111,this.config.vault,request.action) && prepared.status==='ready',
         'provider_not_ready','提供者の実行準備を確認できません。支払いは開始していません。',503);
