@@ -28,3 +28,7 @@ The timed-out native UI case subsequently passed in `face-proof-retry.xcresult` 
 ## Softer gaze — 2026-09-08
 
 The current `face-home.png` and `face-rest.png` replace the earlier captures above. They are unmodified attachments from `.build/validation/gentle-gaze-ui.xcresult`, iPhone 17 / iOS Simulator 26.5: `C37D5758-0011-4420-A2BD-44F0F198DE98` (home) and `AE50EAFA-0527-40D8-AC39-05AAEA5A82BB` (rest). All three selected UI tests passed, including the no-text home, portrait accessibility/Rest and landscape controls.
+
+## Restored original eyes — 2026-09-08
+
+The smaller glossy eye design was rejected. `face-home.png` and `face-rest.png` are restored byte-for-byte from `598caff`, matching the restored `MateEyes` implementation and the original face-only attachment provenance above. Gaze input filtering remains enabled; still images do not demonstrate that motion.
