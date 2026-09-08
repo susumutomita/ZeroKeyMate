@@ -78,6 +78,8 @@ final class CompanionModel:ObservableObject {
     let sensors=MateModel()
     let voice=VoiceService()
     @Published private(set) var wallet:WalletService
+    private let planner:any AgentPlanning
+    private var agentOffer:AgentOffer?
     private let conversation:any ConversationResponding
     // A single actor serializes native work across payment and offline screens.
     let proofs=ProofService()
@@ -93,7 +95,8 @@ final class CompanionModel:ObservableObject {
     private var foreground=true
     private var notifications=Set<AnyCancellable>()
 
-    init(configuration:AppConfiguration=AppConfiguration.load(),conversation:any ConversationResponding=ConversationService()) {
+    init(configuration:AppConfiguration=AppConfiguration.load(),conversation:any ConversationResponding=ConversationService(),planner:any AgentPlanning=AgentPlanner()) {
+        self.planner=planner
         self.conversation=conversation
         self.configuration=configuration
         wallet=WalletService(configuration:configuration)
@@ -171,6 +174,7 @@ final class CompanionModel:ObservableObject {
         }catch{errorMessage=error.localizedDescription}
     }
     private func cancelConversation() {
+        agentOffer=nil
         conversationGeneration &+= 1
         conversationTask?.cancel();conversationTask=nil;thinking=false
     }
@@ -229,6 +233,7 @@ final class CompanionModel:ObservableObject {
         let input=text.trimmingCharacters(in:.whitespacesAndNewlines)
         guard !thinking,!financialBusy,!input.isEmpty,foreground else{return}
         guard input.count<=2_200 else{errorMessage="Keep each message within 2,200 characters.";return}
+        errorMessage=nil
         sleeping=false;voice.stop();thinking=true
         conversationGeneration &+= 1
         let generation=conversationGeneration
@@ -246,6 +251,26 @@ final class CompanionModel:ObservableObject {
                 }
             }
             do {
+                if let offered=self.agentOffer {
+                    self.agentOffer=nil
+                    if offered.accepts(input,draftID:self.draft?.id,generation:self.requestGeneration) {
+                        await self.execute(payload:offered.request.text,provider:offered.provider,fromAgent:true)
+                        guard self.foreground,self.conversationGeneration==generation else{return}
+                        if let message=self.errorMessage {
+                            self.errorMessage=nil
+                            self.agentSay((replyLanguage == .japanese ? "完了を確認できません。" : "I couldn't confirm completion. ")+L10n.text(message),language:replyLanguage)
+                        } else if let receipt=self.receipts.first {
+                            self.agentSay(receipt.result,language:ConversationLanguage.detect(receipt.result,fallback:replyLanguage))
+                        }
+                        return
+                    }
+                }
+                if let request=try await self.planner.request(from:input) {
+                    try Task.checkCancellation()
+                    guard self.foreground,self.conversationGeneration==generation else{return}
+                    await self.prepareAgent(request,language:replyLanguage,generation:generation)
+                    return
+                }
                 let response=try await self.conversation.reply(to:input,history:history,
                     observations:self.sensors.currentObservation,notes:notes,replyLanguage:replyLanguage.name)
                 try Task.checkCancellation()
@@ -258,6 +283,47 @@ final class CompanionModel:ObservableObject {
             }catch is CancellationError{}catch{
                 if self.conversationGeneration==generation{self.rest();self.errorMessage=error.localizedDescription}
             }
+        }
+    }
+    private func agentSay(_ text:String,language:AppLanguage) {
+        messages.append(ConversationMessage(isUser:false,text:text));messages=Array(messages.suffix(40))
+        if readAloud{voice.speak(text,locale:language.speechLocale)}
+    }
+    private func prepareAgent(_ request:AgentRequest,language:AppLanguage,generation:UInt64) async {
+        let ja=language == .japanese
+        guard configuration.paymentsConfigured,wallet.ownerAddress != nil,mandate != nil else {
+            agentSay(ja ? "依頼は理解できました。店舗に注文するには、接続・ウォレット・予算の承認が必要です。設定が済めば、料金確認から証明作成、注文、結果取得まで私が進めます。" : "I understand the task. Connect the shop, set up your wallet and approve spending rules first. Then I can check prices, create the proof, place the order and retrieve the result.",language:language)
+            return
+        }
+        guard pendingExecution == nil else {
+            agentSay(ja ? "前の注文が確認待ちです。二重注文を避けるため、履歴から先に結果を確認してください。" : "An earlier order is still pending. Check its result in Activity before starting another order.",language:language)
+            return
+        }
+        draft=DisclosureDraft(service:request.service,text:request.text)
+        executionStatus=ja ? "店舗の料金を確認しています" : "Checking shop prices"
+        defer{executionStatus=nil}
+        do {
+            let response=try await network.providers(service:request.service)
+            try Task.checkCancellation()
+            guard foreground,!sleeping,conversationGeneration==generation,let draft else{return}
+            guard response.providers.allSatisfy({$0.service==request.service.rawValue && UInt64($0.price) != nil}) else{throw ProductError.invalidResponse}
+            providers=response.providers
+            guard let provider=providers.sorted(by:{UInt64($0.price)! < UInt64($1.price)!}).first,
+                  let amount=UInt64(provider.price),let stored=mandate else {
+                throw ProductError.unavailable("No active provider meets these requirements.")
+            }
+            let state=try await network.mandate(id:stored.id)
+            try Task.checkCancellation()
+            guard foreground,!sleeping,conversationGeneration==generation,self.draft?.id==draft.id else{return}
+            guard let currentSpent=UInt64(state.spent),!state.revoked,state.validUntil>UInt64(Date().timeIntervalSince1970)+60 else{throw ProductError.invalidResponse}
+            try stored.policy.check(spent:currentSpent,amount:amount,service:request.service)
+            agentOffer=AgentOffer(request:request,provider:provider,draftID:draft.id,generation:requestGeneration,createdAt:Date())
+            let price=String(format:"%.6f",Double(amount)/1_000_000)
+            let prompt=ja ? "「\(request.text)」を\(provider.name)に送って処理します。料金は\(price)テストUSDCです。この内容と金額で進めてよければ、はいと言ってください。" : "I'll send ‘\(request.text)’ to \(provider.name). The price is \(price) test USDC. Say yes to approve this exact text and price."
+            agentSay(prompt,language:language)
+        } catch {
+            guard foreground,conversationGeneration==generation else{return}
+            agentSay((ja ? "注文前の確認で止まりました。" : "I stopped before placing the order. ")+L10n.text(error.localizedDescription),language:language)
         }
     }
     func startCompanion(voiceLocale:String? = nil) async {
@@ -391,7 +457,7 @@ final class CompanionModel:ObservableObject {
             await refreshAccount()
         }catch{errorMessage=error.localizedDescription}
     }
-    func execute(payload:String,provider:ServiceProvider) async {
+    func execute(payload:String,provider:ServiceProvider,fromAgent:Bool=false) async {
         guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
         guard !financialBusy else{return}
         guard foreground,!sleeping else{errorMessage="Wake Mate before making a request.";return}
@@ -405,7 +471,9 @@ final class CompanionModel:ObservableObject {
         func checkApproval() throws {
             guard foreground, !sleeping, requestGeneration==ticket, draft?.id==approvedDraft.id else{throw ProductError.cancelled}
         }
-        financialBusy=true;stopVoice();defer{financialBusy=false;executionStatus=nil}
+        financialBusy=true
+        if fromAgent{voice.stop()}else{stopVoice()}
+        defer{financialBusy=false;executionStatus=nil}
         do {
             executionStatus="Checking approved terms"
             let state=try await network.mandate(id:stored.id)
@@ -430,10 +498,26 @@ final class CompanionModel:ObservableObject {
             let pending=PendingExecution(actionHash:proof.actionHash,proofHash:proof.proofHash,createdAt:Date(),submission:submission)
             try LocalSecrets.write(pending,key:configuration.stateKey("pending-execution"));pendingExecution=pending
             executionStatus="Sending approved text and confirming execution"
-            let receipt=try await network.execute(action:action,signature:signature,proof:proof.bytes,payload:payload,providerID:provider.id)
+            let receipt:ExecutionReceipt
+            do {
+                receipt=try await network.execute(action:action,signature:signature,proof:proof.bytes,payload:payload,providerID:provider.id)
+            } catch {
+                guard fromAgent else{throw error}
+                try checkApproval()
+                executionStatus="Checking the existing order without creating another payment"
+                // One bounded recovery attempt, using the persisted action and nonce.
+                // A lost response must never produce a second independently signed order.
+                do {receipt=try await network.receipt(actionHash:pending.actionHash)}
+                catch let failure as NetworkFailure where failure.code=="execution_not_found" {
+                    try checkApproval()
+                    receipt=try await network.submit(submission)
+                }
+            }
             try await accept(receipt,pending:pending)
             if requestGeneration==ticket {
-                messages.append(ConversationMessage(isUser:false,text:receipt.result));draft=nil;sheet = .activity
+                if !fromAgent{messages.append(ConversationMessage(isUser:false,text:receipt.result))}
+                draft=nil
+                if !fromAgent{sheet = .activity}
             }
         }catch{errorMessage=error.localizedDescription}
     }
