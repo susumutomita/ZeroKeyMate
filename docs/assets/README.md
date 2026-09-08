@@ -24,3 +24,7 @@ The images demonstrate presentation and the tested home-to-Rest UI transition. T
 `face-home.png` and `face-rest.png` are unmodified XCTest attachments from `.build/validation/face-ui.xcresult` on iPhone 17 / iOS Simulator 26.5. Attachment UUIDs: `A33FAD34-3375-4F17-B465-4423C1CAF6DF` (face-only home) and `CEF64E6D-1174-4275-8A43-58DB8AFE7573` (Rest). Both corresponding tests passed, including absence of visible home text and the controls accessibility audit. Six UI tests passed; the native proof UI test timed out in that first run. These images establish presentation, not physical gaze or DockKit motion.
 
 The timed-out native UI case subsequently passed in `face-proof-retry.xcresult` after adding an explicit wait for the presented action to become hittable. This was a focused one-test rerun.
+
+## Softer gaze — 2026-09-08
+
+The current `face-home.png` and `face-rest.png` replace the earlier captures above. They are unmodified attachments from `.build/validation/gentle-gaze-ui.xcresult`, iPhone 17 / iOS Simulator 26.5: `C37D5758-0011-4420-A2BD-44F0F198DE98` (home) and `AE50EAFA-0527-40D8-AC39-05AAEA5A82BB` (rest). All three selected UI tests passed, including the no-text home, portrait accessibility/Rest and landscape controls.

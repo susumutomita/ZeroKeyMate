@@ -140,25 +140,45 @@ private struct MateEyes:View {
         let _ = locale.identifier
         TimelineView(.animation(minimumInterval:1.0/30,paused:reduceMotion || resting)){timeline in
             let time=timeline.date.timeIntervalSinceReferenceDate
-            let phase=time.truncatingRemainder(dividingBy:5.7)
-            let blink=reduceMotion ? 1.0:phase<0.16 ? max(0.08,abs(phase-0.08)/0.08):1.0
+            let phase=time.truncatingRemainder(dividingBy:11.3)
+            // Two unhurried blinks with unequal spacing, without an idle gaze wander.
+            let blinkDistance=min(abs(phase-2.7),abs(phase-8.9))
+            let blink=reduceMotion ? 1.0:blinkDistance<0.15 ?
+                0.08+0.92*(1-cos(.pi*blinkDistance/0.15))/2:1.0
             GeometryReader{g in
-                let width=g.size.width*0.21
-                let height=resting ? 5.0:g.size.height*(listening ? 0.73:0.65)
-                let offset=CGFloat(focus)*g.size.width*0.14
-                let vertical=CGFloat(verticalFocus)*g.size.height*0.14
-                HStack(spacing:g.size.width*0.24){
-                    ForEach(0..<2,id:\.self){index in
-                        RoundedRectangle(cornerRadius:width/2,style:.continuous)
-                            .fill(Finish.ink)
-                            .frame(width:width,height:max(5,height*blink*(thinking && index==1 ? 0.70:1)))
-                            .offset(x:offset,y:vertical+(thinking && index==1 ? -8:0))
-                            .animation(reduceMotion ? nil:.easeOut(duration:0.12),value:focus)
-                            .animation(reduceMotion ? nil:.easeOut(duration:0.12),value:verticalFocus)
+                let width=min(g.size.width*0.17,g.size.height*0.30)
+                let height=width*(listening ? 1.24:thinking ? 1.10:1.18)
+                let offset=CGFloat(focus)*g.size.width*0.085
+                let vertical=CGFloat(verticalFocus)*g.size.height*0.075
+                HStack(spacing:g.size.width*0.22){
+                    ForEach(0..<2,id:\.self){_ in
+                        ZStack {
+                            if resting {
+                                Path { path in
+                                    path.move(to:CGPoint(x:0,y:height*0.45))
+                                    path.addQuadCurve(to:CGPoint(x:width,y:height*0.45),
+                                                     control:CGPoint(x:width/2,y:height*0.78))
+                                }.stroke(Finish.ink,style:StrokeStyle(lineWidth:5,lineCap:.round))
+                            } else {
+                                Ellipse().fill(Finish.ink)
+                                    .overlay(alignment:.topLeading) {
+                                        Ellipse().fill(Finish.paper.opacity(0.8))
+                                            .frame(width:width*0.18,height:width*0.20)
+                                            .offset(x:width*0.24,y:height*0.20)
+                                    }
+                                    .scaleEffect(x:1,y:blink)
+                            }
+                        }
+                        .frame(width:width,height:height)
+                        .offset(x:resting ? 0:offset,y:resting ? 0:vertical)
+                        .animation(reduceMotion ? nil:.easeOut(duration:0.24),value:focus)
+                        .animation(reduceMotion ? nil:.easeOut(duration:0.24),value:verticalFocus)
                     }
                 }.frame(maxWidth:.infinity,maxHeight:.infinity)
             }
-        }.animation(reduceMotion ? nil:.easeInOut(duration:0.25),value:resting)
+        }.animation(reduceMotion ? nil:.easeInOut(duration:0.3),value:resting)
+            .animation(reduceMotion ? nil:.easeInOut(duration:0.3),value:listening)
+            .animation(reduceMotion ? nil:.easeInOut(duration:0.3),value:thinking)
     }
 }
 

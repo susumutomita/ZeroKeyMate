@@ -23,6 +23,7 @@ final class MateModel:ObservableObject {
     var onDetach:(()->Void)?
     var onInterruption:(()->Void)?
     private var observation:FrameObservation?
+    private var gaze=CompanionGaze()
     private let camera=CameraService()
     private let dock=DockService()
     private var intent=CaptureIntent()
@@ -46,8 +47,10 @@ final class MateModel:ObservableObject {
                     guard let self,self.intent.shouldCapture,self.cameraRunning else{return}
                     self.observation=value
                     self.detectedFaces=value.faceCount
-                    self.horizontalFocus=max(-1,min(1,value.horizontalFocus ?? 0))
-                    self.verticalFocus=max(-1,min(1,value.verticalFocus ?? 0))
+                    let position=self.gaze.update(x:value.horizontalFocus,y:value.verticalFocus,
+                                                  now:ProcessInfo.processInfo.systemUptime)
+                    self.horizontalFocus=position.x
+                    self.verticalFocus=position.y
                     if self.lastTrackingRequest == nil,Date()>=self.trackingRetryAt {self.scheduleReconciliation()}
                 }
             }
@@ -84,7 +87,7 @@ final class MateModel:ObservableObject {
     func stopCapture(){intent.requestStop();scheduleReconciliation()}
     private func scheduleReconciliation() {
         revision &+= 1;captureRequested=intent.shouldCapture
-        if !intent.shouldCapture{observation=nil;horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0}
+        if !intent.shouldCapture{observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0}
         guard reconciliationTask == nil else{return}
         reconciliationTask=Task{[weak self] in
             guard let self else{return}
@@ -115,7 +118,7 @@ final class MateModel:ObservableObject {
             if !intent.shouldCapture && cameraRunning {
                 cameraPhase = .stopping
                 await camera.stop();cameraRunning=false;cameraPhase = .off
-                observation=nil;horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0
+                observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0
             }
             let wantsTracking=cameraRunning && intent.shouldCapture && dock.isConnected && dock.trackingButtonEnabled
             if lastTrackingRequest != wantsTracking, !wantsTracking || Date()>=trackingRetryAt {
