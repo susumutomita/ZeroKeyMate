@@ -4848,6 +4848,358 @@
           }
         }
       }
+    },
+    "Your iPhone. Your companion.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your iPhone. Your companion."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いつものiPhoneが、相棒に。"
+          }
+        }
+      }
+    },
+    "While we spend time together, Mate uses the camera to follow your face and the microphone to listen. Everyday conversation is processed on this iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While we spend time together, Mate uses the camera to follow your face and the microphone to listen. Everyday conversation is processed on this iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一緒に過ごしている間、カメラで顔の位置を見て、マイクで声を聞きます。普段の会話はこのiPhoneで処理します。"
+          }
+        }
+      }
+    },
+    "Spend time together": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spend time together"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一緒に過ごす"
+          }
+        }
+      }
+    },
+    "Welcome to Mate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Mate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateへようこそ"
+          }
+        }
+      }
+    },
+    "Read or type a message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read or type a message"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話を読む・文字で話す"
+          }
+        }
+      }
+    },
+    "How Mate works": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How Mate works"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateとの過ごし方"
+          }
+        }
+      }
+    },
+    "Requests and evidence": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requests and evidence"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部への依頼と記録"
+          }
+        }
+      }
+    },
+    "Enable voice wake": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable voice wake"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "声で起こす待受けを開始"
+          }
+        }
+      }
+    },
+    "Waiting for hello. Microphone on; camera off.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for hello. Microphone on; camera off."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「こんにちは」を待っています。マイク使用中・カメラ停止。"
+          }
+        }
+      }
+    },
+    "Stand not connected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stand not connected"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンド未接続"
+          }
+        }
+      }
+    },
+    "Preparing stand tracking": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing stand tracking"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンド追跡を準備中"
+          }
+        }
+      }
+    },
+    "Stand tracking a subject": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stand tracking a subject"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドが被写体を追跡中"
+          }
+        }
+      }
+    },
+    "Stand looking for a subject": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stand looking for a subject"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドが被写体を探しています"
+          }
+        }
+      }
+    },
+    "Changing language rests Mate. Tap the resting face to resume.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changing language rests Mate. Tap the resting face to resume."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語を変えるとMateは休憩します。閉じた顔をタップすると再開します。"
+          }
+        }
+      }
+    },
+    "Stop voice wake": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop voice wake"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "声の待受けを停止"
+          }
+        }
+      }
+    },
+    "Voice wake keeps the microphone on while this app is open. Say こんにちは to open the eyes and start camera tracking. Other speech is discarded. Choose Stop voice wake, leave the app, or remove the stand to stop listening.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice wake keeps the microphone on while this app is open. Say こんにちは to open the eyes and start camera tracking. Other speech is discarded. Choose Stop voice wake, leave the app, or remove the stand to stop listening."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "声の待受け中は、このアプリを開いている間マイクを使います。「こんにちは」で目を開いてカメラ追跡を開始します。それ以外の発言は破棄します。「声の待受けを停止」、アプリを離れる、スタンドから外すことで停止します。"
+          }
+        }
+      }
+    },
+    "Spoken language": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spoken language"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話の言語"
+          }
+        }
+      }
+    },
+    "Tap to wake. Say おやすみ to rest. Touch and hold for controls and settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to wake. Say おやすみ to rest. Touch and hold for controls and settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タップで起こし、「おやすみ」で休ませます。長押しで操作と設定を開きます。"
+          }
+        }
+      }
+    },
+    "Quiet moments do not end our time together. Say おやすみ to rest and stop the camera and microphone. Removing the stand or leaving the app also stops the session.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quiet moments do not end our time together. Say おやすみ to rest and stop the camera and microphone. Removing the stand or leaving the app also stops the session."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "静かな時間でも一緒に過ごし続けます。「おやすみ」で休憩してカメラとマイクを停止します。スタンドから外すかアプリを離れても停止します。"
+          }
+        }
+      }
+    },
+    "Tap once to wake Mate. Say おやすみ to rest, then tap to wake again. Touch and hold the face for controls and settings. You can also swipe up for controls.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap once to wake Mate. Say おやすみ to rest, then tap to wake again. Touch and hold the face for controls and settings. You can also swipe up for controls."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1回タップで起きて、「おやすみ」で休みます。再びタップすると起きます。顔の長押しか上スワイプで操作と設定を開きます。"
+          }
+        }
+      }
+    },
+    "Waiting for face detection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for face detection"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顔検出の開始を待っています"
+          }
+        }
+      }
+    },
+    "Face detection failed. Rest Mate and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face detection failed. Rest Mate and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顔検出に失敗しました。一度休ませてから再開してください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

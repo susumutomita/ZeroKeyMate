@@ -8,9 +8,18 @@ enum AppLanguage:String,CaseIterable,Identifiable {
 }
 
 enum L10n {
-    static let preferenceKey="mate-language"
+    // Start the companion experience in English, including installations with a
+    // Japanese preference left by earlier development builds. Subsequent choices persist.
+    static let preferenceKey="mate-companion-language"
+    static let speechPreferenceKey="mate-spoken-language"
+    static var speechLanguage:AppLanguage {
+        AppLanguage(rawValue:UserDefaults.standard.string(forKey:speechPreferenceKey) ?? "ja") ?? .japanese
+    }
     static var language:AppLanguage {
-        AppLanguage(rawValue:UserDefaults.standard.string(forKey:preferenceKey) ?? "en") ?? .english
+        language(in:.standard)
+    }
+    static func language(in defaults:UserDefaults)->AppLanguage {
+        AppLanguage(rawValue:defaults.string(forKey:preferenceKey) ?? "en") ?? .english
     }
     static func text(_ key:String,language:AppLanguage? = nil) -> String {
         let selected=language ?? self.language

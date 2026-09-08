@@ -43,7 +43,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.companion
         INFOPLIST_KEY_CFBundleDisplayName: Mate
         INFOPLIST_KEY_NSCameraUsageDescription: Recognize your surroundings on this device and enable DockKit tracking. Video is never saved or sent externally.
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: Use on-device speech recognition only after you tap Talk.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Listen on this iPhone after you wake Mate or enable voice wake. Say goodnight or use Rest to stop.
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Transcribe speech on this device. Use the keyboard when on-device recognition is unavailable.
         INFOPLIST_KEY_NSFaceIDUsageDescription: Authenticate when you approve the displayed mandate terms or test USDC operation.
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: Send only approved request content to the specialist service running on your Mac.

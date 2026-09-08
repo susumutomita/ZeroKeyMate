@@ -8,6 +8,7 @@ struct FrameObservation:Sendable {
     let faceCount:Int
     let horizontalFocus:Double?
     let verticalFocus:Double?
+    var faceDetectionAvailable=true
     var description:String {
         let objects=labels.joined(separator:", ")
         return "Approximate local observations: \(faceCount) face region(s); image labels: \(objects). Not identity or a statement of certainty."
@@ -51,7 +52,10 @@ final class FrameAnalyzer:NSObject,AVCaptureVideoDataOutputSampleBufferDelegate,
                 }
             }
         }catch{
-            // Classification is advisory. A missing result is not fabricated into an observation.
+            lock.lock();let stillAllowed=enabled && generation==token;lock.unlock()
+            if stillAllowed {
+                sink(FrameObservation(capturedAt:now,labels:[],faceCount:0,horizontalFocus:nil,verticalFocus:nil,faceDetectionAvailable:false))
+            }
         }
     }
 }

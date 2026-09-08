@@ -10,14 +10,17 @@ private enum Finish {
 
 struct MateView:View {
     @StateObject private var model=CompanionModel()
+    @AppStorage("mate-companion-introduced") private var introduced=false
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(L10n.preferenceKey) private var language = AppLanguage.english.rawValue
+    @AppStorage(L10n.speechPreferenceKey) private var spokenLanguage = AppLanguage.japanese.rawValue
     @Environment(\.locale) private var locale
     var body:some View {
         let _ = locale.identifier
         CompanionHome(model:model,sensors:model.sensors,voice:model.voice)
-            .task{model.setForeground(scenePhase == .active);await model.start()}
+            .task{if !introduced{model.sheet = .welcome};model.setForeground(scenePhase == .active);await model.start()}
             .onChange(of:language){_,_ in model.rest();model.errorMessage=nil}
+            .onChange(of:spokenLanguage){_,_ in model.rest();model.errorMessage=nil}
             .onChange(of:scenePhase){_,value in
                 if value == .background{model.setForeground(false)}
                 else if value == .active{model.setForeground(true)}
@@ -26,6 +29,7 @@ struct MateView:View {
                 NavigationStack{
                     Group {
                         switch sheet {
+                        case .welcome:CompanionWelcomeSheet(model:model)
                         case .controls:ControlsSheet(model:model,sensors:model.sensors,voice:model.voice)
                         case .conversation:ConversationSheet(model:model)
                         case .settings:SettingsSheet(model:model,sensors:model.sensors)
@@ -38,7 +42,12 @@ struct MateView:View {
                         case .connection:ConnectionSheet(model:model)
                         }
                     }
-                    .toolbar{ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}}
+                    .toolbar{
+                        if sheet == .welcome || sheet == .conversation {
+                            ToolbarItem(placement:.topBarLeading){Button("Settings"){model.sheet = .settings}.accessibilityIdentifier("open-settings")}
+                        }
+                        ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}
+                    }
                     .toolbarBackground(Finish.paper,for:.navigationBar)
                 }
                 .tint(Finish.ink).presentationBackground(Finish.paper)
@@ -54,9 +63,12 @@ private struct CompanionHome:View {
     @ObservedObject var sensors:MateModel
     @ObservedObject var voice:VoiceService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("mate-companion-introduced") private var introduced=false
     private var status:String {
         if let status=model.executionStatus{return status}
-        if model.sleeping{return "Taking a rest."}
+        if model.awaitingGreeting{return "Waiting for hello. Microphone on; camera off."}
+        if model.preparingCompanion{return "Preparing voice input."}
+        if model.isResting{return "Taking a rest."}
         if model.thinking{return "Thinking."}
         if voice.listening{return "Listening."}
         if voice.requestingPermission{return "Preparing voice input."}
@@ -65,62 +77,118 @@ private struct CompanionHome:View {
     }
     var body:some View {
         GeometryReader{geometry in
-            MateEyes(resting:model.sleeping,listening:voice.listening,
+            MateEyes(resting:model.isResting,listening:voice.listening,
                      thinking:model.thinking || model.financialBusy,
-                     focus:sensors.horizontalFocus,verticalFocus:sensors.verticalFocus,reduceMotion:reduceMotion)
+                     focus:sensors.horizontalFocus,verticalFocus:sensors.verticalFocus,reduceMotion:reduceMotion,
+                     speaking:voice.speaking,hearingSpeech:voice.listening && !voice.transcript.isEmpty)
                 .frame(width:min(geometry.size.width*0.78,620),height:min(geometry.size.height*0.38,300))
                 .frame(maxWidth:.infinity,maxHeight:.infinity)
                 .contentShape(Rectangle())
-                .onTapGesture{model.sheet = .controls}
-                .onLongPressGesture{model.rest()}
+                .onTapGesture{
+                    if !introduced {model.sheet = .welcome}
+                    else if model.isResting {Task{await model.startCompanion()}}
+                    // An awake companion should not open settings or stop on a tap.
+                }
+                .simultaneousGesture(DragGesture(minimumDistance:60).onEnded { value in
+                    if value.translation.height < -60 {model.sheet = .controls}
+                })
+                .onLongPressGesture{model.sheet = .controls}
                 .accessibilityElement(children:.ignore)
                 .accessibilityLabel("Mate")
                 .accessibilityValue(L10n.text(status))
-                .accessibilityHint("Tap to open controls. Touch and hold to rest.")
+                .accessibilityHint("Tap to wake. Say おやすみ to rest. Touch and hold for controls and settings.")
                 .accessibilityAddTraits(.isButton)
-                .accessibilityAction{model.sheet = .controls}
+                .accessibilityAction{
+                    if !introduced{model.sheet = .welcome}
+                    else if model.isResting{Task{await model.startCompanion()}}
+                }
+                .accessibilityAction(named:Text("Controls")){model.sheet = .controls}
                 .accessibilityAction(named:Text("Rest and stop camera and microphone")){model.rest()}
                 .accessibilityIdentifier("companion-face")
         }.background(Finish.paper.ignoresSafeArea()).preferredColorScheme(.light).statusBarHidden()
     }
 }
 
+private struct CompanionWelcomeSheet:View {
+    @ObservedObject var model:CompanionModel
+    @AppStorage("mate-companion-introduced") private var introduced=false
+    var body:some View {
+        Form {
+            Section {
+                Text("Your iPhone. Your companion.").font(.title2)
+                Text("While we spend time together, Mate uses the camera to follow your face and the microphone to listen. Everyday conversation is processed on this iPhone.")
+                Text("Quiet moments do not end our time together. Say おやすみ to rest and stop the camera and microphone. Removing the stand or leaving the app also stops the session.")
+                Text("Tap once to wake Mate. Say おやすみ to rest, then tap to wake again. Touch and hold the face for controls and settings. You can also swipe up for controls.")
+            }
+            Section {
+                Button("Spend time together") {
+                    introduced=true;model.sheet=nil
+                    Task{await model.startCompanion()}
+                }.accessibilityIdentifier("start-companion")
+                Button("Type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
+                Button("Controls"){model.sheet = .controls}.accessibilityIdentifier("open-controls")
+            }
+            voiceWakeSection
+        }.scrollContentBackground(.hidden).background(Finish.paper)
+            .navigationTitle("Welcome to Mate").navigationBarTitleDisplayMode(.inline)
+    }
+    private var voiceWakeSection:some View {
+        Section {
+            Text("Voice wake keeps the microphone on while this app is open. Say こんにちは to open the eyes and start camera tracking. Other speech is discarded. Choose Stop voice wake, leave the app, or remove the stand to stop listening.")
+            Button("Enable voice wake") {
+                introduced=true;model.sheet=nil
+                Task{await model.armVoiceWake()}
+            }.accessibilityIdentifier("enable-voice-wake")
+        }
+    }
+}
+
 private struct ControlsSheet:View {
+    @AppStorage("mate-companion-introduced") private var introduced=false
     @ObservedObject var model:CompanionModel
     @ObservedObject var sensors:MateModel
     @ObservedObject var voice:VoiceService
     var body:some View {
         Form {
             Section {
-                Button("Start companion"){
-                    model.sheet=nil
+                Button("Spend time together"){
+                    introduced=true;model.sheet=nil
                     Task{await model.startCompanion()}
-                }.disabled(model.financialBusy).accessibilityIdentifier("start-companion")
-                SectionNote(text:"Start camera tracking and on-device voice conversation.")
-                Button("Talk"){
-                    model.sheet=nil
-                    Task{await model.toggleVoice()}
-                }.disabled(model.financialBusy).accessibilityIdentifier("talk-button")
-                Button("Type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
-                Button("Rest and stop camera and microphone") {model.rest();model.sheet=nil}
+                }.disabled(model.financialBusy || model.preparingCompanion || model.voiceSessionActive)
+                    .accessibilityIdentifier("start-companion")
+                Button("Read or type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
+                Button("Rest and stop camera and microphone"){model.rest();model.sheet=nil}
                     .accessibilityIdentifier("rest-button")
             }
             Section {
-                Text(L10n.text(model.sleeping ? "Taking a rest.":"I'm here."))
+                Text(L10n.text(model.isResting ? "Taking a rest.":"I'm here."))
+                if model.awaitingGreeting{Text("Waiting for hello. Microphone on; camera off.")}
                 Text(L10n.text(sensors.cameraPhase == .on ? "Camera on · On-device processing":sensors.cameraPhase == .starting ? "Camera starting":sensors.cameraPhase == .stopping ? "Camera stopping":"Camera off"))
                     .accessibilityIdentifier("camera-status")
                 if sensors.cameraPhase == .on {
-                    Text(L10n.text(sensors.detectedFaces>0 ? "I can see a face.":"Looking for a face. Face the front camera."))
+                    Text(L10n.text(sensors.faceDetectionStatus)).accessibilityIdentifier("face-detection-status")
+                    Text(L10n.text(!sensors.dockConnected ? "Stand not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Preparing stand tracking":sensors.dockTrackingSubjects>0 ? "Stand tracking a subject":"Stand looking for a subject"))
                 }
                 if let error=voice.errorMessage{SectionNote(text:error)}
                 if let message=sensors.message{SectionNote(text:message)}
+                if let reason=model.modelUnavailable{SectionNote(text:reason)}
             }
             Section {
                 Button("Settings"){model.sheet = .settings}.accessibilityIdentifier("open-settings")
-                Button("Activity"){model.sheet = .activity}.accessibilityIdentifier("open-activity")
-                Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
+                Button("How Mate works"){model.sheet = .welcome}.accessibilityIdentifier("open-welcome")
                 if let draft=model.draft {
                     Button(L10n.format("Review %@ request",L10n.text(draft.service.title))){model.sheet = .disclosure}
+                }
+            }
+            Section {
+                Text("Voice wake keeps the microphone on while this app is open. Say こんにちは to open the eyes and start camera tracking. Other speech is discarded. Choose Stop voice wake, leave the app, or remove the stand to stop listening.")
+                Button("Enable voice wake") {
+                    introduced=true;model.sheet=nil
+                    Task{await model.armVoiceWake()}
+                }.disabled(model.voiceSessionActive || model.financialBusy || model.thinking)
+                    .accessibilityIdentifier("enable-voice-wake")
+                if model.awaitingGreeting {
+                    Button("Stop voice wake"){model.rest()}.accessibilityIdentifier("stop-voice-wake")
                 }
             }
         }.scrollContentBackground(.hidden).background(Finish.paper)
@@ -128,37 +196,58 @@ private struct ControlsSheet:View {
     }
 }
 
-private struct MateEyes:View {
+struct MateEyes:View {
     let resting:Bool
     let listening:Bool
     let thinking:Bool
     let focus:Double
     let verticalFocus:Double
     let reduceMotion:Bool
+    var speaking=false
+    var hearingSpeech=false
     @Environment(\.locale) private var locale
     var body:some View {
         let _ = locale.identifier
-        TimelineView(.animation(minimumInterval:1.0/30,paused:reduceMotion || resting)){timeline in
-            let time=timeline.date.timeIntervalSinceReferenceDate
-            let phase=time.truncatingRemainder(dividingBy:5.7)
-            let blink=reduceMotion ? 1.0:phase<0.16 ? max(0.08,abs(phase-0.08)/0.08):1.0
+        Group {
+            if resting || reduceMotion { eyes(blink:1,pulse:0) }
+            else {
+                TimelineView(.animation(minimumInterval:1.0/30)){timeline in
+                    let time=timeline.date.timeIntervalSinceReferenceDate
+                    let phase=time.truncatingRemainder(dividingBy:thinking ? 2.8:5.7)
+                    eyes(blink:phase<0.16 ? max(0.08,abs(phase-0.08)/0.08):1.0,
+                         pulse:speaking ? sin(time*2*Double.pi/0.7):0)
+                }
+            }
+        }.animation(reduceMotion ? nil:.easeInOut(duration:0.25),value:resting)
+    }
+    private func eyes(blink:Double,pulse:Double)->some View {
             GeometryReader{g in
-                let width=g.size.width*0.21
-                let height=resting ? 5.0:g.size.height*(listening ? 0.73:0.65)
-                let offset=CGFloat(focus)*g.size.width*0.14
-                let vertical=CGFloat(verticalFocus)*g.size.height*0.14
-                HStack(spacing:g.size.width*0.24){
+                let width=g.size.width*0.32
+                let height=min(g.size.height*0.85,width*1.35)
+                HStack(spacing:0){
                     ForEach(0..<2,id:\.self){index in
-                        RoundedRectangle(cornerRadius:width/2,style:.continuous)
-                            .fill(Finish.ink)
-                            .frame(width:width,height:max(5,height*blink*(thinking && index==1 ? 0.70:1)))
-                            .offset(x:offset,y:vertical+(thinking && index==1 ? -8:0))
+                        if resting {
+                            Capsule().fill(Finish.ink).frame(width:width*0.75,height:4)
+                                .frame(width:width,height:height)
+                        } else {
+                            Ellipse().fill(.white)
+                                .overlay{Ellipse().strokeBorder(Finish.ink,lineWidth:3)}
+                                .overlay{
+                                    Ellipse().fill(Finish.ink)
+                                        .frame(width:width*(hearingSpeech ? 0.25:0.20),height:height*(hearingSpeech ? 0.32:0.27))
+                                        .offset(x:CGFloat(focus)*width*0.24+(index==0 ? width*0.08 : -width*0.08),
+                                                y:CGFloat(verticalFocus)*height*0.24+(thinking ? -height*0.18:0))
+                                }
+                                .frame(width:width,height:height)
+                                .scaleEffect(x:1,y:blink*(hearingSpeech ? 1.08:thinking ? 0.88:speaking ? 0.96+0.06*pulse:listening ? 0.96:0.92))
                             .animation(reduceMotion ? nil:.easeOut(duration:0.12),value:focus)
                             .animation(reduceMotion ? nil:.easeOut(duration:0.12),value:verticalFocus)
+                            .animation(reduceMotion ? nil:.easeOut(duration:0.14),value:hearingSpeech)
+                            .animation(reduceMotion ? nil:.easeOut(duration:0.18),value:thinking)
+                        }
                     }
                 }.frame(maxWidth:.infinity,maxHeight:.infinity)
             }
-        }.animation(reduceMotion ? nil:.easeInOut(duration:0.25),value:resting)
     }
 }
 
@@ -222,6 +311,7 @@ private struct SettingsSheet:View {
     @ObservedObject var model:CompanionModel
     @ObservedObject var sensors:MateModel
     @AppStorage(L10n.preferenceKey) private var language = AppLanguage.english.rawValue
+    @AppStorage(L10n.speechPreferenceKey) private var spokenLanguage = AppLanguage.japanese.rawValue
     @Environment(\.locale) private var locale
     var body:some View {
         let _ = locale.identifier
@@ -230,7 +320,14 @@ private struct SettingsSheet:View {
                 Picker("App language",selection:$language){
                     ForEach(AppLanguage.allCases){Text(verbatim:$0.name).tag($0.rawValue)}
                 }.pickerStyle(.segmented).accessibilityIdentifier("app-language")
-                SectionNote(text:"Changing language stops voice and camera. Tap Talk or Start camera when you are ready to resume.")
+                Picker("Spoken language",selection:$spokenLanguage){
+                    ForEach(AppLanguage.allCases){Text(verbatim:$0.name).tag($0.rawValue)}
+                }.pickerStyle(.segmented).accessibilityIdentifier("spoken-language")
+                SectionNote(text:"Changing language rests Mate. Tap the resting face to resume.")
+            }
+            Section("Requests and evidence") {
+                Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
+                Button("Activity"){model.sheet = .activity}.accessibilityIdentifier("open-activity")
             }
             Section("Senses"){
                 HStack{Label("Camera",systemImage:"eye");Spacer();Text(L10n.text(sensors.cameraPhase.rawValue)).font(.footnote).foregroundStyle(.secondary)}
@@ -242,11 +339,8 @@ private struct SettingsSheet:View {
                 if let message=sensors.dockMessage{SectionNote(text:message)}
                 LabeledContent("Stand",value:L10n.text(!sensors.dockConnected ? "Not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Start camera to enable tracking":sensors.dockTrackingSubjects>0 ? "Tracking a subject":"Looking for a subject"))
                 Toggle("Read replies aloud",isOn:$model.readAloud)
-                Toggle("Continuous conversation",isOn:$model.continuousConversation)
-                SectionNote(text:"When enabled, tap Talk to resume on-device voice input after each reply. Stop, Rest, backgrounding the app or undocking ends the session.")
             }
             Section("Delegation"){
-                Button("Try private rules on this device",systemImage:"checkmark.shield"){model.sheet = .localProof}
                 Button{model.sheet = .rules}label:{Label("Your rules",systemImage:"checkmark.shield")}
                 Button{model.sheet = .wallet}label:{Label("Wallet",systemImage:"creditcard")}
                 if model.configuration.chainID == 11_155_111, !model.configuration.ensParent.isEmpty {
@@ -269,7 +363,6 @@ private struct SettingsSheet:View {
                 LabeledContent("External execution setup",value:L10n.text(model.configuration.paymentsConfigured ? "Configured":"Not configured"))
                 LabeledContent("On-device proving",value:L10n.text(model.proofUnavailable == nil ? "Available":"Unavailable"))
                 if let reason=model.proofUnavailable{SectionNote(text:reason)}
-                SectionNote(text:"Voice input starts only when you tap Talk and is transcribed on-device. Tap again to cancel, even while permissions are being requested.")
                 SectionNote(text:"ZK verifies private spending rules. Payment recipients and amounts are public. The current settlement design trusts the signature of the server that verifies the proof.")
             }
             Section{Button("Clear conversation",role:.destructive){model.clearConversation()}}

@@ -22,13 +22,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use on-device speech recognition only after you tap Talk."
+            "value": "Listen on this iPhone after you wake Mate or enable voice wake. Say goodnight or use Rest to stop."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「話す」を押したときだけ、端末内で音声認識を使います。"
+            "value": "Mateを起こすか声の待受けを有効にすると、このiPhoneで音声を認識します。「おやすみ」または休憩操作で停止します。"
           }
         }
       }

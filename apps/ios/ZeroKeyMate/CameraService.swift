@@ -20,6 +20,7 @@ actor CameraService {
     }
     func setObserver(_ observer:@escaping @Sendable (FrameObservation)->Void) {
         self.observer=observer
+        analyzer.configure(enabled:session.isRunning,callback:observer)
     }
     func start() throws {
         if !configured{try configure()}
