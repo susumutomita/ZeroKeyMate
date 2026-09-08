@@ -212,3 +212,7 @@ The launcher exits after opening the app: Ctrl+C after that does not stop Mate. 
 After installing Mate on your iPhone, create a personal automation in **Shortcuts → Automation → + → Charger → Is Connected**. Choose **Run Immediately** (or disable **Ask Before Running** on versions that use that setting), add the **Open App** action, select **Mate**, and save. Test with the iPhone unlocked by disconnecting and reconnecting power. If iOS asks you to unlock, do so; unattended launch while locked is not verified.
 
 Apple documents the [charger connection trigger](https://support.apple.com/guide/shortcuts/apde31e9638b/ios) and [automatic execution of charger automations](https://support.apple.com/guide/shortcuts/apd602971e63/ios). This trigger is not specific to Belkin: other chargers also activate it. Create and verify the automation on your own phone; the repository does not install it automatically. It opens the app only. Start camera and voice explicitly inside Mate. To stop automatic opening, disable or delete this automation in Shortcuts.
+
+### Merchant app
+
+Run `npm run merchant` to open the English-first shop console at `http://127.0.0.1:8790`. The shop independently verifies the client ZK proof and withholds delivery until its own on-chain payment check succeeds. See [merchant setup and trust boundaries](docs/merchant.md).

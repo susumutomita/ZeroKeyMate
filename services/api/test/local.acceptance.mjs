@@ -76,7 +76,10 @@ for(const chainId of [11155111,5042002]) test(`local payment simulation (chain $
     ready:async()=>{},run:async(_service,text)=>`LOCAL TEST FIXTURE: ${text}`,
   };
   let modelCalls=0;
-  const specialist=new Specialist({config:{chainId,vault,token,service:0,price:'100000',recipient:recipient.address},chain:providerChain,journal:providerJournal,
+  const verifier=new ProofVerifier({binary:path.join(ROOT,'services/verifier/target/release/mate-verify'),
+    verifier:path.join(ROOT,'.build/proofs/mate_policy.pkv'),manifest:path.join(ROOT,'.build/proofs/manifest.json')});
+
+  const specialist=new Specialist({config:{chainId,vault,token,service:0,price:'100000',recipient:recipient.address},chain:providerChain,journal:providerJournal,verifier,
     model:{ready:()=>model.ready(),run:async(...args)=>{modelCalls++;return model.run(...args);}}});
   const specialistToken='f'.repeat(64);
   const providerServer=jsonServer({token:specialistToken,handler:providerHandler(specialist)});
@@ -92,8 +95,6 @@ for(const chainId of [11155111,5042002]) test(`local payment simulation (chain $
     choose:async()=>({provider,indexedBlock:'local-fixture-not-The-Graph'}),
     call:(...args)=>transport.call(...args),
   };
-  const verifier=new ProofVerifier({binary:path.join(ROOT,'services/verifier/target/release/mate-verify'),
-    verifier:path.join(ROOT,'.build/proofs/mate_policy.pkv'),manifest:path.join(ROOT,'.build/proofs/manifest.json')});
   const executor=new Executor({config,chain,journal,verifier,discovery});
   const pairing='e'.repeat(64);
   let server=jsonServer({token:pairing,handler:apiHandler({chain,executor,discovery,names:{}})});
