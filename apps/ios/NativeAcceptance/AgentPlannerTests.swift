@@ -17,18 +17,43 @@ final class AgentPlannerTests: XCTestCase {
         XCTAssertFalse(offer.accepts("yes",draftID:draft,generation:generation,now:now.addingTimeInterval(61)))
     }
 
+
+    @MainActor
+    func testOrderStatusDoesNotClaimNoOrdersBeforeRecoveryLoads() async throws {
+        let model=CompanionModel(planner:UnexpectedPlanner())
+        model.readAloud=false
+        model.send("Check my order")
+        for _ in 0..<100 {
+            if !model.thinking{break}
+            try await Task.sleep(for:.milliseconds(10))
+        }
+        XCTAssertFalse(model.thinking)
+        XCTAssertTrue(model.messages.last?.text.contains("restoring saved orders") == true)
+        model.rest()
+    }
+
     func testRealLocalModelExtractsConcreteTaskWithoutInventingText() async throws {
         guard case .available=SystemLanguageModel.default.availability else{throw XCTSkip("Requires an available on-device Apple model")}
         let planner=AgentPlanner()
-        for input in ["『今日は晴れです。』を英訳して", "Translate this into Japanese: The meeting starts at ten."] {
+        for (input,expected) in [("『今日は晴れです。』を英訳して","今日は晴れです。"), ("Translate this into Japanese: The meeting starts at ten.","The meeting starts at ten.")] {
             let request=try await planner.request(from:input)
             XCTAssertEqual(request?.service,.translation)
             XCTAssertFalse(request?.text.isEmpty ?? true)
-            XCTAssertTrue(input.contains(request?.text ?? "not present"))
+            XCTAssertEqual(request?.text,expected)
+            XCTAssertTrue(request?.directInstruction == true)
         }
         let chat=try await planner.request(from:"こんにちは、元気？")
         XCTAssertNil(chat)
         let purchase=try await planner.request(from:"Buy a Mac mini on Amazon")
         XCTAssertNil(purchase)
+        let unsupported=try await planner.request(from:"Translate this into French: The meeting starts at ten.")
+        XCTAssertNil(unsupported)
+    }
+}
+
+private actor UnexpectedPlanner:AgentPlanning {
+    func request(from input:String) async throws -> AgentRequest? {
+        XCTFail("Explicit order status must use saved order recovery, not generate a new task")
+        return nil
     }
 }

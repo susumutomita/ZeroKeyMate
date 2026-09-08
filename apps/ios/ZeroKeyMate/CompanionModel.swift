@@ -2,6 +2,7 @@ import AVFoundation
 import Combine
 import Foundation
 import MateCore
+import LocalAuthentication
 import SwiftUI
 
 struct ConversationMessage:Identifiable,Sendable {
@@ -48,6 +49,7 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var modelUnavailable:String?
     @Published private(set) var proofUnavailable:String? = "Checking proof runtime."
     @Published private(set) var mandate:StoredMandate?
+    @Published private(set) var agentDelegation:AgentDelegation?
     @Published private(set) var spent:UInt64=0
     @Published private(set) var account:AccountState?
     @Published private(set) var identity:MateIdentity?
@@ -133,6 +135,7 @@ final class CompanionModel:ObservableObject {
         proofUnavailable=proofError
         do {
             mandate=try LocalSecrets.read(StoredMandate.self,key:configuration.stateKey("active-mandate"))
+            agentDelegation=UserDefaults.standard.bool(forKey:configuration.stateKey("agent-delegation-disabled")) ? nil : try LocalSecrets.read(AgentDelegation.self,key:configuration.stateKey("agent-delegation"))
             if let mandate{_=try mandate.policy.material()}
             identity=try LocalSecrets.read(MateIdentity.self,key:configuration.stateKey("mate-identity"))
             receipts=try LocalSecrets.read([ExecutionReceipt].self,key:configuration.stateKey("receipts")) ?? []
@@ -168,7 +171,7 @@ final class CompanionModel:ObservableObject {
             try LocalSecrets.write(value,key:"connection-settings")
             configurationGeneration=UUID();stateLoaded=false
             configuration=value;network=candidate;rpc=candidateRPC;wallet=WalletService(configuration:value)
-            mandate=nil;account=nil;spent=0;receipts=[];identity=nil;providers=[];discoveryEvidence=nil;draft=nil
+            mandate=nil;agentDelegation=nil;account=nil;spent=0;receipts=[];identity=nil;providers=[];discoveryEvidence=nil;draft=nil
             started=false;sheet = .settings
             await start()
         }catch{errorMessage=error.localizedDescription}
@@ -251,17 +254,31 @@ final class CompanionModel:ObservableObject {
                 }
             }
             do {
+                let control=input.lowercased().filter{!$0.isWhitespace && !$0.isPunctuation}
+                if ["注文を確認して","注文どうなった","注文の状況を教えて","checkmyorder","checktheorder","orderstatus"].contains(control) {
+                    self.agentOffer=nil
+                    guard self.stateLoaded else {
+                        self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
+                        return
+                    }
+                    if self.pendingExecution != nil {
+                        self.executionStatus=replyLanguage == .japanese ? "同じ注文の結果を確認しています" : "Checking the existing order"
+                        await self.recoverExecution()
+                        self.executionStatus=nil
+                        guard self.foreground,self.conversationGeneration==generation else{return}
+                        self.reportAgentResult(language:replyLanguage)
+                    } else {
+                        self.agentSay(replyLanguage == .japanese ? "確認待ちの注文はありません。過去の結果は履歴に残しています。" : "There are no pending orders. Earlier results are saved in Activity.",language:replyLanguage)
+                    }
+                    return
+                }
                 if let offered=self.agentOffer {
                     self.agentOffer=nil
                     if offered.accepts(input,draftID:self.draft?.id,generation:self.requestGeneration) {
+                        self.agentSay(replyLanguage == .japanese ? "このiPhoneで証明を作って注文します。" : "I'll create the proof on this iPhone and place the order.",language:replyLanguage)
                         await self.execute(payload:offered.request.text,provider:offered.provider,fromAgent:true)
                         guard self.foreground,self.conversationGeneration==generation else{return}
-                        if let message=self.errorMessage {
-                            self.errorMessage=nil
-                            self.agentSay((replyLanguage == .japanese ? "完了を確認できません。" : "I couldn't confirm completion. ")+L10n.text(message),language:replyLanguage)
-                        } else if let receipt=self.receipts.first {
-                            self.agentSay(receipt.result,language:ConversationLanguage.detect(receipt.result,fallback:replyLanguage))
-                        }
+                        self.reportAgentResult(language:replyLanguage)
                         return
                     }
                 }
@@ -289,6 +306,45 @@ final class CompanionModel:ObservableObject {
         messages.append(ConversationMessage(isUser:false,text:text));messages=Array(messages.suffix(40))
         if readAloud{voice.speak(text,locale:language.speechLocale)}
     }
+    private func reportAgentResult(language:AppLanguage) {
+        if let message=errorMessage {
+            errorMessage=nil
+            agentSay((language == .japanese ? "完了を確認できません。" : "I couldn't confirm completion. ")+L10n.text(message),language:language)
+        } else if let receipt=receipts.first {
+            agentSay(receipt.result,language:ConversationLanguage.detect(receipt.result,fallback:language))
+        }
+    }
+    func permitAgent(provider:ServiceProvider) async {
+        guard !financialBusy,foreground,!sleeping,let stored=mandate,providers.contains(provider),
+              let amount=UInt64(provider.price),amount>0,let service=MateService(rawValue:provider.service) else{return}
+        let ticket=requestGeneration
+        financialBusy=true
+        defer{financialBusy=false}
+        do {
+            try stored.policy.check(spent:spent,amount:amount,service:service)
+            let context=LAContext()
+            let reason="Allow Mate to send future \(service.title) requests to this shop for up to \(TokenAmount(units:amount).display) test USDC each, within your existing mandate"
+            guard try await context.evaluatePolicy(.deviceOwnerAuthentication,localizedReason:reason),
+                  foreground,!sleeping,requestGeneration==ticket,mandate?.id==stored.id else{throw ProductError.cancelled}
+            let consent=AgentDelegation(chainID:configuration.chainID,vault:configuration.vault,mandateID:stored.id,
+                providerID:provider.id,recipient:provider.recipient,service:provider.service,maximumAmount:amount,
+                validUntil:stored.grant.validUntil)
+            try LocalSecrets.write(consent,key:configuration.stateKey("agent-delegation"))
+            UserDefaults.standard.set(false,forKey:configuration.stateKey("agent-delegation-disabled"))
+            agentDelegation=consent
+        }catch{errorMessage=error.localizedDescription}
+    }
+    func stopAgentDelegation() {
+        requestGeneration=UUID();agentOffer=nil;agentDelegation=nil
+        UserDefaults.standard.set(true,forKey:configuration.stateKey("agent-delegation-disabled"))
+        do {try LocalSecrets.delete(configuration.stateKey("agent-delegation"))}
+        catch{errorMessage=error.localizedDescription}
+    }
+    private func delegationAllows(_ provider:ServiceProvider,mandateID:String,now:UInt64)->Bool {
+        guard let amount=UInt64(provider.price) else{return false}
+        return agentDelegation?.permits(chainID:configuration.chainID,vault:configuration.vault,mandateID:mandateID,
+            providerID:provider.id,recipient:provider.recipient,service:provider.service,amount:amount,now:now) == true
+    }
     private func prepareAgent(_ request:AgentRequest,language:AppLanguage,generation:UInt64) async {
         let ja=language == .japanese
         guard configuration.paymentsConfigured,wallet.ownerAddress != nil,mandate != nil else {
@@ -308,7 +364,8 @@ final class CompanionModel:ObservableObject {
             guard foreground,!sleeping,conversationGeneration==generation,let draft else{return}
             guard response.providers.allSatisfy({$0.service==request.service.rawValue && UInt64($0.price) != nil}) else{throw ProductError.invalidResponse}
             providers=response.providers
-            guard let provider=providers.sorted(by:{UInt64($0.price)! < UInt64($1.price)!}).first,
+            let preferred=providers.first{delegationAllows($0,mandateID:mandate?.id ?? "",now:UInt64(Date().timeIntervalSince1970))}
+            guard let provider=preferred ?? providers.sorted(by:{UInt64($0.price)! < UInt64($1.price)!}).first,
                   let amount=UInt64(provider.price),let stored=mandate else {
                 throw ProductError.unavailable("No active provider meets these requirements.")
             }
@@ -317,6 +374,13 @@ final class CompanionModel:ObservableObject {
             guard foreground,!sleeping,conversationGeneration==generation,self.draft?.id==draft.id else{return}
             guard let currentSpent=UInt64(state.spent),!state.revoked,state.validUntil>UInt64(Date().timeIntervalSince1970)+60 else{throw ProductError.invalidResponse}
             try stored.policy.check(spent:currentSpent,amount:amount,service:request.service)
+            if request.directInstruction && delegationAllows(provider,mandateID:stored.id,now:UInt64(Date().timeIntervalSince1970)) {
+                agentSay(ja ? "任せてもらった範囲内です。\(provider.name)に\(TokenAmount(units:amount).display)テストUSDCで注文します。予算のルールはこのiPhoneに残して、証明を送ります。" : "This is within your approved terms. I'll order from \(provider.name) for \(TokenAmount(units:amount).display) test USDC, sending a proof while keeping your private rules on this iPhone.",language:language)
+                await execute(payload:request.text,provider:provider,fromAgent:true,requiresDelegation:true)
+                guard foreground,conversationGeneration==generation else{return}
+                reportAgentResult(language:language)
+                return
+            }
             agentOffer=AgentOffer(request:request,provider:provider,draftID:draft.id,generation:requestGeneration,createdAt:Date())
             let price=String(format:"%.6f",Double(amount)/1_000_000)
             let prompt=ja ? "「\(request.text)」を\(provider.name)に送って処理します。料金は\(price)テストUSDCです。この内容と金額で進めてよければ、はいと言ってください。" : "I'll send ‘\(request.text)’ to \(provider.name). The price is \(price) test USDC. Say yes to approve this exact text and price."
@@ -457,7 +521,7 @@ final class CompanionModel:ObservableObject {
             await refreshAccount()
         }catch{errorMessage=error.localizedDescription}
     }
-    func execute(payload:String,provider:ServiceProvider,fromAgent:Bool=false) async {
+    func execute(payload:String,provider:ServiceProvider,fromAgent:Bool=false,requiresDelegation:Bool=false) async {
         guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
         guard !financialBusy else{return}
         guard foreground,!sleeping else{errorMessage="Wake Mate before making a request.";return}
@@ -470,9 +534,10 @@ final class CompanionModel:ObservableObject {
         let ticket=requestGeneration
         func checkApproval() throws {
             guard foreground, !sleeping, requestGeneration==ticket, draft?.id==approvedDraft.id else{throw ProductError.cancelled}
+            if requiresDelegation && !delegationAllows(provider,mandateID:stored.id,now:UInt64(Date().timeIntervalSince1970)){throw ProductError.cancelled}
         }
         financialBusy=true
-        if fromAgent{voice.stop()}else{stopVoice()}
+        if !fromAgent{stopVoice()}
         defer{financialBusy=false;executionStatus=nil}
         do {
             executionStatus="Checking approved terms"
