@@ -10,16 +10,23 @@ final class ProductUITests: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout: 15))
-        app.buttons["companion-face"].tap()
-        XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["talk-button"].isHittable)
+        if app.buttons["open-controls"].exists {app.buttons["open-controls"].tap()}
+        else {app.buttons["companion-face"].swipeUp()}
+        XCTAssertTrue(app.buttons["start-companion"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["start-companion"].isHittable)
+        // A preceding failed language test must not change the next test's language.
+        app.buttons["open-settings"].tap()
+        let language=app.segmentedControls["app-language"]
+        XCTAssertTrue(language.waitForExistence(timeout:5))
+        if !language.buttons["English"].isSelected {language.buttons["English"].tap()}
+        closeSheet(app)
         return app
     }
     private func closeSheet(_ app: XCUIApplication) {
         app.buttons["close-sheet"].tap()
         XCTAssertTrue(app.buttons["close-sheet"].waitForNonExistence(timeout: 5))
         XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:5))
-        app.buttons["companion-face"].tap()
+        app.buttons["companion-face"].swipeUp()
         XCTAssertTrue(app.buttons["open-conversation"].waitForExistence(timeout:5))
     }
     private func tapPadding(_ button: XCUIElement) {
@@ -36,7 +43,7 @@ final class ProductUITests: XCTestCase {
     }
     private func assertVisibleControls(_ app: XCUIApplication) {
         let window = app.windows.firstMatch.frame
-        for id in ["talk-button", "rest-button", "open-conversation", "open-settings", "open-activity"] {
+        for id in ["start-companion", "rest-button", "open-conversation", "open-settings"] {
             let button = app.buttons[id]
             XCTAssertTrue(button.exists, id)
             XCTAssertTrue(button.isHittable, id)
@@ -49,10 +56,64 @@ final class ProductUITests: XCTestCase {
         let app=launch()
         app.buttons["close-sheet"].tap()
         XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:5))
-        XCTAssertFalse(app.buttons["talk-button"].exists)
+        XCTAssertFalse(app.buttons["start-companion"].exists)
         XCTAssertFalse(app.buttons["open-settings"].exists)
+        XCTAssertEqual(app.buttons["companion-face"].value as? String,"Taking a rest.")
         XCTAssertEqual(app.staticTexts.count,0)
         capture("face-only-home")
+    }
+    func testLongPressFaceReachesLanguageWithoutStartingSensors() {
+        let app=launch()
+        app.buttons["close-sheet"].tap()
+        XCTAssertTrue(app.buttons["close-sheet"].waitForNonExistence(timeout:5))
+        app.buttons["companion-face"].press(forDuration:0.8)
+        let settings=app.buttons["open-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout:5))
+        XCTAssertTrue(settings.isHittable)
+        settings.tap()
+        let language=app.segmentedControls["app-language"]
+        XCTAssertTrue(language.waitForExistence(timeout:5))
+        XCTAssertTrue(language.isHittable)
+        capture("tap-to-language-settings")
+        language.buttons["日本語"].tap()
+        XCTAssertTrue(app.navigationBars["設定"].waitForExistence(timeout:5))
+        language.buttons["English"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout:5))
+    }
+    func testOneTapOnRestingFaceRequestsCamera() {
+        continueAfterFailure=false
+        XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication()
+        app.terminate()
+        app.resetAuthorizationStatus(for:.camera)
+        app.launchArguments=["-AppleLanguages","(en)","-AppleLocale","en_US","-mate-companion-introduced","YES","-mate-companion-language","en"]
+        app.launch()
+        let face=app.buttons["companion-face"]
+        XCTAssertTrue(face.waitForExistence(timeout:15))
+        XCTAssertEqual(face.value as? String,"Taking a rest.")
+        face.tap()
+        let system=XCUIApplication(bundleIdentifier:"com.apple.springboard")
+        XCTAssertTrue(system.alerts.firstMatch.waitForExistence(timeout:10),"One tap must enter camera permission, not a controls menu")
+        let prompt=system.alerts.firstMatch
+        XCTAssertTrue(prompt.label.lowercased().contains("camera") || prompt.label.contains("カメラ"),prompt.debugDescription)
+        capture("one-tap-camera-consent")
+        // Denial is deliberate; this verifies the start path without capturing frames.
+        let deny=prompt.buttons.matching(NSPredicate(format:"label IN %@",["Don't Allow","Don’t Allow","許可しない"])).firstMatch
+        XCTAssertTrue(deny.exists)
+        deny.tap()
+        app.terminate()
+    }
+    func testWelcomeExplainsTheSessionWithoutStartingSensors() {
+        let app=launch()
+        XCTAssertTrue(app.staticTexts["Camera off"].exists)
+        app.buttons["open-welcome"].tap()
+        XCTAssertTrue(app.navigationBars["Welcome to Mate"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.buttons["start-companion"].isHittable)
+        XCTAssertTrue(app.buttons["open-controls"].isHittable)
+        capture("00-companion-welcome")
+        app.buttons["open-controls"].tap()
+        XCTAssertTrue(app.staticTexts["Camera off"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["Taking a rest."].exists)
     }
     func testPortraitHomeDoesNotStartSensorsAndControlsRemainAccessible() throws {
         let app = launch()
@@ -79,12 +140,14 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(app.buttons["toggle-camera"].waitForExistence(timeout: 5))
         capture("04-settings")
         closeSheet(app)
+        app.buttons["open-settings"].tap()
         tapPadding(app.buttons["open-activity"])
         XCTAssertTrue(app.staticTexts["No executions yet."].waitForExistence(timeout: 5))
         capture("05-activity-empty")
     }
     func testLocalProofPreflightDoesNotPretendToGenerateProof() {
         let app = launch()
+        app.buttons["open-settings"].tap()
         tapPadding(app.buttons["open-local-proof"])
         XCTAssertTrue(app.buttons["generate-local-proof"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["generate-local-proof"].isHittable)
@@ -103,6 +166,7 @@ final class ProductUITests: XCTestCase {
     func testNativeLocalProofCanBeGeneratedAndPreparedForSharing() throws {
 #if MATE_NATIVE_PROOFS
         let app=launch()
+        app.buttons["open-settings"].tap()
         tapPadding(app.buttons["open-local-proof"])
         let generate = app.buttons["generate-local-proof"]
         XCTAssertTrue(generate.waitForExistence(timeout: 5))
@@ -154,6 +218,7 @@ final class ProductUITests: XCTestCase {
         closeSheet(app)
         XCTAssertTrue(app.staticTexts["休憩しています。"].waitForExistence(timeout:5))
         XCTAssertTrue(app.staticTexts["カメラ停止"].exists)
+        app.buttons["open-settings"].tap()
         tapPadding(app.buttons["open-local-proof"])
         let permission=app.switches["翻訳を許可"]
         XCTAssertTrue(permission.waitForExistence(timeout:5))
@@ -166,7 +231,8 @@ final class ProductUITests: XCTestCase {
         closeSheet(app)
         app.terminate();app.launch()
         XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:15))
-        app.buttons["companion-face"].tap()
+        if app.buttons["open-controls"].exists {app.buttons["open-controls"].tap()}
+        else{app.buttons["companion-face"].swipeUp()}
         XCTAssertTrue(app.staticTexts["カメラ停止"].waitForExistence(timeout:15))
         app.buttons["open-settings"].tap()
         XCTAssertTrue(app.navigationBars["設定"].waitForExistence(timeout:5))
@@ -179,6 +245,7 @@ final class ProductUITests: XCTestCase {
     func testLandscapeControlsAreNotClipped() {
         let app = launch()
         app.buttons["close-sheet"].tap()
+        XCTAssertTrue(app.buttons["close-sheet"].waitForNonExistence(timeout:5))
         XCUIDevice.shared.orientation = .landscapeLeft
         let predicate = NSPredicate { _, _ in app.windows.firstMatch.frame.width > app.windows.firstMatch.frame.height }
         expectation(for: predicate, evaluatedWith: nil)
@@ -188,8 +255,8 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(app.windows.firstMatch.frame.contains(face.frame))
         XCTAssertEqual(app.staticTexts.count,0)
         capture("06-face-landscape")
-        face.tap()
-        XCTAssertTrue(app.buttons["talk-button"].waitForExistence(timeout:5))
-        XCTAssertTrue(app.buttons["talk-button"].isHittable)
+        face.swipeUp()
+        XCTAssertTrue(app.buttons["start-companion"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.buttons["start-companion"].isHittable)
     }
 }

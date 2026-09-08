@@ -17,6 +17,7 @@ final class MateModel:ObservableObject {
     @Published private(set) var horizontalFocus=0.0
     @Published private(set) var verticalFocus=0.0
     @Published private(set) var detectedFaces=0
+    @Published private(set) var faceDetectionStatus="Waiting for face detection"
     @Published private(set) var dockTrackingSubjects=0
     @Published private(set) var dockTrackingButtonEnabled=false
     private var trackingRetryAt=Date.distantPast
@@ -29,6 +30,7 @@ final class MateModel:ObservableObject {
     private var intent=CaptureIntent()
     private var cameraRunning=false
     private var lastTrackingRequest:Bool?
+    private var trackingOwnership=DockTrackingOwnership()
     private var lastTrackingButtonEnabled=false
     private var revision:UInt64=0
     private var reconciliationTask:Task<Void,Never>?
@@ -46,6 +48,7 @@ final class MateModel:ObservableObject {
                 Task{@MainActor [weak self] in
                     guard let self,self.intent.shouldCapture,self.cameraRunning else{return}
                     self.observation=value
+                    self.faceDetectionStatus=value.faceDetectionAvailable ? (value.faceCount>0 ? "I can see a face.":"Looking for a face. Face the front camera.") : "Face detection failed. Rest Mate and try again."
                     self.detectedFaces=value.faceCount
                     let position=self.gaze.update(x:value.horizontalFocus,y:value.verticalFocus,
                                                   now:ProcessInfo.processInfo.systemUptime)
@@ -82,7 +85,17 @@ final class MateModel:ObservableObject {
     }
     func startCapture() {
         guard !isTransitioning else{return}
+        faceDetectionStatus="Waiting for face detection"
         message=nil;intent.requestStart();scheduleReconciliation()
+    }
+    func startCaptureAndWait() async -> Bool {
+        startCapture()
+        // Serialize camera consent before asking for microphone consent. Stop,
+        // backgrounding and permission denial all clear captureRequested.
+        while captureRequested && cameraPhase != .on {
+            do{try await Task.sleep(for:.milliseconds(40))}catch{return false}
+        }
+        return cameraPhase == .on && captureRequested
     }
     func stopCapture(){intent.requestStop();scheduleReconciliation()}
     private func scheduleReconciliation() {
@@ -105,6 +118,7 @@ final class MateModel:ObservableObject {
                 if !allowed {
                     message="Camera access is not allowed. You can change this in iPhone Settings."
                     intent.requestStop();captureRequested=false;cameraPhase = .off
+                    onInterruption?()
                 }else{
                     do {
                         try await camera.start();cameraRunning=true
@@ -112,6 +126,7 @@ final class MateModel:ObservableObject {
                     }catch{
                         await camera.stop();cameraRunning=false;cameraPhase = .off
                         intent.requestStop();captureRequested=false;message=error.localizedDescription
+                        onInterruption?()
                     }
                 }
             }
@@ -120,8 +135,11 @@ final class MateModel:ObservableObject {
                 await camera.stop();cameraRunning=false;cameraPhase = .off
                 observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0
             }
-            let wantsTracking=cameraRunning && intent.shouldCapture && dock.isConnected && dock.trackingButtonEnabled
-            if lastTrackingRequest != wantsTracking, !wantsTracking || Date()>=trackingRetryAt {
+            // Configure system tracking after an explicit camera start. The physical
+            // tracking button is telemetry, not a prerequisite for enabling the API:
+            // gating on it can prevent recovery from our earlier disabled state.
+            let wantsTracking=cameraRunning && intent.shouldCapture && dock.isConnected
+            if trackingOwnership.shouldApply(enabled:wantsTracking),lastTrackingRequest != wantsTracking, !wantsTracking || Date()>=trackingRetryAt {
                 do{
                     try await dock.setTrackingEnabled(wantsTracking)
                     lastTrackingRequest=wantsTracking;trackingEnabled=wantsTracking;trackingRetryAt = .distantPast

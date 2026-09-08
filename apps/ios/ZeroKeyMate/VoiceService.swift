@@ -13,6 +13,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
     var onFinal:((String)->Void)?
     var onPlaybackFinished:(()->Void)?
     var onInputInterrupted:(()->Void)?
+    var onInputIdle:(()->Void)?
     private let engine=AVAudioEngine()
     private let synthesizer=AVSpeechSynthesizer()
     private var recognizer:SFSpeechRecognizer?
@@ -25,7 +26,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
     private var currentUtterance:AVSpeechUtterance?
     override init(){super.init();synthesizer.delegate=self}
 
-    func start() async {
+    func start(locale:String? = nil) async {
         guard !listening,!requestingPermission else {return}
         stop();generation &+= 1
         let token=generation
@@ -41,7 +42,7 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
         }
         guard generation==token else{return}
         guard microphone,speech == .authorized else {errorMessage="Voice input requires microphone and speech recognition permissions. You can still use the keyboard.";return}
-        guard let recognizer=SFSpeechRecognizer(locale:Locale(identifier:L10n.language.speechLocale)),recognizer.isAvailable,
+        guard let recognizer=SFSpeechRecognizer(locale:Locale(identifier:locale ?? L10n.speechLanguage.speechLocale)),recognizer.isAvailable,
               recognizer.supportsOnDeviceRecognition else {
             errorMessage="On-device speech recognition is unavailable for the selected language. Continue with the keyboard; audio will not be sent to the cloud.";return
         }
@@ -88,8 +89,8 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
         case .waiting:break
         case .submit(let text):stopListening();onFinal?(text)
         case .silence:
-            stopListening();errorMessage="Conversation stopped after silence. Tap Talk to start again, or use the keyboard."
-            onInputInterrupted?()
+            // Renew only inside the explicitly started session owned by CompanionModel.
+            stopListening();onInputIdle?()
         }
     }
     @discardableResult func finish() -> String {
@@ -104,14 +105,14 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
         listening=false
         try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
     }
-    func speak(_ text:String){
+    func speak(_ text:String,locale:String? = nil){
         stopListening();synthesizer.stopSpeaking(at:.immediate)
         guard !text.isEmpty else{return}
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback,mode:.spokenAudio)
             try AVAudioSession.sharedInstance().setActive(true)
             let utterance=AVSpeechUtterance(string:text)
-            utterance.voice=AVSpeechSynthesisVoice(language:L10n.language.speechLocale);utterance.rate=0.49
+            utterance.voice=AVSpeechSynthesisVoice(language:locale ?? L10n.speechLanguage.speechLocale);utterance.rate=0.49
             currentUtterance=utterance;speaking=true;synthesizer.speak(utterance)
         }catch{currentUtterance=nil;speaking=false;errorMessage="Could not start reading aloud.";onInputInterrupted?()}
     }

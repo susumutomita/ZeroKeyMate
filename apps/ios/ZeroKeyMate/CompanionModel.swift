@@ -28,11 +28,16 @@ struct PendingExecution:Codable,Sendable {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case controls,conversation,settings,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
+    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
     @Published var sheet:Sheet? {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
-            if let sheet,sheet != .conversation { stopVoice();cancelConversation() }
+            if let sheet,sheet != .conversation && sheet != .controls {
+                rest()
+                // Opening an explicit request screen is a new user interaction, not
+                // sensor consent. Existing approval guards still require an awake app.
+                if [.rules,.wallet,.identity,.disclosure,.localProof,.connection].contains(sheet){sleeping=false}
+            }
         }
     }
     @Published var errorMessage:String? { didSet { if errorMessage != nil { stopVoice() } } }
@@ -58,20 +63,29 @@ final class CompanionModel:ObservableObject {
     @Published var continuousConversation=false {
         didSet{if !continuousConversation{stopVoice()}}
     }
-    @Published private(set) var voiceSessionActive=false
-    @Published var sleeping=false
+    @Published private var listeningSession=CompanionListeningSession()
+    var voiceSessionActive:Bool{listeningSession.isActive}
+    @Published private(set) var awaitingGreeting=false
+    private var recognitionLocale:String?
+    @Published var sleeping=true
+    @Published private(set) var preparingCompanion=false
+    var isResting:Bool {
+        guard sensors.cameraPhase == .off else{return false}
+        return sleeping || (!preparingCompanion && !voiceSessionActive && !voice.listening && !voice.speaking &&
+                     !thinking && !financialBusy && !sensors.captureRequested && sensors.cameraPhase == .off)
+    }
     @Published private(set) var configuration:AppConfiguration
     let sensors=MateModel()
     let voice=VoiceService()
     @Published private(set) var wallet:WalletService
-    private let conversation=ConversationService()
+    private let conversation:any ConversationResponding
     // A single actor serializes native work across payment and offline screens.
     let proofs=ProofService()
     private var network:NetworkService
     private var rpc:EthereumRPC
     private var conversationTask:Task<Void,Never>?
     private var conversationGeneration:UInt64=0
-    private var voiceGeneration:UInt64=0
+    private var voiceGeneration:UInt64{listeningSession.revision}
     private var requestGeneration=UUID()
     private var started=false
     private var configurationGeneration=UUID()
@@ -79,20 +93,30 @@ final class CompanionModel:ObservableObject {
     private var foreground=true
     private var notifications=Set<AnyCancellable>()
 
-    init(configuration:AppConfiguration=AppConfiguration.load()) {
+    init(configuration:AppConfiguration=AppConfiguration.load(),conversation:any ConversationResponding=ConversationService()) {
+        self.conversation=conversation
         self.configuration=configuration
         wallet=WalletService(configuration:configuration)
         network=NetworkService(configuration:configuration)
         rpc=EthereumRPC(url:configuration.rpcURL,chainID:configuration.chainID)
-        voice.onFinal={[weak self] text in self?.send(text)}
+        voice.onFinal={[weak self] text in self?.receiveSpeech(text)}
         voice.onPlaybackFinished={[weak self] in self?.resumeListening()}
-        voice.onInputInterrupted={[weak self] in self?.stopVoice()}
+        voice.onInputInterrupted={[weak self] in
+            guard let self else{return}
+            self.rest()
+            if let message=self.voice.errorMessage{self.errorMessage=message}
+        }
+        voice.onInputIdle={[weak self] in self?.resumeListening()}
         sensors.onDetach={[weak self] in self?.rest()}
-        sensors.onInterruption={[weak self] in self?.rest()}
+        sensors.onInterruption={[weak self] in
+            guard let self else{return}
+            self.rest()
+            if let message=self.sensors.message{self.errorMessage=message}
+        }
         NotificationCenter.default.publisher(for:AVAudioSession.interruptionNotification)
-            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.stopVoice()}.store(in:&notifications)
+            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.rest()}.store(in:&notifications)
         NotificationCenter.default.publisher(for:AVAudioSession.mediaServicesWereResetNotification)
-            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.stopVoice()}.store(in:&notifications)
+            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.rest()}.store(in:&notifications)
     }
     func start() async {
         guard !started else{return};started=true
@@ -152,18 +176,47 @@ final class CompanionModel:ObservableObject {
     }
     func setForeground(_ active:Bool) {
         foreground=active;sensors.setForeground(active)
-        if !active{requestGeneration=UUID();stopVoice();cancelConversation()}
+        if !active{rest()}
         else if !stateLoaded {Task{await start()}}
     }
-    func stopVoice(){voiceGeneration &+= 1;voiceSessionActive=false;voice.stop()}
+    func stopVoice(){listeningSession.stop();awaitingGreeting=false;preparingCompanion=false;voice.stop()}
+    func armVoiceWake() async {
+        guard foreground,!financialBusy,!thinking else{return}
+        rest();listeningSession.begin();awaitingGreeting=true;recognitionLocale="ja-JP"
+        let ticket=voiceGeneration
+        await voice.start(locale:recognitionLocale)
+        guard ticket==voiceGeneration else{return}
+        if !voice.listening {rest();if let message=voice.errorMessage{errorMessage=message}}
+    }
+    private func receiveSpeech(_ text:String) {
+        if VoiceWakePhrase.isRestCommand(text){rest();return}
+        guard awaitingGreeting else{send(text);return}
+        guard VoiceWakePhrase.matches(text) else{resumeListening();return}
+        stopVoice()
+        let ticket=voiceGeneration
+        Task{[weak self] in
+            guard let self,self.foreground,self.voiceGeneration==ticket else{return}
+            await self.startCompanion(voiceLocale:"ja-JP")
+            if self.voiceSessionActive,self.voice.listening{self.send(text)}
+        }
+    }
     private func resumeListening() {
         let generation=voiceGeneration
         Task{[weak self] in
-            guard let self,self.voiceGeneration==generation,self.voiceSessionActive,self.foreground,!self.sleeping,!self.thinking,!self.financialBusy,
-                  self.sheet == nil || self.sheet == .conversation else{return}
-            await self.voice.start()
-            if self.voiceGeneration==generation,!self.voice.listening{self.voiceSessionActive=false}
+            guard let self,self.canResumeListening(generation) else{return}
+            await Task.yield()
+            guard self.canResumeListening(generation) else{return}
+            await self.voice.start(locale:self.recognitionLocale)
+            if self.voiceGeneration==generation,!self.voice.listening {
+                self.rest()
+                if let message=self.voice.errorMessage{self.errorMessage=message}
+            }
         }
+    }
+    private func canResumeListening(_ ticket:UInt64) -> Bool {
+        listeningSession.permitsResume(ticket:ticket,foreground:foreground,resting:sleeping && !awaitingGreeting,
+            busy:thinking || financialBusy || preparingCompanion,
+            screenAllowsListening:sheet == nil || sheet == .conversation || sheet == .controls)
     }
     func rest(){requestGeneration=UUID();sleeping=true;stopVoice();sensors.stopCapture();cancelConversation()}
     func wake(){sleeping=false}
@@ -182,6 +235,8 @@ final class CompanionModel:ObservableObject {
         let history=messages.suffix(8).map{($0.isUser ? "User: ":"Mate: ")+$0.text}.joined(separator:"\n")
         messages.append(ConversationMessage(isUser:true,text:input));messages=Array(messages.suffix(40))
         let notes=localNotes
+        let replyLanguage=ConversationLanguage.detect(input,fallback:L10n.speechLanguage)
+        recognitionLocale=replyLanguage.speechLocale
         conversationTask=Task{[weak self] in
             guard let self else{return}
             defer{
@@ -192,24 +247,42 @@ final class CompanionModel:ObservableObject {
             }
             do {
                 let response=try await self.conversation.reply(to:input,history:history,
-                    observations:self.sensors.currentObservation,notes:notes,replyLanguage:L10n.language.name)
+                    observations:self.sensors.currentObservation,notes:notes,replyLanguage:replyLanguage.name)
                 try Task.checkCancellation()
                 guard self.foreground,self.conversationGeneration==generation else{return}
                 self.messages.append(ConversationMessage(isUser:false,text:response.text))
                 if let service=response.service,!response.disclosure.isEmpty {
                     self.draft=DisclosureDraft(service:service,text:response.disclosure)
                 }
-                if self.readAloud{self.voice.speak(response.text)}
+                if self.readAloud{self.voice.speak(response.text,locale:replyLanguage.speechLocale)}
             }catch is CancellationError{}catch{
-                if self.conversationGeneration==generation{self.stopVoice();self.errorMessage=error.localizedDescription}
+                if self.conversationGeneration==generation{self.rest();self.errorMessage=error.localizedDescription}
             }
         }
     }
-    func startCompanion() async {
-        guard foreground,!financialBusy,!thinking else{return}
-        sleeping=false;continuousConversation=true
-        sensors.startCapture()
-        if !voiceSessionActive,!voice.listening {await toggleVoice()}
+    func startCompanion(voiceLocale:String? = nil) async {
+        if awaitingGreeting{stopVoice()}
+        guard foreground,!financialBusy,!thinking,!preparingCompanion,!voiceSessionActive else{return}
+        stopVoice();listeningSession.begin()
+        recognitionLocale=voiceLocale
+        let ticket=voiceGeneration
+        preparingCompanion=true
+        // Looking at the user must not depend on speech/model availability.
+        // This method is entered only after the user's explicit start action.
+        sleeping=false
+        defer{if voiceGeneration==ticket{preparingCompanion=false}}
+        let cameraStarted=await sensors.startCaptureAndWait()
+        guard voiceGeneration==ticket,foreground else{return}
+        guard cameraStarted else{rest();return}
+        let unavailable=await conversation.availability()
+        guard voiceGeneration==ticket,foreground else{return}
+        modelUnavailable=unavailable
+        if let unavailable {errorMessage=unavailable;return}
+        continuousConversation=true
+        await voice.start(locale:recognitionLocale)
+        guard voiceGeneration==ticket,foreground else{return}
+        guard voice.listening else{stopVoice();if let error=voice.errorMessage{errorMessage=error};return}
+        sleeping=false
     }
     func toggleVoice() async {
         if voiceSessionActive{stopVoice();cancelConversation()}
@@ -217,10 +290,10 @@ final class CompanionModel:ObservableObject {
         else if voice.listening{let text=voice.finish();send(text)}
         else{
             guard !thinking,!financialBusy,foreground else{return};sleeping=false
-            voiceGeneration &+= 1
-            voiceSessionActive=continuousConversation
+            listeningSession.stop()
+            if continuousConversation{listeningSession.begin()}
             await voice.start()
-            if !voice.listening{voiceSessionActive=false}
+            if !voice.listening{listeningSession.stop()}
         }
     }
     func makeDraft(service:MateService,text:String="") {
