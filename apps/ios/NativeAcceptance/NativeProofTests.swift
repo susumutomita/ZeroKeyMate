@@ -7,6 +7,7 @@ import Verity
 
 final class NativeProofTests: XCTestCase {
     func testNativeProveKitProvesAndVerifiesTheActualMandateCircuit() async throws {
+        try XCTSkipUnless(Verity.runtimeMode == .native,"Native ProveKit is explicitly unavailable in a source-only build.")
         let policy=try PrivatePolicy(budget:5_000_000,services:3,salt:Data(0..<32))
         let action=MandateAction(mandateId:"0x"+String(repeating:"22",count:32),
             recipient:"0x"+String(repeating:"33",count:20),amount:3_000_000,service:.translation,
@@ -28,9 +29,15 @@ final class NativeProofTests: XCTestCase {
         var rejected=false
         do {rejected = try !verifier.verify(proof:Proof(data:changed))} catch {rejected=true}
         XCTAssertTrue(rejected,"A tampered native proof must be rejected")
+        let exerciseRejected = try await ProofService().rejectsTamperedCopy(of: proof)
+        XCTAssertTrue(exerciseRejected)
         let directory=FileManager.default.temporaryDirectory.appendingPathComponent("mate-native-evidence",isDirectory:true)
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
-        try proof.bytes.write(to:directory.appendingPathComponent("native-proof.np"))
+        let file=directory.appendingPathComponent("native-proof.np")
+        try proof.bytes.write(to:file)
+        let attachment=XCTAttachment(contentsOfFile:file)
+        attachment.name="native-proof.np";attachment.lifetime = .keepAlways
+        add(attachment)
         print("NATIVE_PROOF_EVIDENCE bytes=\(proof.bytes.count) milliseconds=\(proof.elapsedMilliseconds) sha256=\(proof.proofHash)")
     }
 

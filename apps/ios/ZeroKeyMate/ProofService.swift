@@ -22,11 +22,14 @@ actor ProofService {
     }
     private var keyData: (Data,Data)?
     func prepare() throws {
+        guard Verity.runtimeMode == .native else {
+            throw ProductError.unavailable("The on-device proof runtime is not installed. Run make native-runtime and make proofs, then rebuild.")
+        }
         guard keyData == nil else { return }
         guard let manifestURL = Bundle.main.url(forResource: "manifest", withExtension: "json"),
               let proverURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkp"),
               let verifierURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkv") else {
-            throw ProductError.unavailable("証明用ファイルがありません。./mate を実行して正規の回路から生成してください。")
+            throw ProductError.unavailable("Proof resources are missing. Run make proofs, then rebuild.")
         }
         let manifest = try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: manifestURL))
         guard manifest.system == "ProveKit", manifest.version == "1.0.1",
@@ -37,6 +40,11 @@ actor ProofService {
             guard let expected = manifest.files[name], expected.count == 64,
                   String(LocalSecrets.hash(data).dropFirst(2)) == expected else { throw ProductError.invalidResponse }
         }
+        let runtime=try Verity(backend:.provekit)
+        let loadedProver=try runtime.loadProver(data:prover)
+        defer{loadedProver.close()}
+        let loadedVerifier=try runtime.loadVerifier(data:verifier)
+        loadedVerifier.close()
         keyData = (prover,verifier)
     }
     func prove(policy: PrivatePolicy, action: MandateAction, chainID: UInt64, vault: String) throws -> VerifiedLocalProof {
@@ -67,4 +75,18 @@ actor ProofService {
         return VerifiedLocalProof(bytes: proof.data, policyHash: policyHash, actionHash: actionHash,
             elapsedMilliseconds: Int(Date().timeIntervalSince(start) * 1000))
     }
+    /// Negative verification uses the same native verifier, never a UI-only comparison.
+    func rejectsTamperedCopy(of proof: VerifiedLocalProof) throws -> Bool {
+        try Task.checkCancellation()
+        try prepare()
+        guard let keys = keyData, !proof.bytes.isEmpty else { throw ProductError.invalidResponse }
+        let runtime = try Verity(backend: .provekit)
+        let verifier = try runtime.loadVerifier(data: keys.1)
+        defer { verifier.close() }
+        var changed = proof.bytes
+        changed[changed.count / 2] ^= 1
+        do { return try !verifier.verify(proof: Proof(data: changed)) }
+        catch { return true }
+    }
+
 }

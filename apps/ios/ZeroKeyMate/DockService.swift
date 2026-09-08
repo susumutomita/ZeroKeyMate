@@ -9,6 +9,8 @@ import DockKit
 final class DockService {
     private var observationTask: Task<Void, Never>?
     private var accessory: DockAccessory?
+    private var trackingTask:Task<Void,Never>?
+    var onTrackingSubjects:((Int)->Void)?
     private(set) var trackingButtonEnabled = false
 
     var isConnected: Bool { accessory != nil }
@@ -21,9 +23,21 @@ final class DockService {
                 for await change in changes {
                     guard !Task.isCancelled, let self else { return }
                     if change.state == .docked, let accessory = change.accessory {
+                        if self.accessory != accessory {
+                            self.trackingTask?.cancel()
+                            self.trackingTask=Task{[weak self] in
+                                do {
+                                    for await state in try accessory.trackingStates {
+                                        guard let self,!Task.isCancelled,self.accessory == accessory else{return}
+                                        self.onTrackingSubjects?(state.trackedSubjects.count)
+                                    }
+                                }catch{onChange("DockKit: \(error.localizedDescription)")}
+                            }
+                        }
                         self.accessory = accessory
                         self.trackingButtonEnabled = change.trackingButtonEnabled
                     } else {
+                        self.trackingTask?.cancel();self.trackingTask=nil;self.onTrackingSubjects?(0)
                         self.accessory = nil
                         self.trackingButtonEnabled = false
                     }
@@ -32,7 +46,7 @@ final class DockService {
             } catch {
                 self?.accessory = nil
                 self?.trackingButtonEnabled = false
-                onChange("DockKit：\(error.localizedDescription)")
+                onChange("DockKit: \(error.localizedDescription)")
             }
             self?.observationTask = nil
         }
@@ -43,7 +57,7 @@ final class DockService {
     }
 
     deinit {
-        observationTask?.cancel()
+        observationTask?.cancel();trackingTask?.cancel()
     }
 }
 #else
@@ -51,11 +65,12 @@ final class DockService {
 /// this adapter must never report a connection or fake an enabled motor.
 @MainActor
 final class DockService {
+    var onTrackingSubjects:((Int)->Void)?
     let isConnected = false
     let trackingButtonEnabled = false
 
     func observe(onChange: @escaping @MainActor (String?) -> Void) {
-        onChange("DockKit未対応の実行環境です。スタンドは実機で確認してください。")
+        onChange("DockKit is unavailable in this environment. Test the stand on a physical iPhone.")
     }
 
     func setTrackingEnabled(_ enabled: Bool) async throws {
@@ -68,7 +83,7 @@ private enum DockUnavailable: LocalizedError {
     case unsupported
 
     var errorDescription: String? {
-        "この実行環境ではDockKitを利用できません。"
+        "DockKit is unavailable in this environment."
     }
 }
 #endif

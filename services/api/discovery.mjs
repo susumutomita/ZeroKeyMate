@@ -2,11 +2,11 @@ import {z} from 'zod';
 import {boundedJSON} from './http.mjs';
 import {requireValue} from './errors.mjs';
 
-const quoteSchema=z.object({service:z.number().int().min(0).max(1),price:z.string().regex(/^[1-9][0-9]*$/),
+const quoteSchema=z.object({chainId:z.number().int(),vault:z.string().regex(/^0x[\da-fA-F]{40}$/),token:z.string().regex(/^0x[\da-fA-F]{40}$/),service:z.number().int().min(0).max(1),price:z.string().regex(/^[1-9][0-9]*$/),
   recipient:z.string().regex(/^0x[\da-fA-F]{40}$/),expiresAt:z.number().int(),ready:z.literal(true)}).strict();
 /** Config pins known integrations; The Graph's live data, not that config, supplies candidates. */
 export class Discovery {
-  constructor(config,names){this.config=config;this.names=names;}
+  constructor(config,names,fetchJSON=boundedJSON){this.config=config;this.names=names;this.fetchJSON=fetchJSON;}
   async list(service){
     const {graphApiKey,graphSubgraphId}=this.config;
     requireValue(graphApiKey,'graph_unconfigured','The Graph APIキーが設定されていません。',503);
@@ -19,7 +19,7 @@ export class Discovery {
         registrationFile {name active ens webEndpoint supportedTrusts}
       }
     }`;
-    const response=await boundedJSON(`https://gateway.thegraph.com/api/${encodeURIComponent(graphApiKey)}/subgraphs/id/${graphSubgraphId}`,{
+    const response=await this.fetchJSON(`https://gateway.thegraph.com/api/${encodeURIComponent(graphApiKey)}/subgraphs/id/${graphSubgraphId}`,{
       method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query,variables:{ids:candidates.map(provider=>provider.id)}}),
     });
     requireValue(!response.errors?.length && Array.isArray(response.data?.agents) && response.data?._meta?.hasIndexingErrors===false
@@ -29,20 +29,20 @@ export class Discovery {
       const configured=candidates.find(provider=>provider.id===indexed.id);
       const registration=indexed.registrationFile;
       if(!configured || String(indexed.chainId)!=='11155111' || indexed.owner?.toLowerCase()!==configured.owner.toLowerCase()
-        || !registration?.active || registration.ens!==configured.ensName
+        || !registration?.active || indexed.agentWallet?.toLowerCase()!==configured.recipient.toLowerCase()
         || registration.webEndpoint!==configured.endpoint) continue;
-      // The ENS recipient is re-resolved on every request, not cached as authorization.
+      // Registry identity is Sepolia; a quote must separately bind the settlement deployment.
       try {
-        const identity=await this.names.resolve(configured.ensName);
-        if(identity.address.toLowerCase()!==configured.recipient.toLowerCase()) continue;
         const quote=quoteSchema.parse(await this.call(configured,`/v1/quote?service=${service}`));
         const now=Math.floor(Date.now()/1000);
-        if(quote.service!==service || quote.price!==configured.price || quote.recipient.toLowerCase()!==configured.recipient.toLowerCase()
+        if(quote.chainId!==(this.config.chainId??11155111) || quote.vault.toLowerCase()!==this.config.vault.toLowerCase()
+          || quote.token.toLowerCase()!==this.config.token.toLowerCase()
+          || quote.service!==service || quote.price!==configured.price || quote.recipient.toLowerCase()!==configured.recipient.toLowerCase()
           || quote.expiresAt<=now+10 || quote.expiresAt>now+600) continue;
         const feedback=BigInt(indexed.totalFeedback);
         if(feedback<0n) continue;
-        providers.push({id:indexed.id,name:String(registration.name||configured.ensName).slice(0,120),service,
-          price:quote.price,recipient:configured.recipient,ensName:configured.ensName,
+        providers.push({id:indexed.id,name:String(registration.name||configured.id).slice(0,120),service,
+          price:quote.price,recipient:configured.recipient,ensName:'',
           feedback:Number(feedback>BigInt(Number.MAX_SAFE_INTEGER)?BigInt(Number.MAX_SAFE_INTEGER):feedback)});
       } catch { /* Unreachable or mismatched providers are not replaced with invented candidates. */ }
     }
@@ -60,7 +60,7 @@ export class Discovery {
     const base=new URL(provider.endpoint);
     const url=new URL(base.toString().replace(/\/$/,'')+path);
     requireValue(url.origin===base.origin,'provider_origin','提供者の接続先が一致しません。',503);
-    return boundedJSON(url,{method:body?'POST':'GET',headers:{'content-type':'application/json',authorization:`Bearer ${provider.bearerToken}`},
+    return this.fetchJSON(url,{method:body?'POST':'GET',headers:{'content-type':'application/json',authorization:`Bearer ${provider.bearerToken}`},
       ...(body?{body:JSON.stringify(body)}:{})},1_000_000);
   }
 }

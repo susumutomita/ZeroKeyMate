@@ -1,0 +1,86 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognize your surroundings on this device and enable DockKit tracking. Video is never saved or sent externally."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内で周囲を認識し、DockKitの追跡を有効にします。映像を保存したり外部へ送ったりしません。"
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use on-device speech recognition only after you tap Talk."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「話す」を押したときだけ、端末内で音声認識を使います。"
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe speech on this device. Use the keyboard when on-device recognition is unavailable."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末で音声を文字にします。端末内の認識が使えない場合はキーボードを使ってください。"
+          }
+        }
+      }
+    },
+    "NSFaceIDUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authenticate when you approve the displayed mandate terms or test USDC operation."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示された委任条件やテストUSDCの操作を承認するときに認証します。"
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send only approved request content to the specialist service running on your Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認した依頼内容だけをMacで動く専門サービスへ送ります。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

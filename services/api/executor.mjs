@@ -16,12 +16,13 @@ export class Executor {
   });}
   execute(input){return this.#queue.run(async()=>{
     const request=executeSchema.parse(input);
-    const actionHash=actionDigest(11155111,this.config.vault,request.action);
+    const actionHash=actionDigest(this.config.chainId??11155111,this.config.vault,request.action);
     requireValue(sha256(Buffer.from(request.payload)).toLowerCase()===request.action.requestHash.toLowerCase(),
       'payload_hash','承認した文章から内容が変わっています。',409);
     const id=`execution:${actionHash}`;
     let existing=this.journal.get(id);
     if(existing){
+      requireValue(existing.state!=='cancelled','execution_cancelled','この依頼は取り消されています。',409);
       const saved=existing.value.request;
       requireValue(saved.providerId===request.providerId && saved.payload===request.payload
         && saved.agentSignature.toLowerCase()===request.agentSignature.toLowerCase()
@@ -46,7 +47,17 @@ export class Executor {
     const id=`execution:${actionHash.toLowerCase()}`;
     const existing=this.journal.get(id);
     requireValue(existing,'execution_not_found','依頼がまだ届いていません。同じ依頼を再送してください。',404);
+    requireValue(existing.state!=='cancelled','execution_cancelled','この依頼は取り消されています。',409);
     return this.#advance(id,existing);
+  });}
+  cancel(actionHash){return this.#queue.run(async()=>{
+    const id=`execution:${actionHash.toLowerCase()}`;
+    const existing=this.journal.get(id);
+    requireValue(!existing || ['authorized','cancelled'].includes(existing.state),
+      'payment_pending','支払いが開始済み、または確認待ちです。結果を照会してください。',409);
+    // A durable tombstone also rejects a delayed first submission after cancellation.
+    this.journal.put(id,'cancelled',{actionHash:actionHash.toLowerCase()});
+    return {actionHash:actionHash.toLowerCase(),status:'cancelled'};
   });}
   async #advance(id,entry){
     let {state,value}=entry;
@@ -57,7 +68,7 @@ export class Executor {
       const prepared=await this.discovery.call(provider,'/v1/prepare',{
         action:request.action,agentSignature:request.agentSignature,payload:request.payload,proofHash,
       });
-      requireValue(prepared.actionHash===actionDigest(11155111,this.config.vault,request.action) && prepared.status==='ready',
+      requireValue(prepared.actionHash===actionDigest(this.config.chainId??11155111,this.config.vault,request.action) && prepared.status==='ready',
         'provider_not_ready','提供者の実行準備を確認できません。支払いは開始していません。',503);
       this.journal.put(id,'ready',value);state='ready';
     }

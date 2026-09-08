@@ -16,6 +16,7 @@ final class RuntimeDiagnosticsTests: XCTestCase {
     }
 
     func testBundledSchemeFileAndMemoryLoadingAreCompatible() throws {
+        try XCTSkipUnless(Verity.runtimeMode == .native,"Native ProveKit is explicitly unavailable in a source-only build.")
         let runtime = try Verity(backend: .provekit)
         for ext in ["pkp", "pkv"] {
             let url = try XCTUnwrap(Bundle.main.url(forResource: "mate_policy", withExtension: ext))

@@ -1,6 +1,7 @@
 name: ZeroKeyMate
 options:
   bundleIdPrefix: com.zerokeymate
+  developmentLanguage: en
   deploymentTarget:
     iOS: '26.0'
   xcodeVersion: '26.3'
@@ -22,8 +23,9 @@ settings:
     DEVELOPMENT_TEAM: '$(MATE_DEVELOPMENT_TEAM)'
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
-    MARKETING_VERSION: '0.2.0'
-    CURRENT_PROJECT_VERSION: '2'
+    MARKETING_VERSION: '0.3.0'
+    CURRENT_PROJECT_VERSION: '3'
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) ${MATE_SWIFT_RUNTIME_FLAG}'
 targets:
   ZeroKeyMate:
     type: application
@@ -37,12 +39,14 @@ targets:
       - package: Verity
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.companion
         INFOPLIST_KEY_CFBundleDisplayName: Mate
-        INFOPLIST_KEY_NSCameraUsageDescription: 周りの大まかな様子をこの端末内で認識し、DockKitの追尾に使います。映像は保存・外部送信しません。
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: 話すボタンを押したときだけ、端末内の音声認識に使います。
-        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: 音声を文字に変換します。端末内認識が使えない場合は文字入力に切り替えます。
-        INFOPLIST_KEY_NSLocalNetworkUsageDescription: あなたのMacで動く専門サービスに、承認した依頼内容だけを送ります。
+        INFOPLIST_KEY_NSCameraUsageDescription: Recognize your surroundings on this device and enable DockKit tracking. Video is never saved or sent externally.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Use on-device speech recognition only after you tap Talk.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Transcribe speech on this device. Use the keyboard when on-device recognition is unavailable.
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Authenticate when you approve the displayed mandate terms or test USDC operation.
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Send only approved request content to the specialist service running on your Mac.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES

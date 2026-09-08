@@ -11,9 +11,13 @@ private enum Finish {
 struct MateView:View {
     @StateObject private var model=CompanionModel()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(L10n.preferenceKey) private var language = AppLanguage.english.rawValue
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         CompanionHome(model:model,sensors:model.sensors,voice:model.voice)
             .task{model.setForeground(scenePhase == .active);await model.start()}
+            .onChange(of:language){_,_ in model.rest();model.errorMessage=nil}
             .onChange(of:scenePhase){_,value in
                 if value == .background{model.setForeground(false)}
                 else if value == .active{model.setForeground(true)}
@@ -22,6 +26,7 @@ struct MateView:View {
                 NavigationStack{
                     Group {
                         switch sheet {
+                        case .controls:ControlsSheet(model:model,sensors:model.sensors,voice:model.voice)
                         case .conversation:ConversationSheet(model:model)
                         case .settings:SettingsSheet(model:model,sensors:model.sensors)
                         case .rules:RulesSheet(model:model)
@@ -29,16 +34,18 @@ struct MateView:View {
                         case .identity:IdentitySheet(model:model)
                         case .activity:ActivitySheet(model:model)
                         case .disclosure:DisclosureSheet(model:model)
+                        case .localProof:LocalProofSheet(proofs:model.proofs) { model.makeDraft(service:.translation) }
+                        case .connection:ConnectionSheet(model:model)
                         }
                     }
-                    .toolbar{ToolbarItem(placement:.topBarTrailing){Button("閉じる",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}}
+                    .toolbar{ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}}
                     .toolbarBackground(Finish.paper,for:.navigationBar)
                 }
                 .tint(Finish.ink).presentationBackground(Finish.paper)
             }
-            .alert("確認してください",isPresented:Binding(get:{model.errorMessage != nil},set:{if !$0{model.errorMessage=nil}})){
-                Button("閉じる",role:.cancel){model.errorMessage=nil}
-            }message:{Text(model.errorMessage ?? "")}
+            .alert("Please check",isPresented:Binding(get:{model.errorMessage != nil},set:{if !$0{model.errorMessage=nil}})){
+                Button("Close",role:.cancel){model.errorMessage=nil}
+            }message:{Text(L10n.text(model.errorMessage ?? ""))}
     }
 }
 
@@ -49,73 +56,75 @@ private struct CompanionHome:View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var status:String {
         if let status=model.executionStatus{return status}
-        if model.sleeping{return "ひと休みしています。"}
-        if model.thinking{return "考えています。"}
-        if voice.listening{return "聞いています。"}
-        if voice.requestingPermission{return "音声入力を準備しています。"}
-        if voice.speaking{return "お話ししています。"}
-        return "ここにいます。"
+        if model.sleeping{return "Taking a rest."}
+        if model.thinking{return "Thinking."}
+        if voice.listening{return "Listening."}
+        if voice.requestingPermission{return "Preparing voice input."}
+        if voice.speaking{return "Speaking."}
+        return "I'm here."
     }
     var body:some View {
         GeometryReader{geometry in
-            let landscape=geometry.size.width>geometry.size.height
-            VStack(spacing:0){
-                HStack(alignment:.firstTextBaseline){
-                    VStack(alignment:.leading,spacing:5){
-                        Text("Mate.").font(.system(size:32,weight:.medium,design:.rounded)).tracking(-1.2)
-                        if let identity=model.identity{Text(identity.name).font(.system(size:11,weight:.medium)).foregroundStyle(Finish.secondary).lineLimit(1)}
-                    }
-                    Spacer(minLength:12)
-                    Button{model.sheet = .activity}label:{Image(systemName:"clock").font(.system(size:19,weight:.regular)).frame(width:44,height:44)}
-                        .accessibilityLabel("実行履歴").accessibilityIdentifier("open-activity")
-                    Button{model.sheet = .settings}label:{Image(systemName:"slider.horizontal.3").font(.system(size:19,weight:.regular)).frame(width:44,height:44)}
-                        .accessibilityLabel("設定").accessibilityIdentifier("open-settings")
-                }.padding(.horizontal,landscape ? 40:28).padding(.top,landscape ? 8:18)
-                Spacer(minLength:10)
-                MateEyes(resting:model.sleeping,listening:voice.listening,thinking:model.thinking,
-                         focus:sensors.horizontalFocus,reduceMotion:reduceMotion)
-                    .frame(width:landscape ? min(geometry.size.width*0.34,310):geometry.size.width*0.67,
-                           height:landscape ? min(geometry.size.height*0.30,140):min(geometry.size.height*0.25,185))
-                    .accessibilityElement(children:.ignore).accessibilityLabel("Mateの表情").accessibilityValue(status)
-                Spacer(minLength:landscape ? 8:24)
-                VStack(spacing:10){
-                    Text(status).font(.system(size:landscape ? 19:23,weight:.regular)).tracking(-0.4)
-                        .multilineTextAlignment(.center).accessibilityIdentifier("companion-status")
-                    if voice.listening,!voice.transcript.isEmpty {
-                        Text(voice.transcript).font(.system(size:15)).foregroundStyle(Finish.secondary).lineLimit(2)
-                    }else if let last=model.messages.last,!last.isUser,!landscape {
-                        Text(last.text).font(.system(size:15)).foregroundStyle(Finish.secondary).multilineTextAlignment(.center).lineLimit(3)
-                            .padding(.horizontal,12)
-                    }
-                    if let draft=model.draft,!model.financialBusy {
-                        Button{model.sheet = .disclosure}label:{Label("\(draft.service.title)の依頼内容を確認",systemImage:"arrow.up.right").font(.system(size:14,weight:.medium)).padding(.vertical,10)}
-                    }
-                }.padding(.horizontal,30).frame(minHeight:landscape ? 42:112)
-                Spacer(minLength:landscape ? 6:18)
-                HStack(spacing:landscape ? 28:38){
-                    Button{model.sheet = .conversation}label:{Image(systemName:"keyboard").font(.system(size:21,weight:.regular)).frame(width:52,height:52)}
-                        .accessibilityLabel("文字で話す").accessibilityIdentifier("open-conversation")
-                    Button{
-                        if model.sleeping{model.wake()}else{Task{await model.toggleVoice()}}
-                    }label:{
-                        Image(systemName:model.sleeping ? "sun.max":voice.listening ? "stop.fill":"mic.fill")
-                            .font(.system(size:25,weight:.medium)).foregroundStyle(Finish.paper)
-                            .frame(width:76,height:76).background(Finish.ink,in:Circle())
-                    }.disabled(model.thinking || model.financialBusy || voice.requestingPermission)
-                        .accessibilityLabel(model.sleeping ? "Mateを起こす":voice.listening ? "音声入力を終了":"話す")
-                        .accessibilityIdentifier("talk-button")
-                    Button{model.rest()}label:{Image(systemName:"moon").font(.system(size:21,weight:.regular)).frame(width:52,height:52)}
-                        .accessibilityLabel("カメラとマイクを停止して休む").accessibilityIdentifier("rest-button")
+            MateEyes(resting:model.sleeping,listening:voice.listening,
+                     thinking:model.thinking || model.financialBusy,
+                     focus:sensors.horizontalFocus,verticalFocus:sensors.verticalFocus,reduceMotion:reduceMotion)
+                .frame(width:min(geometry.size.width*0.78,620),height:min(geometry.size.height*0.38,300))
+                .frame(maxWidth:.infinity,maxHeight:.infinity)
+                .contentShape(Rectangle())
+                .onTapGesture{model.sheet = .controls}
+                .onLongPressGesture{model.rest()}
+                .accessibilityElement(children:.ignore)
+                .accessibilityLabel("Mate")
+                .accessibilityValue(L10n.text(status))
+                .accessibilityHint("Tap to open controls. Touch and hold to rest.")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction{model.sheet = .controls}
+                .accessibilityAction(named:Text("Rest and stop camera and microphone")){model.rest()}
+                .accessibilityIdentifier("companion-face")
+        }.background(Finish.paper.ignoresSafeArea()).preferredColorScheme(.light).statusBarHidden()
+    }
+}
+
+private struct ControlsSheet:View {
+    @ObservedObject var model:CompanionModel
+    @ObservedObject var sensors:MateModel
+    @ObservedObject var voice:VoiceService
+    var body:some View {
+        Form {
+            Section {
+                Button("Start companion"){
+                    model.sheet=nil
+                    Task{await model.startCompanion()}
+                }.disabled(model.financialBusy).accessibilityIdentifier("start-companion")
+                SectionNote(text:"Start camera tracking and on-device voice conversation.")
+                Button("Talk"){
+                    model.sheet=nil
+                    Task{await model.toggleVoice()}
+                }.disabled(model.financialBusy).accessibilityIdentifier("talk-button")
+                Button("Type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
+                Button("Rest and stop camera and microphone") {model.rest();model.sheet=nil}
+                    .accessibilityIdentifier("rest-button")
+            }
+            Section {
+                Text(L10n.text(model.sleeping ? "Taking a rest.":"I'm here."))
+                Text(L10n.text(sensors.cameraPhase == .on ? "Camera on · On-device processing":sensors.cameraPhase == .starting ? "Camera starting":sensors.cameraPhase == .stopping ? "Camera stopping":"Camera off"))
+                    .accessibilityIdentifier("camera-status")
+                if sensors.cameraPhase == .on {
+                    Text(L10n.text(sensors.detectedFaces>0 ? "I can see a face.":"Looking for a face. Face the front camera."))
                 }
-                HStack(spacing:7){
-                    Image(systemName:sensors.cameraPhase == .on ? "eye":"eye.slash").font(.system(size:11))
-                    Text(sensors.cameraPhase == .on ? "カメラ使用中・端末内処理":sensors.isTransitioning ? "カメラを切り替え中":"カメラ停止中")
-                    if sensors.dockConnected{Text("·");Text("Dock 接続済み")}
-                }.font(.system(size:11,weight:.medium)).foregroundStyle(Finish.secondary)
-                    .padding(.top,landscape ? 10:21).padding(.bottom,landscape ? 8:18)
-                if let error=voice.errorMessage{Text(error).font(.footnote).foregroundStyle(Finish.secondary).padding(.horizontal,24).padding(.bottom,8)}
-            }.frame(maxWidth:.infinity,maxHeight:.infinity).foregroundStyle(Finish.ink)
-        }.background(Finish.paper.ignoresSafeArea()).preferredColorScheme(.light)
+                if let error=voice.errorMessage{SectionNote(text:error)}
+                if let message=sensors.message{SectionNote(text:message)}
+            }
+            Section {
+                Button("Settings"){model.sheet = .settings}.accessibilityIdentifier("open-settings")
+                Button("Activity"){model.sheet = .activity}.accessibilityIdentifier("open-activity")
+                Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
+                if let draft=model.draft {
+                    Button(L10n.format("Review %@ request",L10n.text(draft.service.title))){model.sheet = .disclosure}
+                }
+            }
+        }.scrollContentBackground(.hidden).background(Finish.paper)
+            .navigationTitle("Controls").navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -124,8 +133,11 @@ private struct MateEyes:View {
     let listening:Bool
     let thinking:Bool
     let focus:Double
+    let verticalFocus:Double
     let reduceMotion:Bool
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         TimelineView(.animation(minimumInterval:1.0/30,paused:reduceMotion || resting)){timeline in
             let time=timeline.date.timeIntervalSinceReferenceDate
             let phase=time.truncatingRemainder(dividingBy:5.7)
@@ -133,13 +145,16 @@ private struct MateEyes:View {
             GeometryReader{g in
                 let width=g.size.width*0.21
                 let height=resting ? 5.0:g.size.height*(listening ? 0.73:0.65)
-                let offset=reduceMotion ? 0:CGFloat(focus)*10
+                let offset=CGFloat(focus)*g.size.width*0.14
+                let vertical=CGFloat(verticalFocus)*g.size.height*0.14
                 HStack(spacing:g.size.width*0.24){
                     ForEach(0..<2,id:\.self){index in
                         RoundedRectangle(cornerRadius:width/2,style:.continuous)
                             .fill(Finish.ink)
                             .frame(width:width,height:max(5,height*blink*(thinking && index==1 ? 0.70:1)))
-                            .offset(x:offset,y:thinking && index==1 ? -8:0)
+                            .offset(x:offset,y:vertical+(thinking && index==1 ? -8:0))
+                            .animation(reduceMotion ? nil:.easeOut(duration:0.12),value:focus)
+                            .animation(reduceMotion ? nil:.easeOut(duration:0.12),value:verticalFocus)
                     }
                 }.frame(maxWidth:.infinity,maxHeight:.infinity)
             }
@@ -149,14 +164,17 @@ private struct MateEyes:View {
 
 private struct SectionNote:View {
     let text:String
-    var body:some View{Text(text).font(.system(size:13)).foregroundStyle(Finish.secondary).lineSpacing(4).fixedSize(horizontal:false,vertical:true)}
+    @Environment(\.locale) private var locale
+    var body:some View{Text(L10n.text(text,language:AppLanguage(rawValue:locale.identifier))).font(.system(size:13)).foregroundStyle(Finish.secondary).lineSpacing(4).fixedSize(horizontal:false,vertical:true)}
 }
 private struct PrimaryAction:View {
     let title:String
     var disabled=false
     let action:()->Void
+    @Environment(\.locale) private var locale
     var body:some View {
-        Button(action:action){Text(title).font(.system(size:16,weight:.semibold)).frame(maxWidth:.infinity,minHeight:52)}
+        let _ = locale.identifier
+        Button(action:action){Text(L10n.text(title)).font(.system(size:16,weight:.semibold)).frame(maxWidth:.infinity,minHeight:52)}
             .buttonStyle(.plain).foregroundStyle(Finish.paper).background(Finish.ink.opacity(disabled ? 0.35:1),in:RoundedRectangle(cornerRadius:16))
             .disabled(disabled)
     }
@@ -165,76 +183,97 @@ private struct PrimaryAction:View {
 private struct ConversationSheet:View {
     @ObservedObject var model:CompanionModel
     @State private var input=""
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         VStack(spacing:0){
             ScrollViewReader{proxy in
                 ScrollView{
                     LazyVStack(alignment:.leading,spacing:26){
                         if model.messages.isEmpty {
                             VStack(alignment:.leading,spacing:12){
-                                Text("何から始めましょう。").font(.system(size:28,weight:.regular)).tracking(-0.7)
-                                SectionNote(text:"この会話はiPhoneの中で処理されます。外に仕事を頼むときは、送る文章と料金を先に確認します。")
+                                Text("Where shall we start?").font(.system(size:28,weight:.regular)).tracking(-0.7)
+                                SectionNote(text:"This conversation stays on your iPhone. Before asking an external service, review the text and price.")
                             }.padding(.top,36)
                         }
                         ForEach(model.messages){message in
                             VStack(alignment:.leading,spacing:8){
-                                Text(message.isUser ? "あなた":"Mate").font(.system(size:11,weight:.semibold)).foregroundStyle(Finish.secondary)
+                                Text(L10n.text(message.isUser ? "You":"Mate")).font(.system(size:11,weight:.semibold)).foregroundStyle(Finish.secondary)
                                 Text(message.text).font(.system(size:17)).lineSpacing(5).textSelection(.enabled)
                             }.frame(maxWidth:.infinity,alignment:.leading).id(message.id)
                         }
-                        if model.thinking{ProgressView("考えています").font(.footnote)}
+                        if model.thinking{ProgressView("Thinking").font(.footnote)}
                     }.padding(26)
                 }.onChange(of:model.messages.count){_,_ in if let id=model.messages.last?.id{withAnimation{proxy.scrollTo(id,anchor:.bottom)}}}
             }
             Divider().overlay(Finish.rule)
             HStack(alignment:.bottom,spacing:12){
-                TextField("メッセージ",text:$input,axis:.vertical).lineLimit(1...5).font(.system(size:17))
+                TextField("Message",text:$input,axis:.vertical).lineLimit(1...5).font(.system(size:17))
                     .accessibilityIdentifier("message-input")
                 Button{let value=input;input="";model.send(value)}label:{Image(systemName:"arrow.up").font(.system(size:17,weight:.semibold)).frame(width:44,height:44).foregroundStyle(Finish.paper).background(Finish.ink,in:Circle())}
-                    .disabled(input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || model.thinking)
-                    .accessibilityLabel("送信").accessibilityIdentifier("send-message")
+                    .disabled(input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || model.thinking || model.financialBusy)
+                    .accessibilityLabel("Send").accessibilityIdentifier("send-message")
             }.padding(.horizontal,22).padding(.vertical,14)
-        }.background(Finish.paper).navigationTitle("会話").navigationBarTitleDisplayMode(.inline)
+        }.background(Finish.paper).navigationTitle("Conversation").navigationBarTitleDisplayMode(.inline)
     }
 }
 
 private struct SettingsSheet:View {
     @ObservedObject var model:CompanionModel
     @ObservedObject var sensors:MateModel
+    @AppStorage(L10n.preferenceKey) private var language = AppLanguage.english.rawValue
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
-            Section("感覚"){
-                HStack{Label("カメラ",systemImage:"eye");Spacer();Text(sensors.cameraPhase.rawValue).font(.footnote).foregroundStyle(.secondary)}
-                Button(sensors.captureRequested ? "カメラを停止":"カメラを開始"){
+            Section("Language"){
+                Picker("App language",selection:$language){
+                    ForEach(AppLanguage.allCases){Text(verbatim:$0.name).tag($0.rawValue)}
+                }.pickerStyle(.segmented).accessibilityIdentifier("app-language")
+                SectionNote(text:"Changing language stops voice and camera. Tap Talk or Start camera when you are ready to resume.")
+            }
+            Section("Senses"){
+                HStack{Label("Camera",systemImage:"eye");Spacer();Text(L10n.text(sensors.cameraPhase.rawValue)).font(.footnote).foregroundStyle(.secondary)}
+                Button(L10n.text(sensors.captureRequested ? "Stop camera":sensors.isTransitioning ? "Waiting for camera to stop":"Start camera")){
                     if sensors.captureRequested{sensors.stopCapture()}else{sensors.startCapture()}
-                }.accessibilityIdentifier("toggle-camera")
-                SectionNote(text:"認識するのは物体の大まかな分類と顔の位置です。本人特定は行いません。映像は保存・外部送信しません。")
+                }.disabled(!sensors.captureRequested && sensors.isTransitioning).accessibilityIdentifier("toggle-camera")
+                SectionNote(text:"Detects broad object categories and face positions, not identity. Video is never saved or sent externally.")
                 if let message=sensors.message{SectionNote(text:message)}
                 if let message=sensors.dockMessage{SectionNote(text:message)}
-                Toggle("返答を読み上げる",isOn:$model.readAloud)
+                LabeledContent("Stand",value:L10n.text(!sensors.dockConnected ? "Not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Start camera to enable tracking":sensors.dockTrackingSubjects>0 ? "Tracking a subject":"Looking for a subject"))
+                Toggle("Read replies aloud",isOn:$model.readAloud)
+                Toggle("Continuous conversation",isOn:$model.continuousConversation)
+                SectionNote(text:"When enabled, tap Talk to resume on-device voice input after each reply. Stop, Rest, backgrounding the app or undocking ends the session.")
             }
-            Section("任せること"){
-                Button{model.sheet = .rules}label:{Label("あなたのルール",systemImage:"checkmark.shield")}
-                Button{model.sheet = .wallet}label:{Label("ウォレット",systemImage:"creditcard")}
-                Button{model.sheet = .identity}label:{Label("Mateの名前",systemImage:"at")}
-                Button{model.makeDraft(service:.translation)}label:{Label("外部に翻訳を依頼",systemImage:"character.bubble")}
-                Button{model.makeDraft(service:.summary)}label:{Label("外部に要約を依頼",systemImage:"text.alignleft")}
+            Section("Delegation"){
+                Button("Try private rules on this device",systemImage:"checkmark.shield"){model.sheet = .localProof}
+                Button{model.sheet = .rules}label:{Label("Your rules",systemImage:"checkmark.shield")}
+                Button{model.sheet = .wallet}label:{Label("Wallet",systemImage:"creditcard")}
+                if model.configuration.chainID == 11_155_111, !model.configuration.ensParent.isEmpty {
+                    Button{model.sheet = .identity}label:{Label("Mate's name",systemImage:"at")}
+                }
+                Button{model.makeDraft(service:.translation)}label:{Label("Request external translation",systemImage:"character.bubble")}
+                Button{model.makeDraft(service:.summary)}label:{Label("Request external summary",systemImage:"text.alignleft")}
             }
-            Section("端末内のメモ"){
-                TextField("覚えておいてほしいこと",text:$model.localNotes,axis:.vertical).lineLimit(3...8)
-                Button("メモを保存"){model.saveNotes()}
-                SectionNote(text:"このiPhoneのKeychainに保存します。外部の提供者やENSには公開しません。")
+            Section("Local notes"){
+                TextField("What should Mate remember?",text:$model.localNotes,axis:.vertical).lineLimit(3...8)
+                Button("Save notes"){model.saveNotes()}
+                SectionNote(text:"Stored in this iPhone's Keychain. Never shared with external providers or published to ENS.")
             }
-            Section("接続"){
-                LabeledContent("会話",value:model.modelUnavailable == nil ? "オンデバイス":"利用条件を確認")
+            Section("Connections"){
+                Button("Configure connection"){model.sheet = .connection}.disabled(model.financialBusy)
+                LabeledContent("Conversation",value:L10n.text(model.modelUnavailable == nil ? "On-device":"Check availability"))
                 if let unavailable=model.modelUnavailable{SectionNote(text:unavailable)}
-                LabeledContent("決済ネットワーク",value:"Sepolia テストネット")
-                LabeledContent("ウォレット設定",value:model.configuration.walletConfigured ? "設定済み":"未設定")
-                LabeledContent("外部実行の設定",value:model.configuration.paymentsConfigured ? "設定済み":"未設定")
-                SectionNote(text:"ZKは非公開の利用条件を検証します。送金先・金額は公開されます。現在の決済方式は、証明を検証するサーバーの署名を信頼します。")
+                LabeledContent("Payment network",value:L10n.text(model.configuration.networkName))
+                LabeledContent("Wallet setup",value:L10n.text(model.configuration.walletConfigured ? "Configured":"Not configured"))
+                LabeledContent("External execution setup",value:L10n.text(model.configuration.paymentsConfigured ? "Configured":"Not configured"))
+                LabeledContent("On-device proving",value:L10n.text(model.proofUnavailable == nil ? "Available":"Unavailable"))
+                if let reason=model.proofUnavailable{SectionNote(text:reason)}
+                SectionNote(text:"Voice input starts only when you tap Talk and is transcribed on-device. Tap again to cancel, even while permissions are being requested.")
+                SectionNote(text:"ZK verifies private spending rules. Payment recipients and amounts are public. The current settlement design trusts the signature of the server that verifies the proof.")
             }
-            Section{Button("会話を消去",role:.destructive){model.clearConversation()}}
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("設定").navigationBarTitleDisplayMode(.inline)
+            Section{Button("Clear conversation",role:.destructive){model.clearConversation()}}
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -244,34 +283,36 @@ private struct RulesSheet:View {
     @State private var translation=true
     @State private var summary=true
     @State private var hours=8
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
             Section{
-                Text("任せる範囲を、\nあなたが決める。").font(.system(size:29,weight:.regular)).tracking(-0.8).padding(.vertical,12)
-                SectionNote(text:"予算と許可条件はこの端末に残します。外部の実行サービスには、その条件を満たした証明だけを渡します。")
+                Text("You set\nthe boundaries.").font(.system(size:29,weight:.regular)).tracking(-0.8).padding(.vertical,12)
+                SectionNote(text:"Your budget and permissions stay on this device. The external execution service receives a proof that the request meets those rules.")
             }
             if let mandate=model.mandate {
-                Section("現在の委任"){
-                    LabeledContent("利用上限",value:TokenAmount(units:mandate.policy.budget).display+" USDC")
-                    LabeledContent("利用済み",value:TokenAmount(units:model.spent).display+" USDC")
-                    LabeledContent("期限",value:Date(timeIntervalSince1970:Double(mandate.grant.validUntil)).formatted(date:.abbreviated,time:.shortened))
-                    Button("利用状態を更新"){Task{await model.refreshAccount()}}
-                    Button("この委任を失効",role:.destructive){Task{await model.fund(.revoke(mandate.id))}}.disabled(model.financialBusy)
+                Section("Current mandate"){
+                    LabeledContent("Spending limit",value:TokenAmount(units:mandate.policy.budget).display+" USDC")
+                    LabeledContent("Spent",value:TokenAmount(units:model.spent).display+" USDC")
+                    LabeledContent("Expires",value:Date(timeIntervalSince1970:Double(mandate.grant.validUntil)).formatted(.dateTime.year().month().day().hour().minute().locale(locale)))
+                    Button("Refresh spending"){Task{await model.refreshAccount()}}
+                    Button("Revoke this mandate",role:.destructive){Task{await model.fund(.revoke(mandate.id))}}.disabled(model.financialBusy)
                 }
             }else{
-                Section("新しい委任"){
-                    HStack{Text("利用上限");Spacer();TextField("5",text:$budget).multilineTextAlignment(.trailing).keyboardType(.decimalPad);Text("USDC").foregroundStyle(.secondary)}
-                    Toggle("翻訳",isOn:$translation);Toggle("要約",isOn:$summary)
-                    Stepper("有効期間 \(hours)時間",value:$hours,in:1...24)
-                    SectionNote(text:"上限の増額・再委任・任意のコントラクト操作は許可しません。署名前に、端末の本人認証を行います。")
-                    PrimaryAction(title:"この条件で承認",disabled:model.financialBusy || (!translation && !summary)){
+                Section("New mandate"){
+                    HStack{Text("Spending limit");Spacer();TextField("5",text:$budget).multilineTextAlignment(.trailing).keyboardType(.decimalPad);Text("USDC").foregroundStyle(.secondary)}
+                    Toggle("Translation",isOn:$translation);Toggle("Summary",isOn:$summary)
+                    Stepper("Valid for \(hours) hours",value:$hours,in:1...24)
+                    SectionNote(text:"No limit increases, redelegation or arbitrary contract calls are allowed. Device authentication is required before signing.")
+                    PrimaryAction(title:"Approve these terms",disabled:model.financialBusy || (!translation && !summary)){
                         Task{await model.authorize(budget:budget,translation:translation,summary:summary,hours:hours)}
                     }.listRowInsets(EdgeInsets(top:10,leading:0,bottom:10,trailing:0)).listRowBackground(Color.clear)
                 }
-                Section{Button("確認待ちの委任を復元"){Task{await model.recoverGrant()}}}
+                Section{Button("Recover pending mandate"){Task{await model.recoverGrant()}}}
             }
-            if let status=model.executionStatus{Section{ProgressView(status)}}
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("あなたのルール").navigationBarTitleDisplayMode(.inline)
+            if let status=model.executionStatus{Section{ProgressView(L10n.text(status))}}
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Your rules").navigationBarTitleDisplayMode(.inline)
             .task{await model.refreshAccount()}
     }
 }
@@ -284,47 +325,49 @@ private struct WalletSheet:View {
     @State private var codeSent=false
     @State private var amount="20"
     private func run(_ operation:@escaping () async throws -> Void){Task{do{try await operation()}catch{model.errorMessage=error.localizedDescription}}}
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
-            Section{SectionNote(text:"SepoliaのテストUSDCのみを扱います。実際のお金は送らないでください。所有者のウォレットと、Mateの実行キーを分けます。")}
+            Section{SectionNote(text:L10n.format("%@ test USDC only. Do not send real funds. Your owner wallet and Mate's execution key are separate.",L10n.text(model.configuration.networkName)))}
             if !wallet.isAuthenticated {
-                Section("Privyで接続"){
-                    TextField("メールアドレス",text:$email).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
+                Section("Connect with Privy"){
+                    TextField("Email address",text:$email).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
                     if codeSent {
-                        TextField("確認コード",text:$code).keyboardType(.numberPad).textContentType(.oneTimeCode)
-                        Button("ログイン"){run{try await wallet.login(email:email,code:code)}}.disabled(wallet.busy)
-                    }else{Button("確認コードを送る"){run{try await wallet.sendCode(email:email);codeSent=true}}.disabled(wallet.busy || email.isEmpty)}
+                        TextField("Verification code",text:$code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+                        Button("Sign in"){run{try await wallet.login(email:email,code:code)}}.disabled(wallet.busy)
+                    }else{Button("Send verification code"){run{try await wallet.sendCode(email:email);codeSent=true}}.disabled(wallet.busy || email.isEmpty)}
                 }
             }
             if wallet.isAuthenticated && wallet.agentAddress == nil{
-                Section{Button("所有者とMateのウォレットを準備"){run{try await wallet.prepareWallets();await model.refreshAccount()}}.disabled(wallet.busy)}
+                Section{Button("Set up owner and Mate wallets"){run{try await wallet.prepareWallets();await model.refreshAccount()}}.disabled(wallet.busy)}
             }
             if let owner=wallet.ownerAddress {
-                Section("所有者"){
+                Section("Owner"){
                     Text(owner).font(.system(size:12,design:.monospaced)).textSelection(.enabled)
                     if let account=model.account {
-                        LabeledContent("ウォレット",value:TokenAmount(units:UInt64(account.tokenBalance) ?? 0).display+" USDC")
-                        LabeledContent("実行用口座",value:TokenAmount(units:UInt64(account.balance) ?? 0).display+" USDC")
+                        LabeledContent("Wallet",value:TokenAmount(units:UInt64(account.tokenBalance) ?? 0).display+" USDC")
+                        LabeledContent("Execution account",value:TokenAmount(units:UInt64(account.balance) ?? 0).display+" USDC")
                     }
-                    Button("残高を確認"){Task{await model.refreshAccount()}}
+                    Button("Refresh balances"){Task{await model.refreshAccount()}}
                 }
-                if let agent=wallet.agentAddress{Section("Mateの実行キー"){Text(agent).font(.system(size:12,design:.monospaced)).textSelection(.enabled)}}
-                Section("資金の管理"){
-                    TextField("金額（テストUSDC）",text:$amount).keyboardType(.decimalPad)
-                    Button("1. この金額の預け入れを承認"){
+                if let agent=wallet.agentAddress{Section("Mate's execution key"){Text(agent).font(.system(size:12,design:.monospaced)).textSelection(.enabled)}}
+                Section("Manage funds"){
+                    TextField("Amount (test USDC)",text:$amount).keyboardType(.decimalPad)
+                    Button("1. Approve this deposit amount"){
                         do{let units=try TokenAmount(decimal:amount).units;Task{await model.fund(.approve(units))}}catch{model.errorMessage=error.localizedDescription}
                     }.disabled(model.financialBusy)
-                    Button("2. 実行用口座に預ける"){
+                    Button("2. Deposit into execution account"){
                         do{let units=try TokenAmount(decimal:amount).units;Task{await model.fund(.deposit(units))}}catch{model.errorMessage=error.localizedDescription}
                     }.disabled(model.financialBusy)
-                    Button("所有者のウォレットに戻す"){
+                    Button("Return to owner wallet"){
                         do{let units=try TokenAmount(decimal:amount).units;Task{await model.fund(.withdraw(units))}}catch{model.errorMessage=error.localizedDescription}
                     }.disabled(model.financialBusy)
-                    SectionNote(text:"預け入れ額は公開されます。秘密にしたい利用上限とは別です。例えば20 USDCを預け、利用条件を5 USDCまでに設定します。")
+                    SectionNote(text:"Deposits are public and separate from your private spending limit. For example, deposit 20 USDC and set a spending limit of 5 USDC.")
                 }
             }
-            if let status=model.executionStatus{Section{ProgressView(status)}}
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("ウォレット").navigationBarTitleDisplayMode(.inline)
+            if let status=model.executionStatus{Section{ProgressView(L10n.text(status))}}
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Wallet").navigationBarTitleDisplayMode(.inline)
             .task{await model.refreshAccount()}
     }
 }
@@ -332,27 +375,32 @@ private struct WalletSheet:View {
 private struct IdentitySheet:View {
     @ObservedObject var model:CompanionModel
     @State private var label=""
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
             Section{
-                Text("相棒にも、名前を。").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
-                SectionNote(text:"ENSv2のサブネームから、Mateのアドレスを参照できます。公開するのは名前とアドレス、短い紹介だけです。")
+                Text("Give your companion a name.").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
+                SectionNote(text:"An ENSv2 subname points to Mate's address. Only the name, address and a short introduction are public.")
             }
             if let identity=model.identity {
-                Section("登録済み"){
+                Section("Registered"){
                     Text(identity.name).font(.title3).textSelection(.enabled)
                     Text(identity.address).font(.system(size:12,design:.monospaced)).textSelection(.enabled)
                     SectionNote(text:identity.description)
                 }
             }else{
-                Section("新しい名前"){
-                    TextField("例 amedama",text:$label).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    SectionNote(text:"半角英数字とハイフン、3〜32文字。名前の管理者はあなた、名前が指すアドレスはMateです。")
-                    Button("署名して名前を登録"){Task{await model.registerIdentity(label:label)}}.disabled(model.financialBusy || label.count<3)
+                Section("New name"){
+                    TextField("e.g. amedama",text:$label).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    if !model.configuration.ensParent.isEmpty{Text("\(label).\(model.configuration.ensParent)").font(.footnote)}
+                    SectionNote(text:"Use 3–32 letters, digits or hyphens. You manage the name; it points to Mate's address.")
+                    SectionNote(text:"Registration lasts one year. The parent domain administrator can also change or remove the name.")
+                    Button("Sign and register name"){Task{await model.registerIdentity(label:label)}}.disabled(model.financialBusy || label.count<3 || model.configuration.ensParent.isEmpty)
+                    if model.configuration.ensParent.isEmpty{SectionNote(text:"Configure the ENS parent domain before registering a name.")}
                 }
             }
-            Section{SectionNote(text:"名前は信頼性や支払権限の証明ではありません。支払いは名前ではなく、確定したアドレスと取引内容に結び付けて承認します。")}
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Mateの名前").navigationBarTitleDisplayMode(.inline)
+            Section{SectionNote(text:"A name does not prove trustworthiness or payment authority. Approval binds the resolved address and transaction details, not the name alone.")}
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Mate's name").navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -361,49 +409,66 @@ private struct DisclosureSheet:View {
     @State private var payload=""
     @State private var selectedID:String?
     private var selected:ServiceProvider?{model.providers.first{$0.id==selectedID}}
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         Form{
             Section{
-                Text("外に送るのは、\nこの文章だけ。").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
-                SectionNote(text:"会話の続きやカメラ映像、端末内のメモ、予算の全体は送信しません。文章に不要な個人情報がないか確認してください。")
+                Text("Only this text\nleaves your device.").font(.system(size:29)).tracking(-0.8).padding(.vertical,12)
+                SectionNote(text:"This text is sent with the recipient, price, signature and proof. Conversation history, camera video, local notes and your total budget are not sent. Remove any unnecessary personal information.")
             }
-            Section("送信する文章"){
+            Section("Before a paid request") {
+                if !model.configuration.paymentsConfigured {
+                    SectionNote(text:"Connect to your execution service before making paid requests. Local ZK works without this connection.")
+                    Button("Connect execution service"){model.sheet = .connection}
+                } else if model.wallet.agentAddress == nil {
+                    Button("1. Set up and fund your wallet") { model.sheet = .wallet }
+                } else if model.mandate == nil {
+                    Button("2. Approve your private spending rules") { model.sheet = .rules }
+                    Button("Check wallet funds") { model.sheet = .wallet }
+                } else {
+                    Label("Spending mandate available",systemImage:"checkmark.shield")
+                    SectionNote(text:"The current mandate and remaining allowance are checked again before proof generation.")
+                }
+            }
+            Section("Text to share"){
                 TextEditor(text:$payload).frame(minHeight:170).scrollContentBackground(.hidden).font(.body)
-                    .accessibilityIdentifier("disclosure-text")
+                    .accessibilityIdentifier("disclosure-text").disabled(model.financialBusy)
+                    .onChange(of:payload){_,text in model.draft?.text=text}
             }
-            Section("提供者"){
-                if model.discovering{ProgressView("ライブデータから探しています")}
+            Section("Provider"){
+                if model.discovering{ProgressView("Searching live registrations")}
                 ForEach(model.providers){provider in
                     Button{selectedID=provider.id}label:{
                         HStack(alignment:.top){
                             VStack(alignment:.leading,spacing:6){
                                 Text(provider.name).font(.system(size:17,weight:.medium))
                                 Text(provider.ensName).font(.footnote).foregroundStyle(.secondary)
-                                Text("\(TokenAmount(units:UInt64(provider.price) ?? 0).display) USDC · フィードバック \(provider.feedback)件").font(.footnote).foregroundStyle(.secondary)
+                                Text("\(TokenAmount(units:UInt64(provider.price) ?? 0).display) USDC · \(provider.feedback) feedback entries").font(.footnote).foregroundStyle(.secondary)
                             }
                             Spacer();if selectedID==provider.id{Image(systemName:"checkmark")}
                         }.padding(.vertical,6)
-                    }
+                    }.disabled(model.financialBusy)
                 }
                 if let evidence=model.discoveryEvidence{SectionNote(text:evidence)}
-                Button("提供者を検索"){if let draft=model.draft{Task{await model.findProviders(service:draft.service)}}}.disabled(model.discovering || model.financialBusy)
-                SectionNote(text:"候補はThe Graphの最新の登録情報から取得します。評価件数だけで安全性を保証するものではありません。")
+                Button("Find providers"){if let draft=model.draft{Task{await model.findProviders(service:draft.service)}}}.disabled(model.discovering || model.financialBusy)
+                SectionNote(text:"Candidates come from current registrations on The Graph. Feedback counts alone do not guarantee safety.")
             }
             if let selected {
-                Section("支払先"){
+                Section("Payment recipient"){
                     Text(selected.recipient).font(.system(size:12,design:.monospaced)).textSelection(.enabled)
-                    SectionNote(text:"このアドレス・料金・文章を証明と署名に結び付けます。確認後の宛先変更は認めません。")
+                    SectionNote(text:"The proof and signature bind this address, price and text. The recipient cannot change after approval.")
                 }
                 Section{
-                    PrimaryAction(title:model.financialBusy ? "実行中":"この内容だけを送り、依頼する",disabled:model.financialBusy || payload.isEmpty || model.mandate == nil){
+                    PrimaryAction(title:model.financialBusy ? "Executing":"Send this text and request service",disabled:model.financialBusy || payload.isEmpty || model.mandate == nil){
                         let approvedPayload=payload
                         Task{await model.execute(payload:approvedPayload,provider:selected)}
                     }.listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
-                    if model.mandate == nil{SectionNote(text:"先に「あなたのルール」で委任を承認してください。")}
+                    if model.mandate == nil{SectionNote(text:"Complete the setup steps above, then return to review this saved request.")}
                 }
             }
-            if let status=model.executionStatus{Section{ProgressView(status)}}
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle(model.draft?.service.title ?? "外部への依頼").navigationBarTitleDisplayMode(.inline)
+            if let status=model.executionStatus{Section{ProgressView(L10n.text(status))}}
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle(L10n.text(model.draft?.service.title ?? "External request")).navigationBarTitleDisplayMode(.inline)
             .onAppear{payload=model.draft?.text ?? ""}
             .interactiveDismissDisabled(model.financialBusy)
     }
@@ -411,32 +476,35 @@ private struct DisclosureSheet:View {
 
 private struct ActivitySheet:View {
     @ObservedObject var model:CompanionModel
+    @Environment(\.locale) private var locale
     var body:some View {
+        let _ = locale.identifier
         List{
             if let pending=model.pendingExecution {
-                Section("結果の確認待ち"){
-                    SectionNote(text:"送信後の結果がまだ確定していません。新しい支払いは停止しています。同じ依頼を再送しないでください。")
+                Section("Awaiting confirmation"){
+                    SectionNote(text:"The result is not confirmed yet. If the service has not received the request, retry with the same saved signature and request ID. New payments are paused.")
                     Text(pending.actionHash).font(.system(size:11,design:.monospaced)).textSelection(.enabled)
-                    Button("結果を照会"){Task{await model.recoverExecution()}}.disabled(model.financialBusy)
+                    Button("Check result"){Task{await model.recoverExecution()}}.disabled(model.financialBusy)
+                    Button("Cancel if no payment was sent",role:.destructive){Task{await model.cancelPendingExecution()}}.disabled(model.financialBusy)
                 }
             }
             if model.receipts.isEmpty {
                 Section{
                     VStack(alignment:.leading,spacing:14){
-                        Text("まだ、何も実行していません。").font(.system(size:25)).tracking(-0.6)
-                        SectionNote(text:"証明を検証し、Sepoliaで支払いが確定した依頼だけを、ここに記録します。")
+                        Text("No executions yet.").font(.system(size:25)).tracking(-0.6)
+                        SectionNote(text:"Only requests with a verified proof and confirmed testnet payment are recorded here.")
                     }.padding(.vertical,24)
                 }.listRowBackground(Color.clear)
             }
             ForEach(model.receipts){receipt in
-                Section("確認済みの実行"){
+                Section("Confirmed execution"){
                     Text(receipt.result).font(.system(size:16)).lineSpacing(4).textSelection(.enabled)
-                    LabeledContent("累積利用",value:TokenAmount(units:UInt64(receipt.spentAfter) ?? 0).display+" USDC")
-                    Text("証明 SHA-256").font(.caption).foregroundStyle(.secondary)
+                    LabeledContent("Total spent",value:TokenAmount(units:UInt64(receipt.spentAfter) ?? 0).display+" USDC")
+                    Text("Proof SHA-256").font(.caption).foregroundStyle(.secondary)
                     Text(receipt.proofHash).font(.system(size:10,design:.monospaced)).textSelection(.enabled)
-                    if let url=URL(string:"https://sepolia.etherscan.io/tx/"+receipt.transactionHash){Link("Sepoliaの取引を確認",destination:url)}
+                    if let url=URL(string:model.configuration.explorerURL+"/tx/"+receipt.transactionHash){Link("View confirmed transaction",destination:url)}
                 }
             }
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("実行履歴").navigationBarTitleDisplayMode(.inline)
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Activity").navigationBarTitleDisplayMode(.inline)
     }
 }

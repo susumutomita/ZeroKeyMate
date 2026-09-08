@@ -6,7 +6,7 @@ import MateCore
 @MainActor
 final class MateModel:ObservableObject {
     enum CameraPhase:String {
-        case off="カメラ OFF",starting="カメラ起動中",on="カメラ ON・端末内",stopping="カメラ停止中"
+        case off="Camera OFF",starting="Camera starting",on="Camera ON · On-device",stopping="Camera stopping"
     }
     @Published private(set) var cameraPhase:CameraPhase = .off
     @Published private(set) var dockConnected=false
@@ -15,7 +15,15 @@ final class MateModel:ObservableObject {
     @Published private(set) var dockMessage:String?
     @Published private(set) var captureRequested=false
     @Published private(set) var horizontalFocus=0.0
+    @Published private(set) var verticalFocus=0.0
+    @Published private(set) var detectedFaces=0
+    @Published private(set) var dockTrackingSubjects=0
+    @Published private(set) var dockTrackingButtonEnabled=false
+    private var trackingRetryAt=Date.distantPast
+    var onDetach:(()->Void)?
+    var onInterruption:(()->Void)?
     private var observation:FrameObservation?
+    private var gaze=CompanionGaze()
     private let camera=CameraService()
     private let dock=DockService()
     private var intent=CaptureIntent()
@@ -38,10 +46,16 @@ final class MateModel:ObservableObject {
                 Task{@MainActor [weak self] in
                     guard let self,self.intent.shouldCapture,self.cameraRunning else{return}
                     self.observation=value
-                    self.horizontalFocus=max(-1,min(1,value.horizontalFocus ?? 0))
+                    self.detectedFaces=value.faceCount
+                    let position=self.gaze.update(x:value.horizontalFocus,y:value.verticalFocus,
+                                                  now:ProcessInfo.processInfo.systemUptime)
+                    self.horizontalFocus=position.x
+                    self.verticalFocus=position.y
+                    if self.lastTrackingRequest == nil,Date()>=self.trackingRetryAt {self.scheduleReconciliation()}
                 }
             }
         }
+        dock.onTrackingSubjects={[weak self] count in self?.dockTrackingSubjects=count}
         dock.observe{[weak self] error in
             guard let self else{return}
             let wasConnected=self.dockConnected
@@ -49,15 +63,16 @@ final class MateModel:ObservableObject {
                 self.lastTrackingRequest=nil
             }
             self.lastTrackingButtonEnabled=self.dock.trackingButtonEnabled
+            self.dockTrackingButtonEnabled=self.dock.trackingButtonEnabled
             self.dockConnected=self.dock.isConnected;self.dockMessage=error
-            if wasConnected && !self.dockConnected{self.intent.requestStop()}
+            if wasConnected && !self.dockConnected{self.intent.requestStop();self.onDetach?()}
             self.scheduleReconciliation()
         }
         for name in [AVCaptureSession.wasInterruptedNotification,AVCaptureSession.runtimeErrorNotification] {
             NotificationCenter.default.publisher(for:name).receive(on:DispatchQueue.main).sink{[weak self] _ in
                 guard let self,self.cameraRunning || self.isTransitioning else{return}
-                self.message="カメラが中断されました。再開には開始ボタンを押してください。"
-                self.intent.requestStop();self.scheduleReconciliation()
+                self.message="The camera was interrupted. Tap Start camera to resume."
+                self.intent.requestStop();self.scheduleReconciliation();self.onInterruption?()
             }.store(in:&notifications)
         }
     }
@@ -72,7 +87,7 @@ final class MateModel:ObservableObject {
     func stopCapture(){intent.requestStop();scheduleReconciliation()}
     private func scheduleReconciliation() {
         revision &+= 1;captureRequested=intent.shouldCapture
-        if !intent.shouldCapture{observation=nil;horizontalFocus=0}
+        if !intent.shouldCapture{observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0}
         guard reconciliationTask == nil else{return}
         reconciliationTask=Task{[weak self] in
             guard let self else{return}
@@ -88,7 +103,7 @@ final class MateModel:ObservableObject {
                 let allowed=await CameraService.requestPermission()
                 guard intent.shouldCapture else{cameraPhase = .off;continue}
                 if !allowed {
-                    message="カメラへのアクセスが許可されていません。iPhoneの設定で変更できます。"
+                    message="Camera access is not allowed. You can change this in iPhone Settings."
                     intent.requestStop();captureRequested=false;cameraPhase = .off
                 }else{
                     do {
@@ -103,13 +118,17 @@ final class MateModel:ObservableObject {
             if !intent.shouldCapture && cameraRunning {
                 cameraPhase = .stopping
                 await camera.stop();cameraRunning=false;cameraPhase = .off
-                observation=nil;horizontalFocus=0
+                observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0
             }
             let wantsTracking=cameraRunning && intent.shouldCapture && dock.isConnected && dock.trackingButtonEnabled
-            if lastTrackingRequest != wantsTracking {
-                lastTrackingRequest=wantsTracking
-                do{try await dock.setTrackingEnabled(wantsTracking);trackingEnabled=wantsTracking}
-                catch{trackingEnabled=nil;dockMessage="追尾設定を確認できません：\(error.localizedDescription)"}
+            if lastTrackingRequest != wantsTracking, !wantsTracking || Date()>=trackingRetryAt {
+                do{
+                    try await dock.setTrackingEnabled(wantsTracking)
+                    lastTrackingRequest=wantsTracking;trackingEnabled=wantsTracking;trackingRetryAt = .distantPast
+                }catch{
+                    lastTrackingRequest=nil;trackingEnabled=nil;trackingRetryAt=Date().addingTimeInterval(2)
+                    dockMessage=L10n.format("Could not verify tracking settings: %@",error.localizedDescription)
+                }
             }
         }while processedRevision != revision
     }
