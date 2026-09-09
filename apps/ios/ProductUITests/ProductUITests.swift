@@ -52,6 +52,25 @@ final class ProductUITests: XCTestCase {
             XCTAssertGreaterThanOrEqual(button.frame.height, 44, id)
         }
     }
+    func testSetupCanBeDeferredAndResumedWithoutStartingSensors() {
+        let app=launch()
+        XCTAssertTrue(app.staticTexts["Camera off"].exists)
+        app.buttons["open-setup"].tap()
+        XCTAssertTrue(app.navigationBars["Set up external requests"].waitForExistence(timeout:10))
+        let connection=app.buttons["Configure connection"]
+        XCTAssertTrue(connection.waitForExistence(timeout:15))
+        connection.tap()
+        XCTAssertTrue(app.navigationBars["Connection"].waitForExistence(timeout:5))
+        app.navigationBars.buttons.element(boundBy:0).tap()
+        XCTAssertTrue(app.buttons["Do this later"].waitForExistence(timeout:5))
+        app.buttons["Do this later"].tap()
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:5))
+        app.buttons["companion-face"].swipeUp()
+        XCTAssertTrue(app.staticTexts["Camera off"].waitForExistence(timeout:5))
+        app.buttons["open-setup"].tap()
+        XCTAssertTrue(app.buttons["Configure connection"].waitForExistence(timeout:10))
+        capture("resumed-setup-connection")
+    }
     func testFaceHasNoVisibleTextOrToolbar() {
         let app=launch()
         app.buttons["close-sheet"].tap()

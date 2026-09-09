@@ -5232,6 +5232,422 @@
           }
         }
       }
+    },
+    "Set up external requests": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up external requests"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部依頼の準備"
+          }
+        }
+      }
+    },
+    "Resume external request setup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume external request setup"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部依頼の準備を再開"
+          }
+        }
+      }
+    },
+    "Restore saved progress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore saved progress"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みの状態を復元"
+          }
+        }
+      }
+    },
+    "Check the pending operation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the pending operation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未確定の操作を確認"
+          }
+        }
+      }
+    },
+    "Connect your shop": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect your shop"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "店舗に接続"
+          }
+        }
+      }
+    },
+    "Sign in to your wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to your wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォレットにログイン"
+          }
+        }
+      }
+    },
+    "Prepare your two wallets": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare your two wallets"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2つのウォレットを準備"
+          }
+        }
+      }
+    },
+    "Check your execution account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your execution account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行用口座を確認"
+          }
+        }
+      }
+    },
+    "Add test funds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add test funds"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テスト資金を入れる"
+          }
+        }
+      }
+    },
+    "Choose what Mate may do": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose what Mate may do"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateに任せる範囲を決める"
+          }
+        }
+      }
+    },
+    "Make your first request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make your first request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の依頼をする"
+          }
+        }
+      }
+    },
+    "Checking setup…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking setup…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "準備状況を確認中…"
+          }
+        }
+      }
+    },
+    "Open wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォレットを開く"
+          }
+        }
+      }
+    },
+    "Review your rules": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review your rules"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルールを確認"
+          }
+        }
+      }
+    },
+    "Last checked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last checked"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最終確認"
+          }
+        }
+      }
+    },
+    "Do this later": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Do this later"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "後で行う"
+          }
+        }
+      }
+    },
+    "Mate is restoring saved operations. No registration or payment will be repeated.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mate is restoring saved operations. No registration or payment will be repeated."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みの操作を復元しています。登録や支払いを繰り返すことはありません。"
+          }
+        }
+      }
+    },
+    "A previous operation needs confirmation. Recover it before changing connections or creating another order.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A previous operation needs confirmation. Recover it before changing connections or creating another order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の操作が未確定です。接続の変更や新しい注文の前に、その結果を確認してください。"
+          }
+        }
+      }
+    },
+    "Verify your HTTPS service, test network and public Privy app IDs. Your existing connection stays in place until the new one passes.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verify your HTTPS service, test network and public Privy app IDs. Your existing connection stays in place until the new one passes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTPSサービス、テストネットワーク、Privyの公開アプリIDを確認します。検証成功まで現在の接続を保持します。"
+          }
+        }
+      }
+    },
+    "Sign in with your existing Privy account. This does not create a mandate or send funds.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in with your existing Privy account. This does not create a mandate or send funds."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既存のPrivyアカウントでログインします。この操作で委任の作成や送金は行いません。"
+          }
+        }
+      }
+    },
+    "Your owner wallet approves permissions. Mate uses a separate execution key. Existing wallets are restored first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your owner wallet approves permissions. Mate uses a separate execution key. Existing wallets are restored first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有者のウォレットで権限を承認し、Mateは別の実行キーを使います。既存のウォレットを先に復元します。"
+          }
+        }
+      }
+    },
+    "Refresh the current balance before continuing. A saved setup step is not evidence of available funds.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh the current balance before continuing. A saved setup step is not evidence of available funds."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の残高を確認してください。保存された準備の進捗だけでは、資金があるとは判断しません。"
+          }
+        }
+      }
+    },
+    "The execution account has no test USDC. In Wallet, review the amount, approve it, then deposit. Each transaction needs its own approval.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The execution account has no test USDC. In Wallet, review the amount, approve it, then deposit. Each transaction needs its own approval."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行用口座にテストUSDCがありません。ウォレットで金額を確認・承認してから入金してください。取引ごとに承認が必要です。"
+          }
+        }
+      }
+    },
+    "Review the services, spending limit and expiry. Only the displayed terms will be signed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review the services, spending limit and expiry. Only the displayed terms will be signed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービス、利用上限、有効期限を確認してください。表示された条件だけに署名します。"
+          }
+        }
+      }
+    },
+    "The connection, wallet, balance and mandate have been checked. Choose a service and review the text and price before placing an order.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The connection, wallet, balance and mandate have been checked. Choose a service and review the text and price before placing an order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続、ウォレット、残高、委任を確認しました。サービスを選び、送信する文章と料金を確認してから注文してください。"
+          }
+        }
+      }
+    },
+    "Local conversation and private proof checks are available without this setup.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local conversation and private proof checks are available without this setup."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の会話や私的ルールの証明確認には、この準備は不要です。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
