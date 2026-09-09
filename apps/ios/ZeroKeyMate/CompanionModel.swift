@@ -55,6 +55,7 @@ final class CompanionModel:ObservableObject {
                 // sensor consent. Existing approval guards still require an awake app.
                 if [.setup,.rules,.wallet,.identity,.disclosure,.localProof,.connection].contains(sheet){sleeping=false}
             }
+            updateStandApproval()
         }
     }
     @Published var errorMessage:String? { didSet { if errorMessage != nil { stopVoice() } } }
@@ -62,7 +63,10 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var thinking=false
     @Published private(set) var financialBusy=false
     @Published private(set) var executionStatus:String? {didSet{if executionStatus == nil{executionActivity=nil}}}
-    @Published private(set) var executionActivity:CompanionActivity?
+    @Published private(set) var executionActivity:CompanionActivity? {didSet{updateStandApproval()}}
+    private func updateStandApproval() {
+        sensors.setApprovalPending(executionActivity == .approval || agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules)
+    }
     var activity:CompanionActivity {
         let approval=agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules
         return .resolve(resting:sleeping || (isResting && !approval && pendingExecution == nil && executionStatus == nil),
@@ -111,7 +115,7 @@ final class CompanionModel:ObservableObject {
     let voice=VoiceService()
     @Published private(set) var wallet:WalletService
     private let planner:any AgentPlanning
-    private var agentOffer:AgentOffer?
+    private var agentOffer:AgentOffer? {didSet{updateStandApproval()}}
     private let conversation:any ConversationResponding
     // A single actor serializes native work across payment and offline screens.
     let proofs=ProofService()
@@ -119,7 +123,7 @@ final class CompanionModel:ObservableObject {
     private var rpc:EthereumRPC
     private var conversationTask:Task<Void,Never>?
     private var conversationGeneration:UInt64=0
-    private var revokeOffer:PendingRevoke?
+    private var revokeOffer:PendingRevoke? {didSet{updateStandApproval()}}
     private var voiceGeneration:UInt64{listeningSession.revision}
     private var requestGeneration=UUID()
     private var started=false
@@ -147,7 +151,7 @@ final class CompanionModel:ObservableObject {
         sensors.onInterruption={[weak self] in
             guard let self else{return}
             self.rest()
-            if let message=self.sensors.message{self.errorMessage=message}
+            if let message=self.sensors.message ?? self.sensors.dockMessage{self.errorMessage=message}
         }
         NotificationCenter.default.publisher(for:AVAudioSession.interruptionNotification)
             .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.rest()}.store(in:&notifications)
@@ -272,6 +276,7 @@ final class CompanionModel:ObservableObject {
     /// later, unrelated interaction reading a stale value.
     private func flashOutcome(_ outcome:ExecutionOutcome) {
         outcomeTask?.cancel();lastOutcome=outcome
+        sensors.requestReaction(outcome)
         outcomeTask=Task{[weak self] in
             do{try await Task.sleep(for:.milliseconds(1_600))}catch{return}
             guard let self,!Task.isCancelled,self.lastOutcome==outcome else{return}
@@ -486,6 +491,7 @@ final class CompanionModel:ObservableObject {
             return
         }
         draft=DisclosureDraft(service:request.service,text:request.text)
+        let preflightFeedback=makeOutcomeFeedback()
         executionStatus=ja ? "店舗の料金を確認しています" : "Checking shop prices"
         defer{executionStatus=nil}
         do {
@@ -517,6 +523,9 @@ final class CompanionModel:ObservableObject {
             agentSay(prompt,language:language)
         } catch {
             guard foreground,conversationGeneration==generation else{return}
+            if let rejection=error as? MandateError,
+               rejection == .overBudget || rejection == .serviceNotAllowed,
+               pendingExecution == nil {preflightFeedback(.rejected)}
             agentSay((ja ? "注文前の確認で止まりました。" : "I stopped before placing the order. ")+L10n.text(error.localizedDescription),language:language)
         }
     }

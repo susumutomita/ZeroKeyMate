@@ -18,6 +18,23 @@ private actor SuspendedConversation:ConversationResponding {
 
 @MainActor
 final class ConversationTests:XCTestCase {
+    func testStandMovementOffAndOutcomeDoNotStartSensors() {
+        let model=CompanionModel(planner:ChatOnlyPlanner())
+        let previous=model.sensors.standMovementEnabled
+        defer{model.sensors.setStandMovementEnabled(previous);model.rest()}
+        model.sensors.setStandMovementEnabled(false)
+        model.wake()
+        model.makeOutcomeFeedback()(.confirmed)
+        XCTAssertEqual(model.lastOutcome,.confirmed)
+        XCTAssertFalse(model.sensors.standMotionAllowed)
+        XCTAssertFalse(model.sensors.captureRequested)
+        XCTAssertFalse(model.sensors.reactionRunning)
+        XCTAssertFalse(model.voice.listening)
+        model.sheet = .disclosure
+        XCTAssertEqual(model.activity,.approval)
+        model.rest()
+        XCTAssertEqual(model.activity,.resting)
+    }
     func testOutcomeFeedbackCannotResumeAfterRestBackgroundOrNewInteraction() {
         for stop in 0..<3 {
             let model=CompanionModel(planner:ChatOnlyPlanner())

@@ -5776,6 +5776,102 @@
           }
         }
       }
+    },
+    "Stand reactions need a supported axis and a fresh stationary position.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stand reactions need a supported axis and a fresh stationary position."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドのリアクションには対応する回転軸と最新の静止位置情報が必要です。"
+          }
+        }
+      }
+    },
+    "The stand reaction stopped. Rest Mate and start again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The stand reaction stopped. Rest Mate and start again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドのリアクションを停止しました。Mateを休止してから再開してください。"
+          }
+        }
+      }
+    },
+    "Stand reacting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stand reacting"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドが反応中"
+          }
+        }
+      }
+    },
+    "Stand movement": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stand movement"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドの動作"
+          }
+        }
+      }
+    },
+    "Stand movement off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stand movement off"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドの動作はオフ"
+          }
+        }
+      }
+    },
+    "Allows tracking and small reactions while the camera is explicitly active. Turning this off or enabling Reduce Motion stops stand movement.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allows tracking and small reactions while the camera is explicitly active. Turning this off or enabling Reduce Motion stops stand movement."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "明示的に開始したカメラの動作中に追跡と小さなリアクションを行います。オフにするか「視差効果を減らす」を有効にするとスタンドの動作を停止します。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

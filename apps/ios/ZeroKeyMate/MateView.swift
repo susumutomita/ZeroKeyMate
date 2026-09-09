@@ -76,7 +76,8 @@ private struct CompanionHome:View {
         GeometryReader{geometry in
             MateEyes(resting:model.activity == .resting,listening:model.activity == .listening,
                      thinking:model.activity.processing,
-                     focus:sensors.horizontalFocus,verticalFocus:sensors.verticalFocus,reduceMotion:reduceMotion,
+                     focus:model.activity == .approval ? 0:sensors.horizontalFocus,
+                     verticalFocus:model.activity == .approval ? 0:sensors.verticalFocus,reduceMotion:reduceMotion,
                      speaking:model.activity == .speaking,hearingSpeech:model.activity == .listening && !voice.transcript.isEmpty)
                 .frame(width:min(geometry.size.width*0.78,620),height:min(geometry.size.height*0.38,300))
                 .offset(outcomeOffset)
@@ -189,7 +190,7 @@ private struct ControlsSheet:View {
                     .accessibilityIdentifier("camera-status")
                 if sensors.cameraPhase == .on {
                     Text(L10n.text(sensors.faceDetectionStatus)).accessibilityIdentifier("face-detection-status")
-                    Text(L10n.text(!sensors.dockConnected ? "Stand not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Preparing stand tracking":sensors.dockTrackingSubjects>0 ? "Stand tracking a subject":"Stand looking for a subject"))
+                    Text(L10n.text(!sensors.standMotionAllowed ? "Stand movement off":sensors.reactionRunning ? "Stand reacting":model.activity == .approval ? "Waiting for approval.":!sensors.dockConnected ? "Stand not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Preparing stand tracking":sensors.dockTrackingSubjects>0 ? "Stand tracking a subject":"Stand looking for a subject"))
                 }
                 if let error=voice.errorMessage{SectionNote(text:error)}
                 if let message=sensors.message{SectionNote(text:message)}
@@ -371,8 +372,11 @@ private struct SettingsSheet:View {
                 SectionNote(text:"Detects broad object categories and face positions, not identity. Video is never saved or sent externally.")
                 if let message=sensors.message{SectionNote(text:message)}
                 if let message=sensors.dockMessage{SectionNote(text:message)}
-                LabeledContent("Stand",value:L10n.text(!sensors.dockConnected ? "Not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Start camera to enable tracking":sensors.dockTrackingSubjects>0 ? "Tracking a subject":"Looking for a subject"))
+                LabeledContent("Stand",value:L10n.text(!sensors.standMotionAllowed ? "Stand movement off":!sensors.dockConnected ? "Not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Start camera to enable tracking":sensors.dockTrackingSubjects>0 ? "Tracking a subject":"Looking for a subject"))
                 Toggle("Read replies aloud",isOn:$model.readAloud)
+                Toggle("Stand movement",isOn:Binding(get:{sensors.standMovementEnabled},set:{sensors.setStandMovementEnabled($0)}))
+                    .accessibilityIdentifier("stand-movement")
+                SectionNote(text:"Allows tracking and small reactions while the camera is explicitly active. Turning this off or enabling Reduce Motion stops stand movement.")
             }
             Section("Delegation"){
                 Button{model.sheet = .rules}label:{Label("Your rules",systemImage:"checkmark.shield")}
