@@ -5696,6 +5696,86 @@
           }
         }
       }
+    },
+    "Waiting for approval.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for approval."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認を待っています。"
+          }
+        }
+      }
+    },
+    "Sending the approved request.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending the approved request."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認された依頼を送信しています。"
+          }
+        }
+      }
+    },
+    "Verifying the execution receipt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying the execution receipt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行結果を検証しています。"
+          }
+        }
+      }
+    },
+    "The result is not yet confirmed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The result is not yet confirmed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果はまだ確認できていません。"
+          }
+        }
+      }
+    },
+    "Checking confirmation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking confirmation."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確定状況を確認しています。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

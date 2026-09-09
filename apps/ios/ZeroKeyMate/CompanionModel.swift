@@ -18,7 +18,7 @@ struct DisclosureDraft:Identifiable,Sendable {
 /// A brief, confirmed-result signal for the eyes: a short nod on a verified success,
 /// a short shake on a verified rejection or failure. Never set from an animation
 /// finishing; only from the actual state that produced the outcome.
-enum ExecutionOutcome:Equatable,Sendable {case confirmed,rejected}
+typealias ExecutionOutcome = CompanionOutcome
 struct PendingGrant:Codable,Sendable {
     let grant:MandateGrant
     let policy:PrivatePolicy
@@ -61,7 +61,18 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var messages:[ConversationMessage]=[]
     @Published private(set) var thinking=false
     @Published private(set) var financialBusy=false
-    @Published private(set) var executionStatus:String?
+    @Published private(set) var executionStatus:String? {didSet{if executionStatus == nil{executionActivity=nil}}}
+    @Published private(set) var executionActivity:CompanionActivity?
+    var activity:CompanionActivity {
+        let approval=agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules
+        return .resolve(resting:sleeping || (isResting && !approval && pendingExecution == nil && executionStatus == nil),
+            operation:executionActivity ?? (financialBusy || executionStatus != nil ? .thinking:nil),
+            pending:pendingExecution != nil,outcome:lastOutcome,approval:approval,
+            speaking:voice.speaking,listening:voice.listening,thinking:thinking)
+    }
+    private func reportExecution(_ activity:CompanionActivity,_ text:String) {
+        executionActivity=activity;executionStatus=text
+    }
     @Published private(set) var modelUnavailable:String?
     @Published private(set) var proofUnavailable:String? = "Checking proof runtime."
     @Published private(set) var mandate:StoredMandate?
@@ -667,16 +678,18 @@ final class CompanionModel:ObservableObject {
             let state=try await network.account(owner:owner)
             let grant=try MandateGrant(owner:owner,agent:agent,policyHash:LocalSecrets.hash(policy.material()),
                 validUntil:UInt64(expiry.timeIntervalSince1970),nonce:state.nonce)
-            executionStatus="Verifying owner approval"
+            reportExecution(.approval,"Verifying owner approval")
             let signature=try await wallet.signGrant(grant,validateApproval:validateApproval)
             let pending=PendingGrant(grant:grant,policy:policy,signature:signature)
             try LocalSecrets.write(pending,key:configuration.stateKey("pending-grant"))
-            executionStatus=L10n.format("Registering the mandate on %@",L10n.text(configuration.networkName))
+            reportExecution(.sending,L10n.format("Registering the mandate on %@",L10n.text(configuration.networkName)))
             try await finishGrant(pending)
         }catch{errorMessage=error.localizedDescription}
     }
     private func finishGrant(_ pending:PendingGrant) async throws {
+        reportExecution(.sending,L10n.format("Registering the mandate on %@",L10n.text(configuration.networkName)))
         let receipt=try await network.register(grant:pending.grant,signature:pending.signature)
+        reportExecution(.confirming,L10n.format("Waiting for %@ confirmation",L10n.text(configuration.networkName)))
         _=try await rpc.confirm(hash:receipt.transactionHash)
         let state=try await network.mandate(id:receipt.mandateId)
         guard state.owner.lowercased()==pending.grant.owner.lowercased(),state.agent.lowercased()==pending.grant.agent.lowercased(),
@@ -687,7 +700,7 @@ final class CompanionModel:ObservableObject {
         mandate=stored;spent=value
     }
     func recoverGrant() async {
-        guard !financialBusy else{return};financialBusy=true;defer{financialBusy=false}
+        guard !financialBusy else{return};financialBusy=true;defer{financialBusy=false;executionStatus=nil}
         do {
             guard let pending=try LocalSecrets.read(PendingGrant.self,key:configuration.stateKey("pending-grant")) else{
                 throw ProductError.unavailable("There is no pending mandate.")
@@ -702,9 +715,9 @@ final class CompanionModel:ObservableObject {
         guard !financialBusy else{return}
         financialBusy=true;stopVoice();sensors.stopCapture();defer{financialBusy=false;executionStatus=nil}
         do {
-            executionStatus="Verifying signature"
+            reportExecution(.approval,"Verifying signature")
             let hash=try await wallet.send(operation,validateApproval:validateApproval)
-            executionStatus=L10n.format("Waiting for %@ confirmation",L10n.text(configuration.networkName))
+            reportExecution(.confirming,L10n.format("Waiting for %@ confirmation",L10n.text(configuration.networkName)))
             _=try await rpc.confirm(hash:hash)
             if case .revoke=operation{try LocalSecrets.delete(configuration.stateKey("active-mandate"));mandate=nil}
             await refreshAccount()
@@ -741,25 +754,25 @@ final class CompanionModel:ObservableObject {
             let action=MandateAction(mandateId:stored.id,recipient:provider.recipient,amount:amount,service:service,
                 nonce:CanonicalBytes.hexString(try LocalSecrets.random32()),expiresAt:min(now+300,state.validUntil),
                 requestHash:LocalSecrets.hash(Data(payload.utf8)),spentBefore:spentBefore)
-            executionStatus="Generating a proof on this iPhone"
+            reportExecution(.proving,"Generating a proof on this iPhone")
             let proof=try await proofs.prove(policy:stored.policy,action:action,chainID:configuration.chainID,vault:configuration.vault)
             try checkApproval()
             lastProofMilliseconds=proof.elapsedMilliseconds
             guard proof.policyHash.lowercased()==stored.grant.policyHash.lowercased() else{throw ProductError.invalidResponse}
-            executionStatus="Signing with the restricted execution key"
+            reportExecution(.thinking,"Signing with the restricted execution key")
             let signature=try await wallet.signAction(hash:proof.actionHash,validateApproval:checkApproval)
             try checkApproval()
             let submission=ExecutionSubmission(action:action,agentSignature:signature,proof:proof.bytes.base64EncodedString(),payload:payload,providerId:provider.id)
             let pending=PendingExecution(actionHash:proof.actionHash,proofHash:proof.proofHash,createdAt:Date(),submission:submission)
             try LocalSecrets.write(pending,key:configuration.stateKey("pending-execution"));pendingExecution=pending
-            executionStatus="Sending approved text and confirming execution"
+            reportExecution(.sending,"Sending approved text and confirming execution")
             let receipt:ExecutionReceipt
             do {
                 receipt=try await network.execute(action:action,signature:signature,proof:proof.bytes,payload:payload,providerID:provider.id)
             } catch {
                 guard fromAgent else{throw error}
                 try checkApproval()
-                executionStatus="Checking the existing order without creating another payment"
+                reportExecution(.confirming,"Checking the existing order without creating another payment")
                 // One bounded recovery attempt, using the persisted action and nonce.
                 // A lost response must never produce a second independently signed order.
                 do {receipt=try await network.receipt(actionHash:pending.actionHash)}
@@ -785,6 +798,7 @@ final class CompanionModel:ObservableObject {
     private func accept(_ receipt:ExecutionReceipt,pending:PendingExecution) async throws {
         guard receipt.actionHash.lowercased()==pending.actionHash.lowercased(),receipt.proofHash.lowercased()==pending.proofHash.lowercased(),
               let value=UInt64(receipt.spentAfter) else{throw ProductError.invalidResponse}
+        reportExecution(.confirming,"Verifying the execution receipt.")
         try await rpc.confirmExecution(receipt,pending:pending,vault:configuration.vault)
         spent=value;receipts.removeAll{$0.id==receipt.id};receipts.insert(receipt,at:0);receipts=Array(receipts.prefix(30))
         try LocalSecrets.write(receipts,key:configuration.stateKey("receipts"));try LocalSecrets.delete(configuration.stateKey("pending-execution"));pendingExecution=nil
@@ -792,7 +806,8 @@ final class CompanionModel:ObservableObject {
     func recoverExecution() async {
         guard !financialBusy,let pending=pendingExecution else{return}
         let feedback=makeOutcomeFeedback()
-        financialBusy=true;defer{financialBusy=false}
+        financialBusy=true;defer{financialBusy=false;executionStatus=nil}
+        reportExecution(.confirming,"Checking the existing order without creating another payment")
         do {
             let receipt:ExecutionReceipt
             do{receipt=try await network.receipt(actionHash:pending.actionHash)}
