@@ -5200,6 +5200,38 @@
           }
         }
       }
+    },
+    "Confirmed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認できました。"
+          }
+        }
+      }
+    },
+    "This request wasn't approved.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This request wasn't approved."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この依頼は承認されませんでした。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

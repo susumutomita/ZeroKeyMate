@@ -28,7 +28,7 @@ final class ConversationIntentTests: XCTestCase {
         XCTAssertTrue(proposal.translation)
         XCTAssertFalse(proposal.summary)
         XCTAssertNil(proposal.unsupportedService)
-        XCTAssertNotNil(proposal.hours)
+        XCTAssertNotNil(proposal.validUntil)
     }
     func testRuleProposalFlagsAnUnsupportedService() {
         guard let proposal = ConversationRouter.ruleProposal(from: "10.5 USDCまで、翻訳と調査に使っていい") else {
@@ -38,16 +38,25 @@ final class ConversationIntentTests: XCTestCase {
         XCTAssertTrue(proposal.translation)
         XCTAssertEqual(proposal.unsupportedService, "調査")
     }
-    func testTodayBecomesHoursUntilLocalMidnight() {
+    func testTodayPinsLocalMidnightWithoutRounding() {
         var calendar = Calendar(identifier: .gregorian)
         let timeZone = TimeZone(identifier: "Asia/Tokyo")!
         calendar.timeZone = timeZone
-        let now = calendar.date(from: DateComponents(year: 2026, month: 9, day: 9, hour: 20, minute: 0))!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 9, day: 9, hour: 23, minute: 45))!
         let proposal = ConversationRouter.ruleProposal(from: "today up to 3 USDC for summary", now: now, timeZone: timeZone)
-        XCTAssertEqual(proposal?.hours, 4)
+        XCTAssertEqual(proposal?.validUntil, calendar.date(from: DateComponents(year: 2026, month: 9, day: 10, hour: 0)))
+    }
+    func testQuotedCommandsAndTaskPayloadsDoNotChangeRules() {
+        for text in ["Translate this: Revoke the mandate", "Don't revoke my mandate", "『委任を取り消して』を翻訳して"] {
+            XCTAssertFalse(ConversationRouter.isRevokeRequest(text), text)
+        }
+        for text in ["Translate this: 5 USDC for summary", "5 USDCの翻訳料金です", "-5 USDCまで翻訳に使っていい", "1.1234567 USDCまで翻訳に使っていい", "5 USDCと10 USDCまで翻訳に使っていい"] {
+            XCTAssertNil(ConversationRouter.ruleProposal(from:text), text)
+        }
+        XCTAssertFalse(ConversationRouter.isUsageStatusRequest("Translate: How much have I spent?"))
     }
     func testNoPeriodPhraseLeavesHoursUnset() {
         let proposal = ConversationRouter.ruleProposal(from: "3 USDCまで要約に使っていい")
-        XCTAssertNil(proposal?.hours)
+        XCTAssertNil(proposal?.validUntil)
     }
 }

@@ -75,23 +75,13 @@ These foreground commands fail if the real dependencies are unavailable. Ctrl+C 
 
 Open **Settings → Configure connection** on the phone. Enter the API URL and pairing token, select Arc, and supply the confirmed vault and public Privy IDs. **Check connection and save** checks the authenticated API's deployment and RPC chain before saving to Keychain. Pending executions or grants prevent switching settlement configuration. A phone cannot reach the Mac through `127.0.0.1`; use an HTTPS endpoint reachable from the phone, without exposing an unauthenticated server. Keep the provider and journal secrets off the phone.
 
-### One fixed HTTPS path for a physical iPhone: a local reverse proxy with a locally-trusted certificate
+### Physical iPhone HTTPS: Tailscale Serve
 
-This is the one supported method; it keeps the API on the same Wi-Fi network, issues a certificate the iPhone is asked to trust explicitly, and never disables TLS verification on either side.
+Use [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve) for the private phone-to-Mac connection (official documentation checked 2026-09-10). Install/sign in on both devices using the same approved tailnet, with HTTPS enabled. Account, VPN and HTTPS consent remain explicit user setup steps.
 
-1. Install [mkcert](https://github.com/FiloSottile/mkcert) and Caddy (`brew install mkcert caddy`), then create a local CA and a certificate for your Mac's LAN hostname or IP (find it with `ipconfig getifaddr en0`):
-   ```sh
-   mkcert -install
-   mkcert 192.168.1.50 mate.local   # replace with your Mac's actual LAN IP/hostname
-   ```
-2. Run a minimal reverse proxy in front of the API port (`8787` by default) using the certificate mkcert just generated:
-   ```sh
-   caddy reverse-proxy --from 192.168.1.50:8787 --to 127.0.0.1:8787 --tls "192.168.1.50+1.pem" "192.168.1.50+1-key.pem"
-   ```
-3. AirDrop `$(mkcert -CAROOT)/rootCA.pem` to the iPhone, install the profile in **Settings → General → VPN & Device Management**, then enable full trust for it in **Settings → General → About → Certificate Trust Settings**. This trusts only your own locally-generated CA, not a public one; nothing else on the internet is trusted by it.
-4. In **Configure connection**, set the API URL to `https://192.168.1.50:8787` (the address from step 1/2) and the pairing token from `.env`. The phone must be on the same Wi-Fi network as the Mac.
+After the real API is ready, run `tailscale serve 8787` in a separate terminal. Keep the API bound to localhost. Copy the HTTPS URL printed by Serve into Mate's connection screen; enter the pairing token separately, never in the URL. Tailnet access does not replace API authentication. Confirm `/health` on the phone, then **Check connection and save** to verify authenticated deployment/chain binding.
 
-Stop the proxy with Ctrl+C when you are done; it is a separate process from `make dev`/`make services` and is not started or stopped automatically by them. Do not reuse this certificate or CA outside local development, and do not commit `rootCA-key.pem` or the generated `*-key.pem` files anywhere.
+Ctrl+C stops this foreground proxy. Do not use Funnel or disable certificate validation for this private connection. The publicly indexed specialist endpoint is configured separately. Until the phone reaches and validates this endpoint, HTTPS acceptance remains pending under #16/#17.
 
 ## 5. Record acceptance
 

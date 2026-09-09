@@ -85,9 +85,10 @@ private struct CompanionHome:View {
                      speaking:voice.speaking,hearingSpeech:voice.listening && !voice.transcript.isEmpty)
                 .frame(width:min(geometry.size.width*0.78,620),height:min(geometry.size.height*0.38,300))
                 .offset(outcomeOffset)
-                .onChange(of:model.lastOutcome){_,outcome in
-                    guard !reduceMotion,let outcome else{return}
-                    Task{await playOutcomeMotion(outcome)}
+                .task(id:model.lastOutcome){
+                    outcomeOffset = .zero
+                    guard !reduceMotion,let outcome=model.lastOutcome else{return}
+                    await playOutcomeMotion(outcome)
                 }
                 .frame(maxWidth:.infinity,maxHeight:.infinity)
                 .contentShape(Rectangle())
@@ -119,12 +120,12 @@ private struct CompanionHome:View {
     private func playOutcomeMotion(_ outcome:ExecutionOutcome) async {
         if outcome == .confirmed {
             withAnimation(.easeOut(duration:0.16)){outcomeOffset=CGSize(width:0,height:9)}
-            try? await Task.sleep(for:.milliseconds(160))
+            do{try await Task.sleep(for:.milliseconds(160))}catch{outcomeOffset = .zero;return}
             withAnimation(.spring(response:0.22,dampingFraction:0.55)){outcomeOffset = .zero}
         } else {
             for step:CGFloat in [-12,10,-7,5,0] {
                 withAnimation(.easeInOut(duration:0.07)){outcomeOffset=CGSize(width:step,height:0)}
-                try? await Task.sleep(for:.milliseconds(70))
+                do{try await Task.sleep(for:.milliseconds(70))}catch{outcomeOffset = .zero;return}
             }
         }
     }
@@ -404,14 +405,16 @@ private struct RulesSheet:View {
     @State private var translation:Bool
     @State private var summary:Bool
     @State private var hours:Int
+    @State private var exactExpiry:Date?
     @Environment(\.locale) private var locale
     init(model:CompanionModel) {
         self.model=model
-        let draft=model.consumeRuleDraft()
+        let draft=model.ruleDraft
         _budget=State(initialValue:draft.map{TokenAmount(units:$0.budgetUnits).display} ?? "5")
         _translation=State(initialValue:draft?.translation ?? true)
         _summary=State(initialValue:draft?.summary ?? true)
-        _hours=State(initialValue:draft?.hours ?? 8)
+        _hours=State(initialValue:8)
+        _exactExpiry=State(initialValue:draft?.validUntil)
     }
     var body:some View {
         let _ = locale.identifier
@@ -432,17 +435,21 @@ private struct RulesSheet:View {
                 Section("New mandate"){
                     HStack{Text("Spending limit");Spacer();TextField("5",text:$budget).multilineTextAlignment(.trailing).keyboardType(.decimalPad);Text("USDC").foregroundStyle(.secondary)}
                     Toggle("Translation",isOn:$translation);Toggle("Summary",isOn:$summary)
-                    Stepper("Valid for \(hours) hours",value:$hours,in:1...24)
+                    if let expiry=exactExpiry {
+                        DatePicker("Expires",selection:Binding(get:{exactExpiry ?? expiry},set:{exactExpiry=$0}),displayedComponents:[.date,.hourAndMinute])
+                    } else {
+                        Stepper("Valid for \(hours) hours",value:$hours,in:1...24)
+                    }
                     SectionNote(text:"No limit increases, redelegation or arbitrary contract calls are allowed. Device authentication is required before signing.")
                     PrimaryAction(title:"Approve these terms",disabled:model.financialBusy || (!translation && !summary)){
-                        Task{await model.authorize(budget:budget,translation:translation,summary:summary,hours:hours)}
+                        Task{await model.authorize(budget:budget,translation:translation,summary:summary,hours:hours,validUntil:exactExpiry)}
                     }.listRowInsets(EdgeInsets(top:10,leading:0,bottom:10,trailing:0)).listRowBackground(Color.clear)
                 }
                 Section{Button("Recover pending mandate"){Task{await model.recoverGrant()}}}
             }
             if let status=model.executionStatus{Section{ProgressView(L10n.text(status))}}
         }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Your rules").navigationBarTitleDisplayMode(.inline)
-            .task{await model.refreshAccount()}
+            .task{model.clearRuleDraft();await model.refreshAccount()}
     }
 }
 

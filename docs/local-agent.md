@@ -21,3 +21,5 @@ Public implementation reference: [Apple guided generation](https://developer.app
 Mac-host acceptance on 2026-09-08 ran the same planner source with the actual Apple model: Japanese/English translation commands extracted their exact text, while greetings and Amazon purchases produced no task. This is host evidence, not a physical-iPhone acceptance result.
 
 Say “注文を確認して” or “Check my order” to recover the persisted pending order from the conversation. This uses the same action and saved submission, never a newly created order. If no order is pending, Mate says so instead of inventing a result.
+
+Physical acceptance on 2026-09-10 used iPhone 16 Pro / iOS 26.6.1 and the PR #20 planner: all three `AgentPlannerTests` passed with zero skips. The real Apple model preserved the exact Japanese/English source text and returned no executable task for a greeting, Amazon purchase, or unsupported French translation. This proves task extraction on that phone, not voice recognition or live settlement. The local result bundle is `.build/validation/agent-physical-20260910.xcresult`.

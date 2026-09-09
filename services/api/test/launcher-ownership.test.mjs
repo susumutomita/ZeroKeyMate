@@ -35,7 +35,7 @@ test('a stale record from a dead process is replaced, never reused',()=>{
   const file=path.join(directory,'launcher-owner.json');
   try {
     // A PID that cannot belong to a real, currently-running process in this test.
-    fs.writeFileSync(file,JSON.stringify({pid:999_999,apiPort:8787,providerPort:8788,startedAt:new Date().toISOString()}));
+    fs.writeFileSync(file,JSON.stringify({pid:999_999,apiPort:8787,providerPort:8788,startedAt:new Date().toISOString(),instance:'old',environment:''}));
     const claim=claimLauncherOwnership({apiPort:8787,providerPort:8788},file);
     assert.equal(claim.reuse,false);
     assert.equal(claim.record.pid,process.pid);
@@ -48,8 +48,20 @@ test('release only removes a record this process still owns',()=>{
   const file=path.join(directory,'launcher-owner.json');
   try {
     const claim=claimLauncherOwnership({apiPort:8787,providerPort:8788},file);
-    fs.writeFileSync(file,JSON.stringify({pid:999_999,apiPort:8787,providerPort:8788,startedAt:new Date().toISOString()}));
+    fs.writeFileSync(file,JSON.stringify({pid:999_999,apiPort:8787,providerPort:8788,startedAt:new Date().toISOString(),instance:'old',environment:''}));
     claim.release();
     assert.equal(readLauncherOwnership(file).pid,999_999);
   } finally { fs.rmSync(directory,{recursive:true,force:true}); }
+});
+
+test('different settings and malformed owners are never reused',()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'mate-launcher-'));
+  const file=path.join(directory,'launcher-owner.json');
+  try {
+    const first=claimLauncherOwnership({apiPort:8787,providerPort:8788,environment:'one'},file);
+    assert.throws(()=>claimLauncherOwnership({apiPort:8787,providerPort:8788,environment:'two'},file),/different settings/);
+    first.release();
+    fs.writeFileSync(file,JSON.stringify({pid:0,apiPort:8787,providerPort:8788}));
+    assert.throws(()=>claimLauncherOwnership({apiPort:8787,providerPort:8788},file),/Invalid/);
+  } finally {fs.rmSync(directory,{recursive:true,force:true});}
 });

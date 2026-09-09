@@ -201,12 +201,7 @@ final class CompanionModel:ObservableObject {
         conversationGeneration &+= 1
         conversationTask?.cancel();conversationTask=nil;thinking=false
     }
-    /// Reads and clears the pending rule proposal in one step, so a sheet
-    /// presented after the draft is consumed never reuses a stale prefill.
-    func consumeRuleDraft() -> RuleProposal? {
-        defer{ruleDraft=nil}
-        return ruleDraft
-    }
+    func clearRuleDraft() { ruleDraft=nil }
     func setForeground(_ active:Bool) {
         foreground=active;sensors.setForeground(active)
         if !active{rest()}
@@ -326,11 +321,15 @@ final class CompanionModel:ObservableObject {
                         if let failure=self.errorMessage {
                             self.errorMessage=nil
                             self.agentSay((replyLanguage == .japanese ? "委任を取り消せませんでした。" : "I couldn't revoke the mandate. ")+L10n.text(failure),language:replyLanguage)
-                        } else {
+                        } else if self.mandate == nil {
                             self.agentSay(replyLanguage == .japanese ? "委任を取り消しました。" : "The mandate has been revoked.",language:replyLanguage)
                         }
                         return
                     }
+                }
+                if !self.stateLoaded && (ConversationRouter.isUsageStatusRequest(input) || ConversationRouter.isRevokeRequest(input)) {
+                    self.agentSay(replyLanguage == .japanese ? "保存済みの委任を復元しています。少し待ってからもう一度確認してください。" : "I'm restoring saved mandates. Please check again shortly.",language:replyLanguage)
+                    return
                 }
                 if ConversationRouter.isUsageStatusRequest(input) {
                     self.agentOffer=nil;self.revokeOffer=nil
@@ -339,17 +338,21 @@ final class CompanionModel:ObservableObject {
                         return
                     }
                     self.executionStatus=replyLanguage == .japanese ? "利用状況を確認しています" : "Checking usage"
+                    self.errorMessage=nil
                     await self.refreshAccount()
                     self.executionStatus=nil
                     guard self.foreground,self.conversationGeneration==generation else{return}
                     if let failure=self.errorMessage {
                         self.errorMessage=nil
                         self.agentSay((replyLanguage == .japanese ? "利用状況を確認できませんでした。" : "I couldn't confirm the current usage. ")+L10n.text(failure),language:replyLanguage)
-                    } else {
+                    } else if self.mandate?.id == stored.id, let checkedAt=self.accountCheckedAt {
                         let remaining=TokenAmount(units:stored.policy.budget>self.spent ? stored.policy.budget-self.spent:0).display
+                        let timestamp=checkedAt.formatted(date:.omitted,time:.standard)
                         self.agentSay(replyLanguage == .japanese
-                            ? "これまでに\(TokenAmount(units:self.spent).display) USDC使いました。残りは\(remaining) USDCです。"
-                            : "You've spent \(TokenAmount(units:self.spent).display) USDC so far, with \(remaining) USDC remaining.",language:replyLanguage)
+                            ? "確認時刻\(timestamp)。これまでに\(TokenAmount(units:self.spent).display) USDC使いました。残りは\(remaining) USDCです。"
+                            : "As of \(timestamp), you've spent \(TokenAmount(units:self.spent).display) USDC so far, with \(remaining) USDC remaining.",language:replyLanguage)
+                    } else {
+                        self.agentSay(replyLanguage == .japanese ? "現在の委任は失効または期限切れです。" : "The mandate is revoked or expired.",language:replyLanguage)
                     }
                     return
                 }
@@ -360,10 +363,11 @@ final class CompanionModel:ObservableObject {
                         return
                     }
                     self.revokeOffer=PendingRevoke(mandateID:stored.id,generation:self.requestGeneration,createdAt:Date())
+                    self.errorMessage=nil
                     let limit=TokenAmount(units:stored.policy.budget).display
                     self.agentSay(replyLanguage == .japanese
-                        ? "現在の委任（上限\(limit) USDC）を取り消します。よろしければ「はい」と言ってください。"
-                        : "This will revoke the current mandate (limit \(limit) USDC). Say yes to confirm.",language:replyLanguage)
+                        ? "\(self.configuration.networkName)の委任\(stored.id)（上限\(limit) USDC）を取り消します。よろしければ「はい」と言ってください。"
+                        : "This will revoke mandate \(stored.id) on \(self.configuration.networkName) (limit \(limit) USDC). Say yes to confirm.",language:replyLanguage)
                     return
                 }
                 if let proposal=ConversationRouter.ruleProposal(from:input) {
@@ -547,12 +551,19 @@ final class CompanionModel:ObservableObject {
             if providers.isEmpty{throw ProductError.unavailable("No active provider meets these requirements. No preset alternative will be substituted.")}
         }catch{if draft?.id==draftID,foreground,!sleeping{errorMessage=error.localizedDescription}}
     }
+    @Published private(set) var accountCheckedAt:Date?
     func refreshAccount() async {
-        guard let owner=wallet.ownerAddress else{return}
+        let scope=configuration.stateKey("account")
+        let currentNetwork=network
+        let mandateID=mandate?.id
+        accountCheckedAt=nil
+        guard let owner=wallet.ownerAddress else{errorMessage="Set up your wallet and settlement connection first.";return}
         do {
-            account=try await network.account(owner:owner)
+            let fetchedAccount=try await currentNetwork.account(owner:owner)
+            guard configuration.stateKey("account")==scope,wallet.ownerAddress==owner,mandate?.id==mandateID else{return}
             if let mandate {
-                let state=try await network.mandate(id:mandate.id)
+                let state=try await currentNetwork.mandate(id:mandate.id)
+                guard configuration.stateKey("account")==scope,wallet.ownerAddress==owner,self.mandate?.id==mandateID else{return}
                 guard state.owner.lowercased()==mandate.grant.owner.lowercased(),
                       state.agent.lowercased()==mandate.grant.agent.lowercased(),
                       state.policyHash.lowercased()==mandate.grant.policyHash.lowercased(),let value=UInt64(state.spent) else{throw ProductError.invalidResponse}
@@ -561,9 +572,10 @@ final class CompanionModel:ObservableObject {
                     try LocalSecrets.delete(configuration.stateKey("active-mandate"));self.mandate=nil
                 }
             }
-        }catch{errorMessage=error.localizedDescription}
+            account=fetchedAccount;accountCheckedAt=Date()
+        }catch{if configuration.stateKey("account")==scope{errorMessage=error.localizedDescription}}
     }
-    func authorize(budget:String,translation:Bool,summary:Bool,hours:Int) async {
+    func authorize(budget:String,translation:Bool,summary:Bool,hours:Int,validUntil:Date?=nil) async {
         guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
         let approvalGeneration=requestGeneration
         func validateApproval() throws { guard foreground,!sleeping,requestGeneration==approvalGeneration else{throw ProductError.cancelled} }
@@ -578,11 +590,14 @@ final class CompanionModel:ObservableObject {
                 throw ProductError.unavailable("A mandate is awaiting confirmation. Recover it and check its status first.")
             }
             guard (1...24).contains(hours) else{throw MandateError.invalidPolicy}
+            let now=Date()
+            let expiry=validUntil ?? now.addingTimeInterval(Double(hours*3600))
+            guard expiry > now,expiry.timeIntervalSince(now)<=24*3600 else{throw MandateError.invalidPolicy}
             let policy=try PrivatePolicy(budget:TokenAmount(decimal:budget).units,
                 services:(translation ? 1:0)|(summary ? 2:0),salt:LocalSecrets.random32())
             let state=try await network.account(owner:owner)
             let grant=try MandateGrant(owner:owner,agent:agent,policyHash:LocalSecrets.hash(policy.material()),
-                validUntil:UInt64(Date().timeIntervalSince1970)+UInt64(hours*3600),nonce:state.nonce)
+                validUntil:UInt64(expiry.timeIntervalSince1970),nonce:state.nonce)
             executionStatus="Verifying owner approval"
             let signature=try await wallet.signGrant(grant,validateApproval:validateApproval)
             let pending=PendingGrant(grant:grant,policy:policy,signature:signature)
@@ -693,7 +708,7 @@ final class CompanionModel:ObservableObject {
             errorMessage=error.localizedDescription
             // A cancellation (rest, detach, superseded request) is not a condition
             // violation; only a real stop or rejection reason gets the shake.
-            if case ProductError.cancelled=error {} else {flashOutcome(.rejected)}
+            if case ProductError.cancelled=error {} else if !(error is CancellationError),pendingExecution == nil {flashOutcome(.rejected)}
         }
     }
     private func accept(_ receipt:ExecutionReceipt,pending:PendingExecution) async throws {
