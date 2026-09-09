@@ -38,6 +38,10 @@ final class NativeProofTests: XCTestCase {
         let attachment=XCTAttachment(contentsOfFile:file)
         attachment.name="native-proof.np";attachment.lifetime = .keepAlways
         add(attachment)
+        let metrics:[String:Any]=["bytes":proof.bytes.count,"milliseconds":proof.elapsedMilliseconds,"sha256":proof.proofHash]
+        let metricsAttachment=XCTAttachment(data:try JSONSerialization.data(withJSONObject:metrics,options:[.sortedKeys]),uniformTypeIdentifier:"public.json")
+        metricsAttachment.name="native-proof-metrics.json";metricsAttachment.lifetime = .keepAlways
+        add(metricsAttachment)
         print("NATIVE_PROOF_EVIDENCE bytes=\(proof.bytes.count) milliseconds=\(proof.elapsedMilliseconds) sha256=\(proof.proofHash)")
     }
 

@@ -33,6 +33,7 @@ struct MateView:View {
                         case .controls:ControlsSheet(model:model,sensors:model.sensors,voice:model.voice)
                         case .conversation:ConversationSheet(model:model)
                         case .settings:SettingsSheet(model:model,sensors:model.sensors)
+                        case .setup:SetupSheet(model:model,wallet:model.wallet)
                         case .rules:RulesSheet(model:model)
                         case .wallet:WalletSheet(model:model,wallet:model.wallet)
                         case .identity:IdentitySheet(model:model)
@@ -203,6 +204,7 @@ private struct ControlsSheet:View {
                 }
             }
             Section {
+                Button(L10n.text(UserDefaults.standard.string(forKey:model.setupCheckpointKey) == nil ? "Set up external requests":"Resume external request setup")){model.sheet = .setup}.accessibilityIdentifier("open-setup")
                 Button("Settings"){model.sheet = .settings}.accessibilityIdentifier("open-settings")
                 Button("How Mate works"){model.sheet = .welcome}.accessibilityIdentifier("open-welcome")
                 if let draft=model.draft {
@@ -355,6 +357,7 @@ private struct SettingsSheet:View {
                 SectionNote(text:"Changing language rests Mate. Tap the resting face to resume.")
             }
             Section("Requests and evidence") {
+                Button(L10n.text(UserDefaults.standard.string(forKey:model.setupCheckpointKey) == nil ? "Set up external requests":"Resume external request setup")){model.sheet = .setup}.accessibilityIdentifier("open-setup")
                 Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
                 Button("Activity"){model.sheet = .activity}.accessibilityIdentifier("open-activity")
             }
@@ -396,6 +399,77 @@ private struct SettingsSheet:View {
             }
             Section{Button("Clear conversation",role:.destructive){model.clearConversation()}}
         }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct SetupSheet:View {
+    @ObservedObject var model:CompanionModel
+    @ObservedObject var wallet:WalletService
+    private var stage:SetupStage{model.setupProgress.stage}
+    private var title:String {
+        switch stage {
+        case .restoring:return "Restore saved progress"
+        case .recovery:return "Check the pending operation"
+        case .connection:return "Connect your shop"
+        case .login:return "Sign in to your wallet"
+        case .wallets:return "Prepare your two wallets"
+        case .account:return "Check your execution account"
+        case .funds:return "Add test funds"
+        case .rules:return "Choose what Mate may do"
+        case .request:return "Make your first request"
+        }
+    }
+    private var detail:String {
+        switch stage {
+        case .restoring:return "Mate is restoring saved operations. No registration or payment will be repeated."
+        case .recovery:return "A previous operation needs confirmation. Recover it before changing connections or creating another order."
+        case .connection:return "Verify your HTTPS service, test network and public Privy app IDs. Your existing connection stays in place until the new one passes."
+        case .login:return "Sign in with your existing Privy account. This does not create a mandate or send funds."
+        case .wallets:return "Your owner wallet approves permissions. Mate uses a separate execution key. Existing wallets are restored first."
+        case .account:return "Refresh the current balance before continuing. A saved setup step is not evidence of available funds."
+        case .funds:return "The execution account has no test USDC. In Wallet, review the amount, approve it, then deposit. Each transaction needs its own approval."
+        case .rules:return "Review the services, spending limit and expiry. Only the displayed terms will be signed."
+        case .request:return "The connection, wallet, balance and mandate have been checked. Choose a service and review the text and price before placing an order."
+        }
+    }
+    var body:some View {
+        Form {
+            Section {
+                Text(L10n.text(title)).font(.title2)
+                Text(L10n.text(detail)).font(.body)
+                LabeledContent("Test network",value:L10n.text(model.configuration.networkName))
+                if let host=URL(string:model.configuration.apiURL)?.host{LabeledContent("Execution service",value:host)}
+                if let date=model.accountCheckedAt{LabeledContent("Last checked",value:date.formatted())}
+            }
+            Section {
+                if model.setupChecking || stage == .restoring {ProgressView("Checking setup…")}
+                else {
+                    switch stage {
+                    case .connection:NavigationLink("Configure connection"){ConnectionSheet(model:model)}
+                    case .login,.wallets,.funds:NavigationLink("Open wallet"){WalletSheet(model:model,wallet:wallet)}
+                    case .rules:NavigationLink("Review your rules"){RulesSheet(model:model)}
+                    case .account:Button("Refresh balances"){Task{await model.refreshSetup()}}
+                    case .request:Button("Request external translation"){model.makeDraft(service:.translation)}
+                    case .recovery:
+                        if model.pendingExecution != nil {
+                            Button("Check result"){Task{await model.recoverExecution();await model.refreshSetup()}}
+                        } else {
+                            Button("Recover pending mandate"){Task{await model.recoverGrant();await model.refreshSetup()}}
+                        }
+                    case .restoring:EmptyView()
+                    }
+                }
+                if let message=model.setupMessage{Text(L10n.text(message)).foregroundStyle(.secondary)}
+            }.disabled(model.financialBusy)
+            Section {
+                Text("Local conversation and private proof checks are available without this setup.").font(.footnote)
+                Button("Do this later"){model.sheet=nil}
+            }
+        }.scrollContentBackground(.hidden).background(Finish.paper)
+            .navigationTitle("Set up external requests").navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("setup-flow")
+            .task{await model.refreshSetup()}
+            .onChange(of:model.stateLoaded){_,loaded in if loaded{Task{await model.refreshSetup()}}}
     }
 }
 

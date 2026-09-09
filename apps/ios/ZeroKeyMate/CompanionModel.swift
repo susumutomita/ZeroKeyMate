@@ -45,7 +45,7 @@ private struct PendingRevoke {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
+    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
     @Published var sheet:Sheet? {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
@@ -53,7 +53,7 @@ final class CompanionModel:ObservableObject {
                 rest()
                 // Opening an explicit request screen is a new user interaction, not
                 // sensor consent. Existing approval guards still require an awake app.
-                if [.rules,.wallet,.identity,.disclosure,.localProof,.connection].contains(sheet){sleeping=false}
+                if [.setup,.rules,.wallet,.identity,.disclosure,.localProof,.connection].contains(sheet){sleeping=false}
             }
         }
     }
@@ -113,7 +113,7 @@ final class CompanionModel:ObservableObject {
     private var requestGeneration=UUID()
     private var started=false
     private var configurationGeneration=UUID()
-    private var stateLoaded=false
+    @Published private(set) var stateLoaded=false
     private var foreground=true
     private var notifications=Set<AnyCancellable>()
 
@@ -189,10 +189,11 @@ final class CompanionModel:ObservableObject {
             try await candidateRPC.ensureNetwork()
             guard foreground,!sleeping,requestGeneration==ticket else{throw ProductError.cancelled}
             try LocalSecrets.write(value,key:"connection-settings")
-            configurationGeneration=UUID();stateLoaded=false
+            let returnToSetup=sheet == .setup
+            configurationGeneration=UUID();stateLoaded=false;setupConnected=false;accountCheckedAt=nil
             configuration=value;network=candidate;rpc=candidateRPC;wallet=WalletService(configuration:value)
             mandate=nil;agentDelegation=nil;account=nil;spent=0;receipts=[];identity=nil;providers=[];discoveryEvidence=nil;draft=nil
-            started=false;sheet = .settings
+            started=false;sheet = returnToSetup ? .setup : .settings
             await start()
         }catch{errorMessage=error.localizedDescription}
     }
@@ -550,6 +551,46 @@ final class CompanionModel:ObservableObject {
             providers=response.providers;discoveryEvidence=L10n.format("The Graph · block %@",response.indexedBlock)
             if providers.isEmpty{throw ProductError.unavailable("No active provider meets these requirements. No preset alternative will be substituted.")}
         }catch{if draft?.id==draftID,foreground,!sleeping{errorMessage=error.localizedDescription}}
+    }
+    @Published private(set) var setupConnected=false
+    @Published private(set) var setupChecking=false
+    @Published private(set) var setupMessage:String?
+    @Published private(set) var setupHasPendingGrant=false
+    var setupProgress:SetupProgress {
+        SetupProgress(restored:stateLoaded,pending:pendingExecution != nil || setupHasPendingGrant,
+            connected:setupConnected && configuration.paymentsConfigured && configuration.walletConfigured,
+            authenticated:wallet.isAuthenticated,walletsReady:wallet.ownerAddress != nil && wallet.agentAddress != nil,
+            accountChecked:accountCheckedAt != nil,balance:UInt64(account?.balance ?? "") ?? 0,
+            mandateActive:mandate.map{$0.grant.validUntil>UInt64(Date().timeIntervalSince1970) && $0.policy.budget>spent} ?? false)
+    }
+    var setupCheckpointKey:String {
+        let identity="\(configuration.chainID):\(configuration.vault.lowercased()):\(configuration.apiURL):\(configuration.privyAppID)"
+        return "setup:"+LocalSecrets.hash(Data(identity.utf8))
+    }
+    func refreshSetup() async {
+        guard stateLoaded,!setupChecking,!financialBusy else{return}
+        setupChecking=true;setupMessage=nil;setupConnected=false
+        let generation=configurationGeneration
+        defer{
+            setupChecking=false
+            if configurationGeneration==generation{UserDefaults.standard.set(setupProgress.stage.rawValue,forKey:setupCheckpointKey)}
+        }
+        do {
+            setupHasPendingGrant=try LocalSecrets.read(PendingGrant.self,key:configuration.stateKey("pending-grant")) != nil
+            if pendingExecution != nil || setupHasPendingGrant {return}
+            guard configuration.paymentsConfigured && configuration.walletConfigured else{return}
+            try await network.validateDeployment()
+            try await rpc.ensureNetwork()
+            guard configurationGeneration==generation,foreground else{return}
+            setupConnected=true
+            try await wallet.restore()
+            guard configurationGeneration==generation,foreground else{return}
+            if wallet.ownerAddress != nil {
+                errorMessage=nil
+                await refreshAccount()
+                if let errorMessage{setupMessage=errorMessage;self.errorMessage=nil}
+            }
+        }catch{if configurationGeneration==generation{setupMessage=error.localizedDescription}}
     }
     @Published private(set) var accountCheckedAt:Date?
     func refreshAccount() async {
