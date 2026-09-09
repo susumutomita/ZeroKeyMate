@@ -56,6 +56,22 @@ final class ConversationTests:XCTestCase {
         XCTAssertNil(model.draft)
         model.rest()
     }
+    func testExplicitInterruptionDiscardsLateReplyAndDoesNotStartSensors() async throws {
+        let service=SuspendedConversation()
+        let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
+        model.readAloud=false
+        model.send("hello")
+        try await waitUntil{await service.waiting}
+        XCTAssertTrue(model.interruptReply())
+        await service.complete()
+        try await Task.sleep(for:.milliseconds(50))
+        XCTAssertFalse(model.thinking)
+        XCTAssertFalse(model.voiceSessionActive)
+        XCTAssertFalse(model.voice.listening)
+        XCTAssertFalse(model.sensors.captureRequested)
+        XCTAssertEqual(model.messages.count,1)
+        model.rest()
+    }
     func testSettingsAndBackgroundDiscardLateReplies() async throws {
         for background in [false,true] {
             let service=SuspendedConversation()

@@ -5648,6 +5648,54 @@
           }
         }
       }
+    },
+    "Interrupt and speak": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrupt and speak"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返答を止めて話す"
+          }
+        }
+      }
+    },
+    "Speak now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speak now"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ話す"
+          }
+        }
+      }
+    },
+    "Speak now stops the current reply and listens on this iPhone. Listening continues after replies until you choose Rest. Speaking over a reply does not interrupt it automatically.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speak now stops the current reply and listens on this iPhone. Listening continues after replies until you choose Rest. Speaking over a reply does not interrupt it automatically."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「今すぐ話す」で返答を止め、このiPhoneで聞き取りを始めます。「おやすみ」で止めるまで返答後も聞き取りを続けます。返答に声を重ねるだけでは中断しません。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

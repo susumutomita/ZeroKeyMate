@@ -524,6 +524,25 @@ final class CompanionModel:ObservableObject {
         guard voice.listening else{stopVoice();if let error=voice.errorMessage{errorMessage=error};return}
         sleeping=false
     }
+    /// Stops a reply and invalidates its late completion without changing a
+    /// submitted financial operation or starting any sensor.
+    @discardableResult func interruptReply() -> Bool {
+        guard foreground,!financialBusy else{return false}
+        requestGeneration=UUID();cancelConversation();stopVoice()
+        return true
+    }
+    func speakNow() async {
+        guard !voice.requestingPermission,interruptReply() else{return}
+        sleeping=false;errorMessage=nil;continuousConversation=true
+        listeningSession.begin()
+        let ticket=voiceGeneration
+        await voice.start(locale:recognitionLocale)
+        guard ticket==voiceGeneration,foreground else{return}
+        if !voice.listening {
+            stopVoice()
+            if let message=voice.errorMessage{errorMessage=message}
+        }
+    }
     func toggleVoice() async {
         if voiceSessionActive{stopVoice();cancelConversation()}
         else if voice.requestingPermission{stopVoice()}
