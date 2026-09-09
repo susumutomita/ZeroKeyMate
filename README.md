@@ -207,6 +207,8 @@ A compatible DockKit stand is optional. Mounting the phone alone does not launch
 
 The launcher exits after opening the app: Ctrl+C after that does not stop Mate. To close it, use the iPhone app switcher or quit Simulator with Command-Q.
 
+During `make dev*` startup, Ctrl+C terminates the app launcher's own process group, including its shell/build children, before releasing launcher ownership. It first requests termination and then force-stops that owned group if necessary. It never loads a PID from a lock file to choose a process to stop. Already-running services reused from another invocation remain owned by that invocation. If shutdown cannot be confirmed, ownership is retained and the launcher reports the failure.
+
 ### Open Mate when charging
 
 After installing Mate on your iPhone, create a personal automation in **Shortcuts → Automation → + → Charger → Is Connected**. Choose **Run Immediately** (or disable **Ask Before Running** on versions that use that setting), add the **Open App** action, select **Mate**, and save. Test with the iPhone unlocked by disconnecting and reconnecting power. If iOS asks you to unlock, do so; unattended launch while locked is not verified.
