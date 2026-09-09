@@ -6,6 +6,7 @@
   "engines": { "node": "^22.16.0 || ^24.0.0" },
   "scripts": {
     "test": "node --test services/api/test/*.test.mjs services/provider/test/*.test.mjs services/merchant/test/*.test.mjs",
+    "pair": "node --env-file-if-exists=.env scripts/pair.mjs",
     "configure": "node scripts/configure.mjs",
     "unlock": "node --env-file-if-exists=.env scripts/unlock.mjs",
     "test:contracts": "node --test contracts/test/*.test.mjs",

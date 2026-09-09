@@ -61,22 +61,27 @@ actor NetworkService {
     private struct Failure:Decodable {let error:String;let message:String}
     private let configuration:AppConfiguration
     private let session:URLSession
-    init(configuration:AppConfiguration) {
+    init(configuration:AppConfiguration,sessionConfiguration:URLSessionConfiguration = .ephemeral) {
         self.configuration=configuration
-        let settings=URLSessionConfiguration.ephemeral
+        let settings=sessionConfiguration
         settings.httpCookieStorage=nil;settings.urlCache=nil
         settings.timeoutIntervalForRequest=120;settings.timeoutIntervalForResource=180
         session=URLSession(configuration:settings,delegate:NoRedirects(),delegateQueue:nil)
     }
-    private func perform<Response:Decodable>(_ path:String,method:String="GET",body:Data?=nil) async throws -> Response {
-        guard !configuration.apiToken.isEmpty,let base=URL(string:configuration.apiURL),
-              base.scheme == "https" || (base.scheme == "http" && ["127.0.0.1","localhost","::1"].contains(base.host ?? "")),
+    private func perform<Response:Decodable>(_ path:String,method:String="GET",body:Data?=nil,authenticated:Bool=true) async throws -> Response {
+        guard !authenticated || configuration.pairingValid else {
+            throw ProductError.unavailable("Pairing expired. Create a new code on your Mac and renew in Connection settings. Pending requests are preserved.")
+        }
+        guard let base=URL(string:configuration.apiURL),
+              base.user == nil,base.password == nil,base.query == nil,base.fragment == nil,
+              ["","/"].contains(base.path),
+              base.scheme == "https" || (base.scheme == "http" && ["127.0.0.1","localhost","::1","[::1]"].contains(base.host ?? "")),
               let url=URL(string:path,relativeTo:base)?.absoluteURL,url.host == base.host else {
             throw ProductError.unavailable("Use HTTPS for external services. Localhost is allowed only for Simulator connections to this Mac.")
         }
         var request=URLRequest(url:url)
         request.httpMethod=method;request.httpBody=body
-        request.setValue("Bearer \(configuration.apiToken)",forHTTPHeaderField:"Authorization")
+        if authenticated {request.setValue("Bearer \(configuration.apiToken)",forHTTPHeaderField:"Authorization")}
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.setValue("no-store",forHTTPHeaderField:"Cache-Control")
         let (data,response)=try await session.data(for:request)
@@ -89,11 +94,26 @@ actor NetworkService {
     }
     func validateDeployment() async throws {
         struct Deployment:Decodable {let chainId:UInt64;let vault:String;let token:String;let actionVersion:String}
-        let value:Deployment=try await perform("/v1/configuration")
+        let value:Deployment=try await perform("/v1/configuration",authenticated:false)
         guard value.chainId==configuration.chainID, value.vault.lowercased()==configuration.vault.lowercased(),
               value.token.lowercased()==configuration.token.lowercased(),value.actionVersion=="ZKM-ACT1" else {
             throw ProductError.unavailable("The execution service uses a different network or vault. These settings have not been saved.")
         }
+    }
+    func pair(code:String) async throws -> AppConfiguration {
+        struct Request:Encodable {let code:String}
+        struct Response:Decodable {let token:String;let expiresAt:UInt64;let remainingRequests:Int}
+        let value:Response=try await perform("/v1/pair",method:"POST",body:JSONEncoder().encode(Request(code:code)),authenticated:false)
+        let now=UInt64(Date().timeIntervalSince1970)
+        guard value.token.range(of:"^session_[a-f0-9]{64}$",options:.regularExpression) != nil,
+              value.expiresAt>now,value.expiresAt<=now+3600,value.remainingRequests>0,value.remainingRequests<=500 else {throw ProductError.invalidResponse}
+        var result=configuration;result.apiToken=value.token;result.apiTokenExpiresAt=value.expiresAt
+        return result
+    }
+    func validatePairing() async throws {
+        struct Response:Decodable {let paired:Bool}
+        let value:Response=try await perform("/v1/session")
+        guard value.paired else{throw ProductError.invalidResponse}
     }
     func providers(service:MateService) async throws -> ProviderList {try await perform("/v1/providers?service=\(service.rawValue)")}
     func account(owner:String) async throws -> AccountState {

@@ -5872,6 +5872,118 @@
           }
         }
       }
+    },
+    "One-time pairing code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time pairing code"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1回限りのペアリングコード"
+          }
+        }
+      }
+    },
+    "On your Mac, run npm run pair and open the private code file. The code works once within 10 minutes. The device connection lasts one hour or 500 requests.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On your Mac, run npm run pair and open the private code file. The code works once within 10 minutes. The device connection lasts one hour or 500 requests."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macで npm run pair を実行し、非公開のコードファイルを開いてください。コードは10分以内に1回だけ使えます。端末の接続は1時間または500リクエストまで有効です。"
+          }
+        }
+      }
+    },
+    "Pairing expires": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing expires"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ペアリングの有効期限"
+          }
+        }
+      }
+    },
+    "Renewing the same connection preserves pending requests. Changing deployments requires resolving pending requests first.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renewing the same connection preserves pending requests. Changing deployments requires resolving pending requests first."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ接続の更新では確認待ちの依頼を保持します。接続先を変更する前に、確認待ちの依頼を解決してください。"
+          }
+        }
+      }
+    },
+    "Pairing expired. Create a new code on your Mac and renew in Connection settings. Pending requests are preserved.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing expired. Create a new code on your Mac and renew in Connection settings. Pending requests are preserved."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ペアリングの期限が切れました。Macで新しいコードを作成し、接続設定で更新してください。確認待ちの依頼は保持されます。"
+          }
+        }
+      }
+    },
+    "Enter a supported testnet, matching USDC token and vault.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a supported testnet, matching USDC token and vault."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応テストネットと一致するUSDCトークン、Vaultを入力してください。"
+          }
+        }
+      }
+    },
+    "Create a one-time pairing code on your Mac, then enter it here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create a one-time pairing code on your Mac, then enter it here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macで1回限りのペアリングコードを作成し、ここに入力してください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -12,6 +12,7 @@ import {ProofVerifier} from './verifier.mjs';
 import {Discovery} from './discovery.mjs';
 import {Names} from './names.mjs';
 import {Executor} from './executor.mjs';
+import {PairingStore} from './pairing.mjs';
 import {processLock} from './process-lock.mjs';
 
 function query(url,shape) {
@@ -26,6 +27,7 @@ export function apiHandler({chain,names,discovery,executor}) {
   return async (request,url) => {
     const route=`${request.method} ${url.pathname}`;
     switch (route) {
+    case 'GET /v1/session':query(url,{});return {paired:true};
     case 'GET /v1/configuration':query(url,{});return {chainId:chain.config.chainId,vault:chain.config.vault,token:chain.config.token,actionVersion:'ZKM-ACT1'};
     case 'GET /v1/account':return chain.account(query(url,{owner:address}).owner);
     case 'GET /v1/state':return chain.state(query(url,{mandateId:hash32}).mandateId);
@@ -45,15 +47,23 @@ export function apiHandler({chain,names,discovery,executor}) {
   };
 }
 
+export function pairingHandler(store,ready) {
+  return async(request,url)=>{
+    requireValue(ready(),'integration_unavailable','Configure the deployment and proof verifier before pairing.',503);
+    query(url,{});
+    const {code}=z.object({code:z.string().max(80)}).strict().parse(await readJSON(request,512));
+    return store().exchange(code);
+  };
+}
+
 export async function startAPI(e=process.env) {
-  const token=e.MATE_API_TOKEN||'';
-  requireValue(token.length>=32,'pairing_required','MATE_API_TOKENを設定してください。npm run configure で初期設定を作成できます。',503);
   const release=processLock(path.join(stateDirectory('api',e),'api.lock'));
-  let journal,handler,configurationError;
+  let journal,pairing,handler,configurationError;
   const health={service:'ZeroKey Mate API',chainId:null,vault:null,token:null,ready:false,proofVerification:'unavailable'};
   try {
     const config=configuration(e);
     Object.assign(health,{chainId:config.chainId,vault:config.vault,token:config.token});
+    pairing=new PairingStore(path.join(config.dataDirectory,'pairing.sqlite'),`${config.chainId}:${config.vault.toLowerCase()}`);
     journal=new Journal(path.join(config.dataDirectory,'api.sqlite'),config.journalKey);
     const chain=new Chain(config,journal);
     await chain.prepare();
@@ -67,14 +77,21 @@ export async function startAPI(e=process.env) {
     configurationError=error instanceof ProductError ? error : new ProductError('integration_unavailable','ネットワーク・契約・検証ファイルの接続設定を確認してください。',503);
     handler=async()=>{throw configurationError;};
   }
-  const server=jsonServer({token,handler,publicHandler:route=>route==='/health' ? health : undefined});
-  server.once('drained',()=>{journal?.close();release();});
+  const server=jsonServer({handler,authorize:request=>pairing?.authorize(/^Bearer (session_[a-f0-9]{64})$/.exec(request.headers.authorization ?? '')?.[1]) ?? false,
+    pairHandler:pairingHandler(()=>pairing,()=>health.ready),publicHandler:route=>{
+      if(route==='/health')return health;
+      if(route==='/v1/configuration'){
+        requireValue(health.ready,'integration_unavailable','Configure the deployment and proof verifier before pairing.',503);
+        return {chainId:health.chainId,vault:health.vault,token:health.token,actionVersion:'ZKM-ACT1'};
+      }
+    }});
+  server.once('drained',()=>{journal?.close();pairing?.close();release();});
   try {
     const port=z.coerce.number().int().min(1).max(65535).parse(e.MATE_PORT||8787);
     const host=z.enum(['127.0.0.1','::1','0.0.0.0']).parse(e.MATE_BIND_HOST||'127.0.0.1');
     await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,host,resolve);});
     return {server,health,configurationError};
-  } catch(error) {journal?.close();release();throw error;}
+  } catch(error) {journal?.close();pairing?.close();release();throw error;}
 }
 if (process.argv[1] && import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
