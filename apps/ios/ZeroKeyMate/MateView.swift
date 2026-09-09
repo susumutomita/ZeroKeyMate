@@ -179,6 +179,10 @@ private struct ControlsSheet:View {
                     Task{await model.startCompanion()}
                 }.disabled(model.financialBusy || model.preparingCompanion || model.voiceSessionActive)
                     .accessibilityIdentifier("start-companion")
+                Button(L10n.text(voice.speaking || model.thinking ? "Interrupt and speak":"Speak now")) {
+                    Task{await model.speakNow()}
+                }.disabled(model.financialBusy || voice.requestingPermission || model.preparingCompanion)
+                    .accessibilityIdentifier("speak-now")
                 Button("Read or type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
                 Button("Rest and stop camera and microphone"){model.rest();model.sheet=nil}
                     .accessibilityIdentifier("rest-button")
@@ -221,6 +225,9 @@ private struct ControlsSheet:View {
                 if model.awaitingGreeting {
                     Button("Stop voice wake"){model.rest()}.accessibilityIdentifier("stop-voice-wake")
                 }
+            }
+            Section {
+                Text("Speak now stops the current reply and listens on this iPhone. Listening continues after replies until you choose Rest. Speaking over a reply does not interrupt it automatically.").font(.footnote)
             }
         }.scrollContentBackground(.hidden).background(Finish.paper)
             .navigationTitle("Controls").navigationBarTitleDisplayMode(.inline)

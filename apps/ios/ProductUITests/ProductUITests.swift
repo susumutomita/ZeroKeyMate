@@ -71,6 +71,36 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Configure connection"].waitForExistence(timeout:10))
         capture("resumed-setup-connection")
     }
+    func testSpeakNowRequestsOnlyMicrophoneAndDenialStopsTheSession() {
+        let app=launch()
+        app.terminate()
+        app.resetAuthorizationStatus(for:.microphone)
+        app.launch()
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout:15))
+        if app.buttons["open-controls"].exists {app.buttons["open-controls"].tap()}
+        else {app.buttons["companion-face"].swipeUp()}
+        let speak=app.buttons["speak-now"]
+        XCTAssertTrue(speak.waitForExistence(timeout:5))
+        speak.tap()
+        let system=XCUIApplication(bundleIdentifier:"com.apple.springboard")
+        let prompt=system.alerts.firstMatch
+        XCTAssertTrue(prompt.waitForExistence(timeout:10))
+        XCTAssertTrue(prompt.label.lowercased().contains("microphone") || prompt.label.contains("マイク"),prompt.debugDescription)
+        let deny=prompt.buttons.matching(NSPredicate(format:"label IN %@",["Don't Allow","Don’t Allow","許可しない"])).firstMatch
+        XCTAssertTrue(deny.exists);deny.tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout:5))
+        app.alerts.firstMatch.buttons["Close"].tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForNonExistence(timeout:5))
+        // Dismissing the root error presentation can also dismiss its sheet.
+        if !app.buttons["rest-button"].exists {
+            XCTAssertEqual(app.buttons["companion-face"].value as? String,"Taking a rest.")
+            app.buttons["companion-face"].swipeUp()
+        }
+        XCTAssertTrue(app.staticTexts["camera-status"].waitForExistence(timeout:5))
+        XCTAssertEqual(app.staticTexts["camera-status"].label,"Camera off")
+        app.buttons["rest-button"].tap()
+        XCTAssertEqual(app.buttons["companion-face"].value as? String,"Taking a rest.")
+    }
     func testFaceHasNoVisibleTextOrToolbar() {
         let app=launch()
         app.buttons["close-sheet"].tap()
