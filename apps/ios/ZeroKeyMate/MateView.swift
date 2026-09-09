@@ -67,23 +67,17 @@ private struct CompanionHome:View {
     @AppStorage("mate-companion-introduced") private var introduced=false
     @State private var outcomeOffset:CGSize = .zero
     private var status:String {
-        if let outcome=model.lastOutcome{return outcome == .confirmed ? "Confirmed.":"This request wasn't approved."}
-        if let status=model.executionStatus{return status}
         if model.awaitingGreeting{return "Waiting for hello. Microphone on; camera off."}
         if model.preparingCompanion{return "Preparing voice input."}
-        if model.isResting{return "Taking a rest."}
-        if model.thinking{return "Thinking."}
-        if voice.listening{return "Listening."}
         if voice.requestingPermission{return "Preparing voice input."}
-        if voice.speaking{return "Speaking."}
-        return "I'm here."
+        return model.activity.label
     }
     var body:some View {
         GeometryReader{geometry in
-            MateEyes(resting:model.isResting,listening:voice.listening,
-                     thinking:model.thinking || model.financialBusy,
+            MateEyes(resting:model.activity == .resting,listening:model.activity == .listening,
+                     thinking:model.activity.processing,
                      focus:sensors.horizontalFocus,verticalFocus:sensors.verticalFocus,reduceMotion:reduceMotion,
-                     speaking:voice.speaking,hearingSpeech:voice.listening && !voice.transcript.isEmpty)
+                     speaking:model.activity == .speaking,hearingSpeech:model.activity == .listening && !voice.transcript.isEmpty)
                 .frame(width:min(geometry.size.width*0.78,620),height:min(geometry.size.height*0.38,300))
                 .offset(outcomeOffset)
                 .task(id:model.lastOutcome){
@@ -188,7 +182,8 @@ private struct ControlsSheet:View {
                     .accessibilityIdentifier("rest-button")
             }
             Section {
-                Text(L10n.text(model.isResting ? "Taking a rest.":"I'm here."))
+                Text(L10n.text(model.activity.label)).accessibilityIdentifier("companion-activity")
+                if let detail=model.executionStatus,detail != model.activity.label {SectionNote(text:detail)}
                 if model.awaitingGreeting{Text("Waiting for hello. Microphone on; camera off.")}
                 Text(L10n.text(sensors.cameraPhase == .on ? "Camera on · On-device processing":sensors.cameraPhase == .starting ? "Camera starting":sensors.cameraPhase == .stopping ? "Camera stopping":"Camera off"))
                     .accessibilityIdentifier("camera-status")
