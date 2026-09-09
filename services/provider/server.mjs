@@ -105,7 +105,7 @@ export async function startProvider(e=process.env) {
     const specialist=new Specialist({config,chain,journal,verifier,model:new SpecialistModel(config)});
     const server=jsonServer({token:config.apiToken,handler:providerHandler(specialist),
       publicHandler:route=>route==='/health'?{service:'ZeroKey Mate specialist',chainId:config.chainId,modelReadiness:'checked-per-quote'}:undefined});
-    server.once('close',()=>{journal.close();release();});
+    server.once('drained',()=>{journal.close();release();});
     await new Promise((resolve,reject)=>{
       server.once('error',reject);
       server.listen(z.coerce.number().int().min(1).max(65535).parse(e.PROVIDER_PORT||8788),

@@ -43,7 +43,14 @@ export function respond(response, status, value) {
 /** Pairing capability is installation-scoped, never a public anonymous API. */
 export function jsonServer({token, handler, publicHandler, maxConcurrent = 4}) {
   if (typeof token !== 'string' || token.length < 32) throw new Error('A random pairing token of at least 32 characters is required');
-  let active = 0, period = Date.now(), count = 0;
+  let active = 0, period = Date.now(), count = 0, closed = false, drained = false;
+  let resolveDrained;
+  const whenDrained = new Promise(resolve => { resolveDrained = resolve; });
+  const finish = () => {
+    if (closed && active === 0 && !drained) {
+      drained = true; server.emit('drained'); resolveDrained();
+    }
+  };
   const server = http.createServer(async (request, response) => {
     let admitted = false;
     try {
@@ -72,8 +79,12 @@ export function jsonServer({token, handler, publicHandler, maxConcurrent = 4}) {
         });
       }
       // Deliberately do not log request bodies, RPC URLs, signatures, credentials or raw SDK errors.
-    } finally { if (admitted) active--; }
+    } finally { if (admitted) active--; finish(); }
   });
+  // Socket closure does not cancel an asynchronous transaction/model handler.
+  // Journal ownership must outlive all admitted work, even disconnected clients.
+  server.once('close', () => { closed = true; finish(); });
+  server.whenDrained = whenDrained;
   server.requestTimeout = 30_000; server.headersTimeout = 10_000;
   server.keepAliveTimeout = 5_000; server.maxRequestsPerSocket = 100;
   return server;

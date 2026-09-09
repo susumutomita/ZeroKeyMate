@@ -68,8 +68,7 @@ export async function startAPI(e=process.env) {
     handler=async()=>{throw configurationError;};
   }
   const server=jsonServer({token,handler,publicHandler:route=>route==='/health' ? health : undefined});
-  server.once('close',()=>{journal?.close();release();});
-  server.once('error',()=>{journal?.close();release();});
+  server.once('drained',()=>{journal?.close();release();});
   try {
     const port=z.coerce.number().int().min(1).max(65535).parse(e.MATE_PORT||8787);
     const host=z.enum(['127.0.0.1','::1','0.0.0.0']).parse(e.MATE_BIND_HOST||'127.0.0.1');
