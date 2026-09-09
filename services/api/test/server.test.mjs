@@ -1,6 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Readable} from 'node:stream';
+import http from 'node:http';
+import {once} from 'node:events';
 import {apiHandler} from '../server.mjs';
 import {authenticated,readJSON,jsonServer} from '../http.mjs';
 
@@ -43,4 +45,31 @@ test('real HTTP server has authenticated routes and truthful public health',asyn
   assert.equal((await fetch(base+'/v1/state',{headers:{authorization:`Bearer ${token}`,origin:'https://example.com'}})).status,403);
   const accepted=await fetch(base+'/v1/state',{headers:{authorization:`Bearer ${token}`}});
   assert.equal(accepted.status,200);assert.match(accepted.headers.get('cache-control'),/no-store/);
+});
+
+test('shutdown retains journal ownership until disconnected handlers finish',async t=>{
+  let finishWork,startedWork,finished=false,released=false;
+  const started=new Promise(resolve=>{startedWork=resolve;});
+  const work=new Promise(resolve=>{finishWork=resolve;});
+  const server=jsonServer({token,handler:async()=>{
+    startedWork();await work;
+    assert.equal(released,false,'journal must still be owned while persisting the result');
+    finished=true;return {finished};
+  }});
+  server.once('drained',()=>{released=true;});
+  t.after(()=>{finishWork();server.closeAllConnections();server.close();});
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  const request=http.get(`http://127.0.0.1:${server.address().port}/v1/state`,{
+    headers:{authorization:`Bearer ${token}`}
+  });
+  request.on('error',()=>{});
+  await started;
+  const closed=once(server,'close');
+  request.destroy();server.close();server.closeAllConnections();
+  await closed;
+  assert.equal(finished,false);assert.equal(released,false);
+  finishWork();await server.whenDrained;
+  assert.equal(finished,true);assert.equal(released,true);
+  // A second shutdown observer can await an already-drained server.
+  await server.whenDrained;
 });

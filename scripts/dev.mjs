@@ -13,8 +13,9 @@ async function close() {
   closing=true;
   launcher?.kill('SIGTERM');
   await Promise.all([api,provider].filter(Boolean).map(server=>new Promise(resolve=>{
-    const timer=setTimeout(()=>{server.closeAllConnections();resolve();},5_000);
-    server.close(()=>{clearTimeout(timer);resolve();});
+    const timer=setTimeout(()=>{server.closeAllConnections();},5_000);
+    server.whenDrained.then(()=>{clearTimeout(timer);resolve();});
+    server.close();
     server.closeIdleConnections();
   })));
   claim?.release?.();
