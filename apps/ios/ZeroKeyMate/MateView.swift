@@ -369,6 +369,22 @@ private struct SettingsSheet:View {
                 LabeledContent("Stand",value:L10n.text(!sensors.dockConnected ? "Not connected":!sensors.dockTrackingButtonEnabled ? "Enable tracking with the stand button":sensors.trackingEnabled != true ? "Start camera to enable tracking":sensors.dockTrackingSubjects>0 ? "Tracking a subject":"Looking for a subject"))
                 Toggle("Read replies aloud",isOn:$model.readAloud)
             }
+            if model.setupStep != .ready {
+                Section("Setup") {
+                    switch model.setupStep {
+                    case .connect:
+                        Text("Connect your execution service to send paid requests. Local ZK works without this.")
+                        Button("1. Configure connection"){model.sheet = .connection}
+                    case .wallet:
+                        Text("Connected. Sign in and set up your owner and Mate wallets next.")
+                        Button("2. Set up wallet"){model.sheet = .wallet}
+                    case .rules:
+                        Text("Wallet ready. Approve your private spending rules to allow paid requests.")
+                        Button("3. Approve your rules"){model.sheet = .rules}
+                    case .ready: EmptyView()
+                    }
+                }
+            }
             Section("Delegation"){
                 Button{model.sheet = .rules}label:{Label("Your rules",systemImage:"checkmark.shield")}
                 Button{model.sheet = .wallet}label:{Label("Wallet",systemImage:"creditcard")}

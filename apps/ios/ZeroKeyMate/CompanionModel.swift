@@ -95,6 +95,15 @@ final class CompanionModel:ObservableObject {
         return sleeping || (!preparingCompanion && !voiceSessionActive && !voice.listening && !voice.speaking &&
                      !thinking && !financialBusy && !sensors.captureRequested && sensors.cameraPhase == .off)
     }
+    /// Derived from the actual wallet/mandate state, never a stored "done" flag,
+    /// so a restart or a partially completed step can't be replayed as finished.
+    enum SetupStep:Equatable {case connect,wallet,rules,ready}
+    var setupStep:SetupStep {
+        if !configuration.paymentsConfigured {return .connect}
+        if wallet.agentAddress == nil {return .wallet}
+        if mandate == nil {return .rules}
+        return .ready
+    }
     @Published private(set) var configuration:AppConfiguration
     let sensors=MateModel()
     let voice=VoiceService()
