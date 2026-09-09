@@ -15,6 +15,10 @@ struct DisclosureDraft:Identifiable,Sendable {
     let service:MateService
     var text:String
 }
+/// A brief, confirmed-result signal for the eyes: a short nod on a verified success,
+/// a short shake on a verified rejection or failure. Never set from an animation
+/// finishing; only from the actual state that produced the outcome.
+enum ExecutionOutcome:Equatable,Sendable {case confirmed,rejected}
 struct PendingGrant:Codable,Sendable {
     let grant:MandateGrant
     let policy:PrivatePolicy
@@ -25,6 +29,18 @@ struct PendingExecution:Codable,Sendable {
     let proofHash:String
     let createdAt:Date
     var submission:ExecutionSubmission? = nil
+}
+/// A spoken revoke request awaiting the same "yes" confirmation window as an
+/// agent offer. Confirming still goes through the existing signed revoke call.
+private struct PendingRevoke {
+    let mandateID:String
+    let generation:UUID
+    let createdAt:Date
+    func accepts(_ input:String,generation:UUID,now:Date=Date())->Bool {
+        let answer=input.lowercased().filter{!$0.isWhitespace && !$0.isPunctuation}
+        return self.generation==generation && (0...60).contains(now.timeIntervalSince(createdAt)) &&
+            ["はい","お願いします","お願い","進めて","yes","confirm","goahead"].contains(answer)
+    }
 }
 
 @MainActor
@@ -59,7 +75,10 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var discovering=false
     @Published private(set) var lastProofMilliseconds:Int?
     @Published private(set) var pendingExecution:PendingExecution?
+    @Published private(set) var lastOutcome:ExecutionOutcome?
+    private var outcomeTask:Task<Void,Never>?
     @Published var draft:DisclosureDraft? { didSet { requestGeneration = UUID() } }
+    @Published private(set) var ruleDraft:RuleProposal?
     @Published var localNotes=""
     @Published var readAloud=true
     @Published var continuousConversation=false {
@@ -89,6 +108,7 @@ final class CompanionModel:ObservableObject {
     private var rpc:EthereumRPC
     private var conversationTask:Task<Void,Never>?
     private var conversationGeneration:UInt64=0
+    private var revokeOffer:PendingRevoke?
     private var voiceGeneration:UInt64{listeningSession.revision}
     private var requestGeneration=UUID()
     private var started=false
@@ -177,9 +197,15 @@ final class CompanionModel:ObservableObject {
         }catch{errorMessage=error.localizedDescription}
     }
     private func cancelConversation() {
-        agentOffer=nil
+        agentOffer=nil;revokeOffer=nil
         conversationGeneration &+= 1
         conversationTask?.cancel();conversationTask=nil;thinking=false
+    }
+    /// Reads and clears the pending rule proposal in one step, so a sheet
+    /// presented after the draft is consumed never reuses a stale prefill.
+    func consumeRuleDraft() -> RuleProposal? {
+        defer{ruleDraft=nil}
+        return ruleDraft
     }
     func setForeground(_ active:Bool) {
         foreground=active;sensors.setForeground(active)
@@ -225,7 +251,17 @@ final class CompanionModel:ObservableObject {
             busy:thinking || financialBusy || preparingCompanion,
             screenAllowsListening:sheet == nil || sheet == .conversation || sheet == .controls)
     }
-    func rest(){requestGeneration=UUID();sleeping=true;stopVoice();sensors.stopCapture();cancelConversation()}
+    func rest(){requestGeneration=UUID();sleeping=true;stopVoice();sensors.stopCapture();cancelConversation();outcomeTask?.cancel();lastOutcome=nil}
+    /// Shown only for a fixed, short window, then cleared. Never re-armed by a
+    /// later, unrelated interaction reading a stale value.
+    private func flashOutcome(_ outcome:ExecutionOutcome) {
+        outcomeTask?.cancel();lastOutcome=outcome
+        outcomeTask=Task{[weak self] in
+            do{try await Task.sleep(for:.milliseconds(1_600))}catch{return}
+            guard let self,!Task.isCancelled,self.lastOutcome==outcome else{return}
+            self.lastOutcome=nil
+        }
+    }
     func wake(){sleeping=false}
     func saveNotes() {
         guard localNotes.utf8.count<=2_000 else{errorMessage="Keep notes within 2,000 bytes.";return}
@@ -256,7 +292,7 @@ final class CompanionModel:ObservableObject {
             do {
                 let control=input.lowercased().filter{!$0.isWhitespace && !$0.isPunctuation}
                 if ["注文を確認して","注文どうなった","注文の状況を教えて","checkmyorder","checktheorder","orderstatus"].contains(control) {
-                    self.agentOffer=nil
+                    self.agentOffer=nil;self.revokeOffer=nil
                     guard self.stateLoaded else {
                         self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
                         return
@@ -281,6 +317,75 @@ final class CompanionModel:ObservableObject {
                         self.reportAgentResult(language:replyLanguage)
                         return
                     }
+                }
+                if let offered=self.revokeOffer {
+                    self.revokeOffer=nil
+                    if offered.accepts(input,generation:self.requestGeneration),self.mandate?.id==offered.mandateID {
+                        await self.fund(.revoke(offered.mandateID))
+                        guard self.foreground,self.conversationGeneration==generation else{return}
+                        if let failure=self.errorMessage {
+                            self.errorMessage=nil
+                            self.agentSay((replyLanguage == .japanese ? "委任を取り消せませんでした。" : "I couldn't revoke the mandate. ")+L10n.text(failure),language:replyLanguage)
+                        } else {
+                            self.agentSay(replyLanguage == .japanese ? "委任を取り消しました。" : "The mandate has been revoked.",language:replyLanguage)
+                        }
+                        return
+                    }
+                }
+                if ConversationRouter.isUsageStatusRequest(input) {
+                    self.agentOffer=nil;self.revokeOffer=nil
+                    guard let stored=self.mandate else {
+                        self.agentSay(replyLanguage == .japanese ? "有効な予算の設定はまだありません。「あなたのルール」から設定できます。" : "There is no active spending mandate yet. Set one up from Your rules.",language:replyLanguage)
+                        return
+                    }
+                    self.executionStatus=replyLanguage == .japanese ? "利用状況を確認しています" : "Checking usage"
+                    await self.refreshAccount()
+                    self.executionStatus=nil
+                    guard self.foreground,self.conversationGeneration==generation else{return}
+                    if let failure=self.errorMessage {
+                        self.errorMessage=nil
+                        self.agentSay((replyLanguage == .japanese ? "利用状況を確認できませんでした。" : "I couldn't confirm the current usage. ")+L10n.text(failure),language:replyLanguage)
+                    } else {
+                        let remaining=TokenAmount(units:stored.policy.budget>self.spent ? stored.policy.budget-self.spent:0).display
+                        self.agentSay(replyLanguage == .japanese
+                            ? "これまでに\(TokenAmount(units:self.spent).display) USDC使いました。残りは\(remaining) USDCです。"
+                            : "You've spent \(TokenAmount(units:self.spent).display) USDC so far, with \(remaining) USDC remaining.",language:replyLanguage)
+                    }
+                    return
+                }
+                if ConversationRouter.isRevokeRequest(input) {
+                    self.agentOffer=nil
+                    guard let stored=self.mandate else {
+                        self.agentSay(replyLanguage == .japanese ? "現在、取り消す委任はありません。" : "There is no active mandate to revoke.",language:replyLanguage)
+                        return
+                    }
+                    self.revokeOffer=PendingRevoke(mandateID:stored.id,generation:self.requestGeneration,createdAt:Date())
+                    let limit=TokenAmount(units:stored.policy.budget).display
+                    self.agentSay(replyLanguage == .japanese
+                        ? "現在の委任（上限\(limit) USDC）を取り消します。よろしければ「はい」と言ってください。"
+                        : "This will revoke the current mandate (limit \(limit) USDC). Say yes to confirm.",language:replyLanguage)
+                    return
+                }
+                if let proposal=ConversationRouter.ruleProposal(from:input) {
+                    self.agentOffer=nil;self.revokeOffer=nil
+                    guard proposal.translation || proposal.summary else {
+                        self.agentSay(replyLanguage == .japanese ? "翻訳と要約のどちらに使ってよいか教えてください。" : "Let me know whether this can be used for translation, summary or both.",language:replyLanguage)
+                        return
+                    }
+                    guard self.mandate == nil else {
+                        self.agentSay(replyLanguage == .japanese ? "ルールを変更するには、現在の委任を先に「あなたのルール」から取り消してください。" : "Changing the rules requires revoking the current mandate first, from Your rules.",language:replyLanguage)
+                        return
+                    }
+                    self.ruleDraft=proposal
+                    self.sheet = .rules
+                    if let unsupported=proposal.unsupportedService {
+                        self.agentSay(replyLanguage == .japanese
+                            ? "「\(unsupported)」はまだ対応していません。翻訳・要約の範囲で提案を「あなたのルール」に用意しました。金額と期限を確認して承認してください。"
+                            : "\"\(unsupported)\" isn't supported yet. I've prepared a proposal limited to translation and summary on Your rules. Review the amount and expiry, then approve it there.",language:replyLanguage)
+                    } else {
+                        self.agentSay(replyLanguage == .japanese ? "提案を「あなたのルール」に用意しました。金額と期限を確認して承認してください。" : "I've prepared this proposal on Your rules. Review the amount and expiry, then approve it there.",language:replyLanguage)
+                    }
+                    return
                 }
                 if let request=try await self.planner.request(from:input) {
                     try Task.checkCancellation()
@@ -584,7 +689,12 @@ final class CompanionModel:ObservableObject {
                 draft=nil
                 if !fromAgent{sheet = .activity}
             }
-        }catch{errorMessage=error.localizedDescription}
+        }catch{
+            errorMessage=error.localizedDescription
+            // A cancellation (rest, detach, superseded request) is not a condition
+            // violation; only a real stop or rejection reason gets the shake.
+            if case ProductError.cancelled=error {} else {flashOutcome(.rejected)}
+        }
     }
     private func accept(_ receipt:ExecutionReceipt,pending:PendingExecution) async throws {
         guard receipt.actionHash.lowercased()==pending.actionHash.lowercased(),receipt.proofHash.lowercased()==pending.proofHash.lowercased(),
@@ -592,6 +702,7 @@ final class CompanionModel:ObservableObject {
         try await rpc.confirmExecution(receipt,pending:pending,vault:configuration.vault)
         spent=value;receipts.removeAll{$0.id==receipt.id};receipts.insert(receipt,at:0);receipts=Array(receipts.prefix(30))
         try LocalSecrets.write(receipts,key:configuration.stateKey("receipts"));try LocalSecrets.delete(configuration.stateKey("pending-execution"));pendingExecution=nil
+        flashOutcome(.confirmed)
     }
     func recoverExecution() async {
         guard !financialBusy,let pending=pendingExecution else{return}

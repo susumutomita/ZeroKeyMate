@@ -64,7 +64,9 @@ private struct CompanionHome:View {
     @ObservedObject var voice:VoiceService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("mate-companion-introduced") private var introduced=false
+    @State private var outcomeOffset:CGSize = .zero
     private var status:String {
+        if let outcome=model.lastOutcome{return outcome == .confirmed ? "Confirmed.":"This request wasn't approved."}
         if let status=model.executionStatus{return status}
         if model.awaitingGreeting{return "Waiting for hello. Microphone on; camera off."}
         if model.preparingCompanion{return "Preparing voice input."}
@@ -82,6 +84,11 @@ private struct CompanionHome:View {
                      focus:sensors.horizontalFocus,verticalFocus:sensors.verticalFocus,reduceMotion:reduceMotion,
                      speaking:voice.speaking,hearingSpeech:voice.listening && !voice.transcript.isEmpty)
                 .frame(width:min(geometry.size.width*0.78,620),height:min(geometry.size.height*0.38,300))
+                .offset(outcomeOffset)
+                .onChange(of:model.lastOutcome){_,outcome in
+                    guard !reduceMotion,let outcome else{return}
+                    Task{await playOutcomeMotion(outcome)}
+                }
                 .frame(maxWidth:.infinity,maxHeight:.infinity)
                 .contentShape(Rectangle())
                 .onTapGesture{
@@ -106,6 +113,20 @@ private struct CompanionHome:View {
                 .accessibilityAction(named:Text("Rest and stop camera and microphone")){model.rest()}
                 .accessibilityIdentifier("companion-face")
         }.background(Finish.paper.ignoresSafeArea()).preferredColorScheme(.light).statusBarHidden()
+    }
+    /// A short, finite nod or shake on the face only, triggered by a verified
+    /// outcome. This never drives the physical stand; it is display-only.
+    private func playOutcomeMotion(_ outcome:ExecutionOutcome) async {
+        if outcome == .confirmed {
+            withAnimation(.easeOut(duration:0.16)){outcomeOffset=CGSize(width:0,height:9)}
+            try? await Task.sleep(for:.milliseconds(160))
+            withAnimation(.spring(response:0.22,dampingFraction:0.55)){outcomeOffset = .zero}
+        } else {
+            for step:CGFloat in [-12,10,-7,5,0] {
+                withAnimation(.easeInOut(duration:0.07)){outcomeOffset=CGSize(width:step,height:0)}
+                try? await Task.sleep(for:.milliseconds(70))
+            }
+        }
     }
 }
 
@@ -379,11 +400,19 @@ private struct SettingsSheet:View {
 
 private struct RulesSheet:View {
     @ObservedObject var model:CompanionModel
-    @State private var budget="5"
-    @State private var translation=true
-    @State private var summary=true
-    @State private var hours=8
+    @State private var budget:String
+    @State private var translation:Bool
+    @State private var summary:Bool
+    @State private var hours:Int
     @Environment(\.locale) private var locale
+    init(model:CompanionModel) {
+        self.model=model
+        let draft=model.consumeRuleDraft()
+        _budget=State(initialValue:draft.map{TokenAmount(units:$0.budgetUnits).display} ?? "5")
+        _translation=State(initialValue:draft?.translation ?? true)
+        _summary=State(initialValue:draft?.summary ?? true)
+        _hours=State(initialValue:draft?.hours ?? 8)
+    }
     var body:some View {
         let _ = locale.identifier
         Form{
