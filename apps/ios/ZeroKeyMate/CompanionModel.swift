@@ -248,6 +248,15 @@ final class CompanionModel:ObservableObject {
             screenAllowsListening:sheet == nil || sheet == .conversation || sheet == .controls)
     }
     func rest(){requestGeneration=UUID();sleeping=true;stopVoice();sensors.stopCapture();cancelConversation();outcomeTask?.cancel();lastOutcome=nil}
+    /// Capture before asynchronous work. Recording a confirmed transaction may
+    /// outlive the interaction, but its feedback must not wake a stopped Mate.
+    func makeOutcomeFeedback() -> (ExecutionOutcome)->Void {
+        let ticket=requestGeneration
+        return { [weak self] outcome in
+            guard let self,self.foreground,!self.sleeping,self.requestGeneration==ticket else{return}
+            self.flashOutcome(outcome)
+        }
+    }
     /// Shown only for a fixed, short window, then cleared. Never re-armed by a
     /// later, unrelated interaction reading a stale value.
     private func flashOutcome(_ outcome:ExecutionOutcome) {
@@ -712,6 +721,7 @@ final class CompanionModel:ObservableObject {
               providers.contains(provider),!payload.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,
               payload.utf8.count<=8_000 else{errorMessage="Check the mandate, provider and text to share.";return}
         let ticket=requestGeneration
+        let feedback=makeOutcomeFeedback()
         func checkApproval() throws {
             guard foreground, !sleeping, requestGeneration==ticket, draft?.id==approvedDraft.id else{throw ProductError.cancelled}
             if requiresDelegation && !delegationAllows(provider,mandateID:stored.id,now:UInt64(Date().timeIntervalSince1970)){throw ProductError.cancelled}
@@ -759,6 +769,7 @@ final class CompanionModel:ObservableObject {
                 }
             }
             try await accept(receipt,pending:pending)
+            feedback(.confirmed)
             if requestGeneration==ticket {
                 if !fromAgent{messages.append(ConversationMessage(isUser:false,text:receipt.result))}
                 draft=nil
@@ -768,7 +779,7 @@ final class CompanionModel:ObservableObject {
             errorMessage=error.localizedDescription
             // A cancellation (rest, detach, superseded request) is not a condition
             // violation; only a real stop or rejection reason gets the shake.
-            if case ProductError.cancelled=error {} else if !(error is CancellationError),pendingExecution == nil {flashOutcome(.rejected)}
+            if case ProductError.cancelled=error {} else if !(error is CancellationError),pendingExecution == nil {feedback(.rejected)}
         }
     }
     private func accept(_ receipt:ExecutionReceipt,pending:PendingExecution) async throws {
@@ -777,10 +788,10 @@ final class CompanionModel:ObservableObject {
         try await rpc.confirmExecution(receipt,pending:pending,vault:configuration.vault)
         spent=value;receipts.removeAll{$0.id==receipt.id};receipts.insert(receipt,at:0);receipts=Array(receipts.prefix(30))
         try LocalSecrets.write(receipts,key:configuration.stateKey("receipts"));try LocalSecrets.delete(configuration.stateKey("pending-execution"));pendingExecution=nil
-        flashOutcome(.confirmed)
     }
     func recoverExecution() async {
         guard !financialBusy,let pending=pendingExecution else{return}
+        let feedback=makeOutcomeFeedback()
         financialBusy=true;defer{financialBusy=false}
         do {
             let receipt:ExecutionReceipt
@@ -792,6 +803,7 @@ final class CompanionModel:ObservableObject {
                 receipt=try await network.submit(submission)
             }
             try await accept(receipt,pending:pending)
+            feedback(.confirmed)
         }
         catch{errorMessage=error.localizedDescription}
     }

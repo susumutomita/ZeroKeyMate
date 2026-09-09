@@ -18,6 +18,24 @@ private actor SuspendedConversation:ConversationResponding {
 
 @MainActor
 final class ConversationTests:XCTestCase {
+    func testOutcomeFeedbackCannotResumeAfterRestBackgroundOrNewInteraction() {
+        for stop in 0..<3 {
+            let model=CompanionModel(planner:ChatOnlyPlanner())
+            model.sleeping=false
+            let feedback=model.makeOutcomeFeedback()
+            feedback(.confirmed)
+            XCTAssertEqual(model.lastOutcome,.confirmed)
+            if stop == 0 {model.rest()}
+            else if stop == 1 {model.setForeground(false);model.setForeground(true)}
+            else {model.sheet = .settings}
+            model.sleeping=false // Even waking again must not revive the old result.
+            feedback(.confirmed);feedback(.rejected)
+            XCTAssertNil(model.lastOutcome)
+            model.makeOutcomeFeedback()(.rejected)
+            XCTAssertEqual(model.lastOutcome,.rejected)
+            model.rest()
+        }
+    }
     func testRealConversationSwitchesReplyLanguage() async throws {
         let service=ConversationService()
         if let reason=await service.availability(){throw XCTSkip(reason)}
