@@ -21,14 +21,14 @@ public struct RuleProposal: Equatable, Sendable {
 public enum ConversationRouter {
     public static func isUsageStatusRequest(_ text: String) -> Bool {
         matches(text, phrases: [
-            "いくらつかった", "いくらつかいましたか", "しようじょうきょう", "りようじょうきょう", "りようじょうきょうをおしえて",
-            "のこりのよさん", "ざんだかはいくら", "いまいくらつかった",
+            "いくら使った", "いくら使いましたか", "使用状況", "利用状況", "利用状況を教えて",
+            "残りの予算", "残高はいくら", "今いくら使った",
             "howmuchhaveispent", "howmuchdidispend", "spendingstatus", "usagestatus", "howmuchhaveiused", "whatsmybalance",
         ])
     }
     public static func isRevokeRequest(_ text: String) -> Bool {
         matches(text, phrases: [
-            "いにんをとりけして", "いにんをかいじょして", "けんげんをとりけして", "まんでーとをとりけして", "まんでーとをかいじょして",
+            "委任を取り消して", "委任を解除して", "権限を取り消して", "マンデートを取り消して", "マンデートを解除して",
             "revokethemandate", "revokemymandate", "cancelthemandate", "stopthemandate", "revokemandate", "revokeaccess",
         ])
     }
