@@ -553,17 +553,17 @@ final class CompanionModel:ObservableObject {
     }
     @Published private(set) var accountCheckedAt:Date?
     func refreshAccount() async {
-        let scope=configuration.stateKey("account")
+        let scope=configurationGeneration
         let currentNetwork=network
         let mandateID=mandate?.id
         accountCheckedAt=nil
         guard let owner=wallet.ownerAddress else{errorMessage="Set up your wallet and settlement connection first.";return}
         do {
             let fetchedAccount=try await currentNetwork.account(owner:owner)
-            guard configuration.stateKey("account")==scope,wallet.ownerAddress==owner,mandate?.id==mandateID else{return}
+            guard configurationGeneration==scope,wallet.ownerAddress==owner,mandate?.id==mandateID else{return}
             if let mandate {
                 let state=try await currentNetwork.mandate(id:mandate.id)
-                guard configuration.stateKey("account")==scope,wallet.ownerAddress==owner,self.mandate?.id==mandateID else{return}
+                guard configurationGeneration==scope,wallet.ownerAddress==owner,self.mandate?.id==mandateID else{return}
                 guard state.owner.lowercased()==mandate.grant.owner.lowercased(),
                       state.agent.lowercased()==mandate.grant.agent.lowercased(),
                       state.policyHash.lowercased()==mandate.grant.policyHash.lowercased(),let value=UInt64(state.spent) else{throw ProductError.invalidResponse}
@@ -573,7 +573,7 @@ final class CompanionModel:ObservableObject {
                 }
             }
             account=fetchedAccount;accountCheckedAt=Date()
-        }catch{if configuration.stateKey("account")==scope{errorMessage=error.localizedDescription}}
+        }catch{if configurationGeneration==scope{errorMessage=error.localizedDescription}}
     }
     func authorize(budget:String,translation:Bool,summary:Bool,hours:Int,validUntil:Date?=nil) async {
         guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
