@@ -75,6 +75,14 @@ These foreground commands fail if the real dependencies are unavailable. Ctrl+C 
 
 Open **Settings → Configure connection** on the phone. Enter the API URL and pairing token, select Arc, and supply the confirmed vault and public Privy IDs. **Check connection and save** checks the authenticated API's deployment and RPC chain before saving to Keychain. Pending executions or grants prevent switching settlement configuration. A phone cannot reach the Mac through `127.0.0.1`; use an HTTPS endpoint reachable from the phone, without exposing an unauthenticated server. Keep the provider and journal secrets off the phone.
 
+### Physical iPhone HTTPS: Tailscale Serve
+
+Use [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve) for the private phone-to-Mac connection (official documentation checked 2026-09-10). Install/sign in on both devices using the same approved tailnet, with HTTPS enabled. Account, VPN and HTTPS consent remain explicit user setup steps.
+
+After the real API is ready, run `tailscale serve 8787` in a separate terminal. Keep the API bound to localhost. Copy the HTTPS URL printed by Serve into Mate's connection screen; enter the pairing token separately, never in the URL. Tailnet access does not replace API authentication. Confirm `/health` on the phone, then **Check connection and save** to verify authenticated deployment/chain binding.
+
+Ctrl+C stops this foreground proxy. Do not use Funnel or disable certificate validation for this private connection. The publicly indexed specialist endpoint is configured separately. Until the phone reaches and validates this endpoint, HTTPS acceptance remains pending under #16/#17.
+
 ## 5. Record acceptance
 
 1. In airplane mode, generate and verify a local proof, record real time/size, and verify that a modified proof is rejected.
