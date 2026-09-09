@@ -2,6 +2,7 @@ import AVFoundation
 import Combine
 import Foundation
 import MateCore
+import UIKit
 
 @MainActor
 final class MateModel:ObservableObject {
@@ -20,6 +21,10 @@ final class MateModel:ObservableObject {
     @Published private(set) var faceDetectionStatus="Waiting for face detection"
     @Published private(set) var dockTrackingSubjects=0
     @Published private(set) var dockTrackingButtonEnabled=false
+    @Published private(set) var standMovementEnabled=UserDefaults.standard.object(forKey:"mate-stand-movement") as? Bool ?? true
+    @Published private(set) var reactionRunning=false
+    private var reactionGate=DockReactionGate()
+    private var approvalPending=false
     private var trackingRetryAt=Date.distantPast
     var onDetach:(()->Void)?
     var onInterruption:(()->Void)?
@@ -78,6 +83,25 @@ final class MateModel:ObservableObject {
                 self.intent.requestStop();self.scheduleReconciliation();self.onInterruption?()
             }.store(in:&notifications)
         }
+        NotificationCenter.default.publisher(for:UIAccessibility.reduceMotionStatusDidChangeNotification)
+            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.scheduleReconciliation()}.store(in:&notifications)
+    }
+    var standMotionAllowed:Bool {standMovementEnabled && !UIAccessibility.isReduceMotionEnabled}
+    private var reactionAllowed:Bool {
+        cameraRunning && intent.shouldCapture && dock.isConnected && !approvalPending && standMotionAllowed
+    }
+    func setApprovalPending(_ pending:Bool) {
+        guard approvalPending != pending else{return}
+        approvalPending=pending;scheduleReconciliation()
+    }
+    func setStandMovementEnabled(_ enabled:Bool) {
+        standMovementEnabled=enabled;UserDefaults.standard.set(enabled,forKey:"mate-stand-movement")
+        scheduleReconciliation()
+    }
+    func requestReaction(_ outcome:CompanionOutcome) {
+        let now=ProcessInfo.processInfo.systemUptime
+        guard reactionGate.request(outcome,allowed:reactionAllowed,now:now) else{return}
+        scheduleReconciliation()
     }
     func setForeground(_ foreground:Bool) {
         if intent.isForeground != foreground{lastTrackingRequest=nil}
@@ -100,6 +124,7 @@ final class MateModel:ObservableObject {
     func stopCapture(){intent.requestStop();scheduleReconciliation()}
     private func scheduleReconciliation() {
         revision &+= 1;captureRequested=intent.shouldCapture
+        reactionGate.update(allowed:reactionAllowed)
         if !intent.shouldCapture{observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0}
         guard reconciliationTask == nil else{return}
         reconciliationTask=Task{[weak self] in
@@ -138,7 +163,34 @@ final class MateModel:ObservableObject {
             // Configure system tracking after an explicit camera start. The physical
             // tracking button is telemetry, not a prerequisite for enabling the API:
             // gating on it can prevent recovery from our earlier disabled state.
-            let wantsTracking=cameraRunning && intent.shouldCapture && dock.isConnected
+            if let request=reactionGate.begin(allowed:reactionAllowed) {
+                reactionRunning=true
+                let ticket=request.ticket
+                do {
+                    try await dock.setTrackingEnabled(false)
+                    lastTrackingRequest=false;trackingEnabled=false
+                    _=trackingOwnership.shouldApply(enabled:true)
+                    if reactionGate.permits(ticket,allowed:reactionAllowed) {
+                        let performed=try await dock.performReaction(request.outcome){[weak self] in
+                            guard let self else{return false}
+                            return self.reactionGate.permits(ticket,allowed:self.reactionAllowed)
+                        }
+                        if !performed{dockMessage="Stand reactions need a supported axis and a fresh stationary position."}
+                    }
+                }catch is CancellationError {
+                    // Rest/detach/settings invalidated this interaction. The adapter
+                    // stops its motion before returning; never enqueue it again.
+                }catch{
+                    dockMessage="The stand reaction stopped. Rest Mate and start again."
+                    intent.requestStop();captureRequested=false;revision &+= 1;onInterruption?()
+                }
+                reactionGate.finish(ticket);reactionRunning=false;lastTrackingRequest=nil
+            }
+            let ownsCamera=cameraRunning && intent.shouldCapture && dock.isConnected
+            // A camera session can start system tracking automatically. Explicitly
+            // apply OFF for our active session when movement is disabled.
+            if ownsCamera{_=trackingOwnership.shouldApply(enabled:true)}
+            let wantsTracking=ownsCamera && !approvalPending && standMotionAllowed
             if trackingOwnership.shouldApply(enabled:wantsTracking),lastTrackingRequest != wantsTracking, !wantsTracking || Date()>=trackingRetryAt {
                 do{
                     try await dock.setTrackingEnabled(wantsTracking)
