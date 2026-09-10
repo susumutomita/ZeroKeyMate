@@ -1,6 +1,6 @@
 # ETHGlobal submission copy
 
-Prepared on 2026-09-07 for the current [review branch / PR #12](https://github.com/susumutomita/ZeroKeyMate/pull/12). The text below describes the implemented prototype. ETHOnline 2026 and the selected Building from Scratch pool were confirmed in the entrant dashboard. Eligibility is not claimed; proposed targets are Arc, Privy and The Graph. Final form field names and length limits must be checked in that event's Hacker Dashboard.
+Updated 2026-09-10 against merged main through [PR #31](https://github.com/susumutomita/ZeroKeyMate/pull/31). This is reviewable submission copy, not a submitted entry. ETHOnline 2026 and Building from Scratch were previously recorded as selected in the entrant dashboard; final eligibility and the current form still require entrant review. Proposed prizes are Arc, Privy and The Graph. See the [requirements and evidence matrix](submission-evidence.md).
 
 ## Project name
 
@@ -20,7 +20,7 @@ On Ethereum, MateVault checks the owner grant, agent signature, action binding, 
 
 The working local demonstration combines real cryptographic proofs, HTTP services, Solidity execution and an actual Ollama translation. Settlement runs on Anvil and discovery is a labeled fixture. Physical DockKit, mobile proof performance and live Privy/Circle/The Graph/public-Arc acceptance remain open. The proof is verified off chain by an attestor trusted by the vault; this prototype does not claim trustless on-chain ZK verification.
 
-Request invalidation before signing, foreground full-stack startup and validated runtime pairing are implemented. Arc settlement binding and a Circle Agent Wallet proof-attestation adapter are locally tested; live sponsor operation remains pending. Further product work includes conversational setup and expressive stand motion. This submission describes the currently demonstrated local protocol and native UI, not completion of the entire [product backlog](validation.md#remaining-product-implementation).
+Request invalidation before signing, foreground full-stack startup and validated runtime pairing are implemented. Arc settlement binding and a Circle Agent Wallet proof-attestation adapter are locally tested; live sponsor operation remains pending. Conversational rule proposals, explicit bounded delegation, typed listening/thinking/speaking activity and finite stand reactions are implemented; physical acceptance remains open. This submission describes the currently demonstrated local protocol and native UI, not completion of the entire [product backlog](validation.md#remaining-product-implementation).
 
 ## Example use case
 
@@ -66,9 +66,9 @@ Codex assisted with implementation, debugging, automated validation and this sub
 | Field | Current value / next action |
 | --- | --- |
 | Event and deadline | ETHOnline 2026 confirmed in dashboard: September 13, 12:00 EDT / September 14, 01:00 JST. See the sourced [proposed schedule](schedule.md). |
-| Track and eligible new work | Not selected. Map [existing commits](development-history.md) to the event's start/end window; disclose pre-existing work. |
+| Track and eligible new work | Building from Scratch was previously recorded in the dashboard; eligibility is not established. Map [existing commits](development-history.md) to the event's start/end window; disclose pre-existing work. |
 | Team members and contribution statements | Not supplied. Use each entrant's actual name, role and work. |
-| Repository | [ZeroKeyMate](https://github.com/susumutomita/ZeroKeyMate); currently submit the [review branch](https://github.com/susumutomita/ZeroKeyMate/tree/codex/complete-local-runtime) / exact reviewed commit, not an older main. |
+| Repository | [ZeroKeyMate](https://github.com/susumutomita/ZeroKeyMate); use the exact final merged commit matching the recording and reproducibility check. Do not submit an unmerged implementation branch as completed main. |
 | Demo video | Not recorded/uploaded. [Three-minute script and capture plan](demo.md). |
 | App / deployment link | No public install or live deployment claimed. Provide source/build instructions, and add verified testnet links if deployed. |
 | Partner prizes and feedback | Proposed priorities: Arc/Circle Agent Stack, Privy financial flow, The Graph AI use case. Live evidence is pending; none selected in the form. See [strategy](prize-strategy.md). |
@@ -76,6 +76,6 @@ Codex assisted with implementation, debugging, automated validation and this sub
 
 ## Official rules to check
 
-ETHGlobal's [ETHOnline 2026 submission guide](https://ethglobal.com/events/ethonline2026/info/details) was consulted on 2026-09-07 as a concrete example. It distinguishes new work from continuity, asks for AI attribution and requires a 2–4 minute demo. **This does not select ETHOnline as the submission event.** Follow the actual event's rules and partner terms; they may differ. The [official events list](https://ethglobal.com/events) is the starting point.
+The [official ETHOnline 2026 guide](https://ethglobal.com/events/ethonline2026/info/details) was rechecked on 2026-09-10. The deadline is September 13 at 12:00 EDT / September 14 at 01:00 JST. Its requirements include a 2–4 minute video, at least 720p, human narration, transparent AI attribution and the appropriate treatment of pre-existing work. At most three partner prizes may be selected. The [evidence matrix](submission-evidence.md) maps the selected candidates to outstanding proof. Recheck the live form before submitting.
 
 This package has not been submitted to an organizer or Hacker Dashboard.
