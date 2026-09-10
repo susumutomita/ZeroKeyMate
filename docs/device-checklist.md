@@ -30,3 +30,11 @@ Live external acceptance, requiring separately configured accounts and test fund
 - [ ] Full data disclosure and journal retention are reviewed before release. Sponsor eligibility is verified from current official terms.
 
 No physical or live item is automatically checked off by a software test.
+
+## Local proof measurements
+
+The Local ZK result separates **Prove + verify**, **Preparation** and **Total proof request**. The total starts when the proof actor handles the request and includes key validation/loading, witness preparation, proving and original verification. Actor queue wait, modified-proof checking and UI rendering are excluded. Durations use a monotonic clock.
+
+**Key setup** says whether this ProofService instance already held validated key data. A first key load is not proof of a cold process, cold OS cache or cold device. Record process restart and actual test conditions separately. The native acceptance test records one first-key-load request and three repeated requests using the same actor.
+
+Thermal state is sampled before preparation and after original verification. It does not measure the maximum temperature or prove the absence of throttling between those samples. Peak memory is not estimated by the app: measure it separately with Instruments on the physical iPhone and record the measurement interval. Simulator attachments cannot establish physical-device performance or offline operation.

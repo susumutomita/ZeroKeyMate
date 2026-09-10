@@ -8,6 +8,11 @@ struct VerifiedLocalProof: Sendable {
     let policyHash: String
     let actionHash: String
     let elapsedMilliseconds: Int
+    let preparationMilliseconds: Int
+    let totalMilliseconds: Int
+    let usedCachedKeys: Bool
+    let thermalStateBefore: String
+    let thermalStateAfter: String
     var proofHash: String { LocalSecrets.hash(bytes) }
 }
 
@@ -49,6 +54,9 @@ actor ProofService {
     }
     func prove(policy: PrivatePolicy, action: MandateAction, chainID: UInt64, vault: String) throws -> VerifiedLocalProof {
         try Task.checkCancellation()
+        let totalStart = ContinuousClock.now
+        let usedCachedKeys = keyData != nil
+        let thermalBefore = Self.thermalStateName(ProcessInfo.processInfo.thermalState)
         try prepare()
         guard let keys = keyData, let amount = UInt64(action.amount), let spent = UInt64(action.spentBefore),
               let service = MateService(rawValue: action.service) else { throw ProductError.invalidResponse }
@@ -68,13 +76,34 @@ actor ProofService {
         defer { prover.close() }
         let verifier = try runtime.loadVerifier(data: keys.1)
         defer { verifier.close() }
-        let start = Date()
+        let start = ContinuousClock.now
+        let preparationMilliseconds = Self.milliseconds(totalStart.duration(to: start))
         let proof = try prover.prove(witness: witness)
         guard try verifier.verify(proof: proof) else { throw ProductError.invalidResponse }
         try Task.checkCancellation()
+        let end = ContinuousClock.now
         return VerifiedLocalProof(bytes: proof.data, policyHash: policyHash, actionHash: actionHash,
-            elapsedMilliseconds: Int(Date().timeIntervalSince(start) * 1000))
+            elapsedMilliseconds: Self.milliseconds(start.duration(to: end)),
+            preparationMilliseconds: preparationMilliseconds,
+            totalMilliseconds: Self.milliseconds(totalStart.duration(to: end)),
+            usedCachedKeys: usedCachedKeys, thermalStateBefore: thermalBefore,
+            thermalStateAfter: Self.thermalStateName(ProcessInfo.processInfo.thermalState))
     }
+    private static func milliseconds(_ duration: Duration) -> Int {
+        let parts = duration.components
+        return Int(parts.seconds * 1_000 + parts.attoseconds / 1_000_000_000_000_000)
+    }
+
+    private static func thermalStateName(_ state: ProcessInfo.ThermalState) -> String {
+        switch state {
+        case .nominal: return "Nominal"
+        case .fair: return "Fair"
+        case .serious: return "Serious"
+        case .critical: return "Critical"
+        @unknown default: return "Unknown"
+        }
+    }
+
     /// Negative verification uses the same native verifier, never a UI-only comparison.
     func rejectsTamperedCopy(of proof: VerifiedLocalProof) throws -> Bool {
         try Task.checkCancellation()
