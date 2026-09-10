@@ -59,7 +59,7 @@ Example shape (replace all placeholders; these are not working records):
 [{"id":"11155111:REGISTRATION_ID","service":0,"price":"100000","owner":"0xREGISTERED_OWNER","recipient":"0xREGISTERED_AGENT_WALLET","endpoint":"https://YOUR_SPECIALIST","bearerToken":"YOUR_PROVIDER_TOKEN"}]
 ```
 
-Configure `PROVIDER_API_TOKEN`, `PROVIDER_JOURNAL_KEY` (64 hex characters), `PROVIDER_RECIPIENT`, `PROVIDER_SERVICE` (`0` translation / `1` summary), `PROVIDER_PRICE`, and `OLLAMA_MODEL`. Install a model only after reviewing its license; the app does not download one. The provider must have the same chain, vault, token and attestor as the API. Expose its authenticated endpoint through your own HTTPS service and register that exact endpoint in the indexed record. The Graph record and live query must exist; configuration alone creates neither.
+Configure `PROVIDER_API_TOKEN`, `PROVIDER_JOURNAL_KEY` (64 hex characters), `PROVIDER_RECIPIENT`, `PROVIDER_SERVICE` (`0` translation / `1` summary), `PROVIDER_PRICE`, and `OLLAMA_MODEL`. Install a model only after reviewing its license; the app does not download one. The provider must have the same chain, vault, token and attestor as the API. Expose its authenticated endpoint through your own HTTPS service and register that exact endpoint in the indexed record. The Graph record and live query must exist; configuration alone creates neither. Use the [provider registration CLI](provider-registration.md) to preview, register, recover and verify the indexed provider.
 
 ## 4. Start, pair and stop
 
