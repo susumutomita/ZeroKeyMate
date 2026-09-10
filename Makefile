@@ -21,7 +21,7 @@ help:
 	@printf '%s\n' 'make start            Choose Simulator or physical iPhone' 'make start-device     Build, install and launch on a connected iPhone' 'make start-simulator  Build, install and launch on iPhone Simulator' 'make dev              Start configured services and choose Simulator/iPhone' 'make dev-simulator    Start configured services and Simulator' 'make dev-device       Start configured services and connected iPhone' 'make services         Start configured services only; Ctrl+C stops them' 'make test             Run automated tests' 'Multiple devices: MATE_DEVICE_UDID=UDID make start' 'Multiple signing teams: MATE_DEVELOPMENT_TEAM=TEAM_ID make start'
 
 test-launcher:
-	python3 -m unittest discover -s scripts/tests -p 'test_device_launch.py' -v
+	python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 
 test-swift:
 	swift test $(SWIFT_TEST_FLAGS) --cache-path .build/swift-cache --scratch-path .build/swift --parallel
