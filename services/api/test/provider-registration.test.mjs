@@ -101,3 +101,8 @@ test('CLI defaults to a public preview and never prints configured private mater
   assert.match(output,/preview-only/);assert.match(output,/No transaction signed or sent/);
   assert.equal(output.includes(key),false);assert.equal(output.includes(secret),false);
 });
+
+test('oversized UTF-8 metadata is rejected before registration can mint an identity',()=>{
+  assert.throws(()=>registrationConfiguration({PROVIDER_RECIPIENT:owner.address,PROVIDER_PUBLIC_URL:'https://example.com/'+ 'a'.repeat(2000),
+    PROVIDER_REGISTRATION_DESCRIPTION:'あ'.repeat(1024),PROVIDER_REGISTRATION_IMAGE_URL:'https://example.com/'+ 'b'.repeat(2000)},owner.address),{code:'registration_metadata_size'});
+});

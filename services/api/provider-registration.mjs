@@ -17,11 +17,13 @@ const endpoint=z.string().max(2048).refine(value=>{
   catch{return false;}
 });
 export function registrationConfiguration(e,owner) {
-  return z.object({owner:address,recipient:address,endpoint,
+  const config=z.object({owner:address,recipient:address,endpoint,
     name:z.string().min(1).max(120),description:z.string().min(1).max(1024),image:endpoint.or(z.literal(''))}).parse({
     owner,recipient:e.PROVIDER_RECIPIENT,endpoint:e.PROVIDER_PUBLIC_URL,
     name:e.PROVIDER_REGISTRATION_NAME||'Mate specialist',description:e.PROVIDER_REGISTRATION_DESCRIPTION||'A specialist service for explicitly authorized Mate requests.',image:e.PROVIDER_REGISTRATION_IMAGE_URL||'',
   });
+  requireValue(Buffer.byteLength(JSON.stringify(registrationDocument(config,Number.MAX_SAFE_INTEGER)))<=6000,'registration_metadata_size','Shorten the public registration metadata before submitting.');
+  return config;
 }
 export function registrationDocument(config,id) {
   return {type:'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',name:config.name,description:config.description,
