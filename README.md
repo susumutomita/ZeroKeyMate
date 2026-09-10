@@ -219,6 +219,8 @@ Apple documents the [charger connection trigger](https://support.apple.com/guide
 
 Run `npm run merchant` to open the English-first shop console at `http://127.0.0.1:8790`. The shop independently verifies the client ZK proof and withholds delivery until its own on-chain payment check succeeds. See [merchant setup and trust boundaries](docs/merchant.md).
 
+Provider discovery also needs a real on-chain identity and indexed metadata. `npm run register-provider` previews the public registration; `-- --submit` sends the reviewed Sepolia registration through a durable transaction journal. `npm run check-provider -- 11155111:AGENT_ID` then checks the same Graph and live-quote path used by Mate. See [provider registration and recovery](docs/provider-registration.md).
+
 ### Pair an iPhone without rebuilding
 
 Once the API deployment and proof verifier are ready, run `npm run pair` on the Mac. Open the private `pairing-code.txt` at the path printed by the command and enter its code under **Settings → Configure connection → One-time pairing code**. Enter the reachable HTTPS API origin, matching testnet/vault and public Privy IDs, then check and save. The app checks the public deployment and RPC chain before exchanging the code, checks its new session, and saves only after all checks pass.

@@ -6,6 +6,8 @@
   "engines": { "node": "^22.16.0 || ^24.0.0" },
   "scripts": {
     "test": "node --test services/api/test/*.test.mjs services/provider/test/*.test.mjs services/merchant/test/*.test.mjs",
+    "check-provider": "node --env-file-if-exists=.env scripts/check-provider.mjs",
+    "register-provider": "node --env-file-if-exists=.env scripts/register-provider.mjs",
     "pair": "node --env-file-if-exists=.env scripts/pair.mjs",
     "configure": "node scripts/configure.mjs",
     "unlock": "node --env-file-if-exists=.env scripts/unlock.mjs",
