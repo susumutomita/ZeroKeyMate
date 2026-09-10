@@ -6192,6 +6192,230 @@
           }
         }
       }
+    },
+    "Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateに頼んでみましょう。予算の総額をiPhoneに残したまま、決めたルールの範囲で有料の翻訳を任せられます。"
+          }
+        }
+      }
+    },
+    "Try a translation request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try a translation request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳の依頼を試す"
+          }
+        }
+      }
+    },
+    "Translate this into Japanese: The meeting starts at ten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate this into Japanese: The meeting starts at ten."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「会議は10時に始まります。」を英語に翻訳して。"
+          }
+        }
+      }
+    },
+    "Edit the example, then send it. External requests need a connected shop and approved spending rules.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit the example, then send it. External requests need a connected shop and approved spending rules."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例文を編集して送ってみましょう。外部への依頼には、店舗との接続と予算の承認が必要です。"
+          }
+        }
+      }
+    },
+    "The result is not confirmed yet. Check the existing request before paying again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The result is not confirmed yet. Check the existing request before paying again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果はまだ確認できていません。再度支払う前に、同じ依頼の結果を確認してください。"
+          }
+        }
+      }
+    },
+    "Your request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの依頼"
+          }
+        }
+      }
+    },
+    "Only this request text is shared with the service. Your conversation and total budget stay private.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only this request text is shared with the service. Your conversation and total budget stay private."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスに共有する文章はこの依頼内容だけです。会話や予算の総額は共有しません。"
+          }
+        }
+      }
+    },
+    "Continue request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依頼を続ける"
+          }
+        }
+      }
+    },
+    "Discard request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依頼を破棄"
+          }
+        }
+      }
+    },
+    "View result and privacy evidence": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View result and privacy evidence"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果とプライバシーの確認"
+          }
+        }
+      }
+    },
+    "Your text stays here during setup. Nothing is sent until you approve a request.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your text stays here during setup. Nothing is sent until you approve a request."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定中も依頼内容はここに残ります。依頼を承認するまで送信しません。"
+          }
+        }
+      }
+    },
+    "Private rules checked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Private rules checked"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非公開のルールに適合"
+          }
+        }
+      }
+    },
+    "The service received the approved text and payment details. Your total budget, full permission set and secret salt were not sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The service received the approved text and payment details. Your total budget, full permission set and secret salt were not sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスに渡したのは承認した文章と支払い情報です。予算の総額、権限の全一覧、秘密のソルトは送っていません。"
+          }
+        }
+      }
+    },
+    "The payment contract trusts the proof verifier's attestation. Payment amounts and recipients are public.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The payment contract trusts the proof verifier's attestation. Payment amounts and recipients are public."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決済コントラクトは証明検証サーバーの署名を信頼します。支払額と受取人は公開されます。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

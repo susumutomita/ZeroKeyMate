@@ -2,6 +2,10 @@
 
 Open **Controls → Set up external requests**, or the same action in Settings. Local conversation and **Try private rules on this device** remain usable independently.
 
+A concrete spoken or typed translation/summary request is retained even when setup is incomplete. Open **Conversation → Continue request** to see the original text above the next setup step. When setup is ready, **Continue request** returns to that text for provider discovery and approval instead of creating an empty translation. Only this unapproved draft survives a connection change; quotes, offers and payment authority do not. Draft text is held in memory for this app session, not persisted across app termination. **Discard request** removes it without sending anything.
+
+The empty conversation offers an editable translation example. Choosing it only fills the composer. During execution, the conversation shows the actual current operation; a pending result leads to the existing recovery screen. Confirmed results include what was disclosed and what stayed private, together with the proof commitment and transaction link. These controls use the real execution state and do not simulate provider or payment success.
+
 The setup screen restores pending state before selecting a step. A pending execution or grant takes priority over new setup. Otherwise it validates the configured deployment and RPC network, restores the Privy session and wallet roles, refreshes the account and mandate, and then offers the next action:
 
 1. Configure the connection and public Privy identifiers.
