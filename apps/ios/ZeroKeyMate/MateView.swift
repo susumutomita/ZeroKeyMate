@@ -134,6 +134,7 @@ private struct CompanionWelcomeSheet:View {
         Form {
             Section {
                 Text("Your iPhone. Your companion.").font(.title2)
+                Text("Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone.")
                 Text("While we spend time together, Mate uses the camera to follow your face and the microphone to listen. Everyday conversation is processed on this iPhone.")
                 Text("Quiet moments do not end our time together. Say おやすみ to rest and stop the camera and microphone. Removing the stand or leaving the app also stops the session.")
                 Text("Tap once to wake Mate. Say おやすみ to rest, then tap to wake again. Touch and hold the face for controls and settings. You can also swipe up for controls.")
@@ -317,6 +318,10 @@ private struct ConversationSheet:View {
                             VStack(alignment:.leading,spacing:12){
                                 Text("Where shall we start?").font(.system(size:28,weight:.regular)).tracking(-0.7)
                                 SectionNote(text:"This conversation stays on your iPhone. Before asking an external service, review the text and price.")
+                                Button("Try a translation request") {
+                                    input=L10n.text("Translate this into Japanese: The meeting starts at ten.")
+                                }.accessibilityIdentifier("try-agent-request")
+                                SectionNote(text:"Edit the example, then send it. External requests need a connected shop and approved spending rules.")
                             }.padding(.top,36)
                         }
                         ForEach(model.messages){message in
@@ -325,9 +330,30 @@ private struct ConversationSheet:View {
                                 Text(message.text).font(.system(size:17)).lineSpacing(5).textSelection(.enabled)
                             }.frame(maxWidth:.infinity,alignment:.leading).id(message.id)
                         }
-                        if model.thinking{ProgressView("Thinking").font(.footnote)}
+                        if let status=model.executionStatus {
+                            ProgressView(L10n.text(status)).font(.footnote).accessibilityIdentifier("request-progress")
+                        } else if model.thinking{ProgressView("Thinking").font(.footnote)}
+                        if model.pendingExecution != nil {
+                            Text("The result is not confirmed yet. Check the existing request before paying again.").font(.footnote)
+                            Button("Check result"){model.sheet = .activity}.disabled(model.financialBusy || model.thinking)
+                        } else if let draft=model.draft {
+                            VStack(alignment:.leading,spacing:12) {
+                                Text("Your request").font(.headline)
+                                Text(verbatim:draft.text).lineLimit(4)
+                                SectionNote(text:"Only this request text is shared with the service. Your conversation and total budget stay private.")
+                                Button("Continue request"){model.continueRequest()}
+                                    .accessibilityIdentifier("continue-request")
+                                Button("Discard request",role:.destructive){model.discardRequest()}
+                                    .accessibilityIdentifier("discard-request")
+                            }.padding(18).background(.white.opacity(0.7),in:RoundedRectangle(cornerRadius:16))
+                                .disabled(model.thinking || model.financialBusy)
+                        } else if !model.receipts.isEmpty {
+                            Button("View result and privacy evidence"){model.sheet = .activity}
+                        }
+                        Color.clear.frame(height:1).id("request-bottom")
                     }.padding(26)
-                }.onChange(of:model.messages.count){_,_ in if let id=model.messages.last?.id{withAnimation{proxy.scrollTo(id,anchor:.bottom)}}}
+                }.onChange(of:model.messages.count){_,_ in withAnimation{proxy.scrollTo("request-bottom",anchor:.bottom)}}
+                    .onChange(of:model.executionStatus){_,_ in withAnimation{proxy.scrollTo("request-bottom",anchor:.bottom)}}
             }
             Divider().overlay(Finish.rule)
             HStack(alignment:.bottom,spacing:12){
@@ -441,6 +467,11 @@ private struct SetupSheet:View {
     var body:some View {
         Form {
             Section {
+                if let draft=model.draft {
+                    Text("Your request").font(.headline)
+                    Text(verbatim:draft.text).lineLimit(4).accessibilityIdentifier("setup-request-text")
+                    Text("Your text stays here during setup. Nothing is sent until you approve a request.").font(.footnote)
+                }
                 Text(L10n.text(title)).font(.title2)
                 Text(L10n.text(detail)).font(.body)
                 LabeledContent("Test network",value:L10n.text(model.configuration.networkName))
@@ -455,7 +486,12 @@ private struct SetupSheet:View {
                     case .login,.wallets,.funds:NavigationLink("Open wallet"){WalletSheet(model:model,wallet:wallet)}
                     case .rules:NavigationLink("Review your rules"){RulesSheet(model:model)}
                     case .account:Button("Refresh balances"){Task{await model.refreshSetup()}}
-                    case .request:Button("Request external translation"){model.makeDraft(service:.translation)}
+                    case .request:
+                        if model.draft != nil {
+                            Button("Continue request"){model.continueRequest()}
+                        } else {
+                            Button("Request external translation"){model.makeDraft(service:.translation)}
+                        }
                     case .recovery:
                         if model.pendingExecution != nil {
                             Button("Check result"){Task{await model.recoverExecution();await model.refreshSetup()}}
@@ -721,6 +757,9 @@ private struct ActivitySheet:View {
             ForEach(model.receipts){receipt in
                 Section("Confirmed execution"){
                     Text(receipt.result).font(.system(size:16)).lineSpacing(4).textSelection(.enabled)
+                    Label("Private rules checked",systemImage:"checkmark.shield")
+                    SectionNote(text:"The service received the approved text and payment details. Your total budget, full permission set and secret salt were not sent.")
+                    SectionNote(text:"The payment contract trusts the proof verifier's attestation. Payment amounts and recipients are public.")
                     LabeledContent("Total spent",value:TokenAmount(units:UInt64(receipt.spentAfter) ?? 0).display+" USDC")
                     Text("Proof SHA-256").font(.caption).foregroundStyle(.secondary)
                     Text(receipt.proofHash).font(.system(size:10,design:.monospaced)).textSelection(.enabled)

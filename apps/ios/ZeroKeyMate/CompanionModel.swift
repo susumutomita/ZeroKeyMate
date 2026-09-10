@@ -93,6 +93,19 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var lastOutcome:ExecutionOutcome?
     private var outcomeTask:Task<Void,Never>?
     @Published var draft:DisclosureDraft? { didSet { requestGeneration = UUID() } }
+    var requestNeedsSetup:Bool {
+        !stateLoaded || !configuration.paymentsConfigured || wallet.ownerAddress == nil || wallet.agentAddress == nil || mandate == nil
+    }
+    /// Keep only the unapproved text across setup. Quotes, signatures and offers
+    /// must be obtained again in the newly selected environment.
+    func continueRequest() {
+        guard draft != nil,!thinking,!financialBusy else{return}
+        sheet = pendingExecution != nil ? .activity : requestNeedsSetup ? .setup : .disclosure
+    }
+    func discardRequest() {
+        guard !thinking,!financialBusy,pendingExecution == nil else{return}
+        agentOffer=nil;draft=nil;providers=[];discoveryEvidence=nil
+    }
     @Published private(set) var ruleDraft:RuleProposal?
     @Published var localNotes=""
     @Published var readAloud=true
@@ -222,7 +235,9 @@ final class CompanionModel:ObservableObject {
             let returnToSetup=sheet == .setup
             configurationGeneration=UUID();stateLoaded=false;setupConnected=false;accountCheckedAt=nil
             configuration=value;network=candidate;rpc=candidateRPC;wallet=WalletService(configuration:value)
-            mandate=nil;agentDelegation=nil;account=nil;spent=0;receipts=[];identity=nil;providers=[];discoveryEvidence=nil;draft=nil
+            mandate=nil;agentDelegation=nil;account=nil;spent=0;receipts=[];identity=nil;providers=[];discoveryEvidence=nil
+            // draft contains no payment authority; preserve the user's task while
+            // connecting, but cancelConversation above invalidates the old offer.
             started=false;sheet = returnToSetup ? .setup : .settings
             await start()
         }catch{errorMessage=error.localizedDescription}
@@ -497,15 +512,16 @@ final class CompanionModel:ObservableObject {
     }
     private func prepareAgent(_ request:AgentRequest,language:AppLanguage,generation:UInt64) async {
         let ja=language == .japanese
-        guard configuration.paymentsConfigured,wallet.ownerAddress != nil,mandate != nil else {
-            agentSay(ja ? "依頼は理解できました。店舗に注文するには、接続・ウォレット・予算の承認が必要です。設定が済めば、料金確認から証明作成、注文、結果取得まで私が進めます。" : "I understand the task. Connect the shop, set up your wallet and approve spending rules first. Then I can check prices, create the proof, place the order and retrieve the result.",language:language)
-            return
-        }
         guard pendingExecution == nil else {
             agentSay(ja ? "前の注文が確認待ちです。二重注文を避けるため、履歴から先に結果を確認してください。" : "An earlier order is still pending. Check its result in Activity before starting another order.",language:language)
             return
         }
         draft=DisclosureDraft(service:request.service,text:request.text)
+        providers=[];discoveryEvidence=nil
+        guard !requestNeedsSetup else {
+            agentSay(ja ? "依頼内容をこのiPhoneに残しました。まだ送信も支払いもしていません。会話の「依頼を続ける」から接続と予算を設定できます。準備ができたら、この文章と料金を確認して進めましょう。" : "I've kept your request on this iPhone. Nothing has been sent or paid. Open Continue request in the conversation to connect and set your budget, then review this text and the price.",language:language)
+            return
+        }
         let preflightFeedback=makeOutcomeFeedback()
         executionStatus=ja ? "店舗の料金を確認しています" : "Checking shop prices"
         defer{executionStatus=nil}

@@ -73,6 +73,22 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Configure connection"].waitForExistence(timeout:10))
         capture("resumed-setup-connection")
     }
+    func testTaskExampleIsEditableAndDoesNotAutomaticallySend() {
+        let app=launch()
+        app.buttons["open-settings"].tap()
+        let clear=app.buttons["Clear conversation"]
+        for _ in 0..<8 where !clear.isHittable {app.swipeUp()}
+        XCTAssertTrue(clear.isHittable);clear.tap()
+        closeSheet(app)
+        app.buttons["open-conversation"].tap()
+        let example=app.buttons["try-agent-request"]
+        XCTAssertTrue(example.waitForExistence(timeout:5));example.tap()
+        let input=app.textFields["message-input"].exists ? app.textFields["message-input"] : app.textViews["message-input"]
+        XCTAssertEqual(input.value as? String,"Translate this into Japanese: The meeting starts at ten.")
+        XCTAssertTrue(app.buttons["send-message"].isEnabled)
+        XCTAssertFalse(app.buttons["continue-request"].exists)
+        capture("editable-agent-request")
+    }
     func testSpeakNowRequestsOnlyMicrophoneAndDenialStopsTheSession() {
         let app=launch()
         app.terminate()
