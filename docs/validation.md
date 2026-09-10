@@ -33,7 +33,7 @@ The existing [parent issue #4](https://github.com/susumutomita/ZeroKeyMate/issue
 | [#5 source completion](https://github.com/susumutomita/ZeroKeyMate/issues/5) | Missing API entry points/naming/lock and the Rust lockfile were implemented in this branch. Fidelity to the referenced 94-file archive and every PR #3 integration criterion has not been established; no byte-identical archive recovery is claimed. |
 | [#6 operation cancellation](https://github.com/susumutomita/ZeroKeyMate/issues/6) | Request generations now invalidate discovery/proving/signing results across draft edits, Rest, backgrounding and approval dismissal. Draft service is independently checked. Signing checks consent again after asynchronous authentication. Already-broadcast transaction recovery remains separate; physical lifecycle acceptance is pending. |
 | [#7 full-stack launch](https://github.com/susumutomita/ZeroKeyMate/issues/7) | `make dev`, `make dev-simulator`, `make dev-device` and `make services` own actual API/provider processes and stop them on Ctrl+C, failing closed when configuration/runtime is missing. Automatic reuse and HTTPS provisioning are not implemented; the operator supplies a phone-reachable HTTPS endpoint. |
-| [#8 runtime pairing](https://github.com/susumutomita/ZeroKeyMate/issues/8) | **Settings → Configure connection** checks authenticated deployment and RPC chain before saving to Keychain. Pending grants/executions prevent switching. Privy app/client ID changes after SDK initialization require app restart. A complete first-run/live-phone onboarding acceptance remains open. |
+| [#8 runtime pairing](https://github.com/susumutomita/ZeroKeyMate/issues/8) | **Settings → Configure connection** checks public deployment and RPC chain, exchanges a one-time code, and checks the bounded session before saving to Keychain. Pending grants/executions prevent environment changes; same-environment renewal preserves them. Privy app/client ID changes after SDK initialization require app restart. A complete first-run/live-phone onboarding acceptance remains open. |
 | [#9 conversational actions](https://github.com/susumutomita/ZeroKeyMate/issues/9) | Translation/summary proposals exist. Conversation-to-rules, ENS naming, spend queries and revocation routing remain open. |
 | [#10 continuous voice](https://github.com/susumutomita/ZeroKeyMate/issues/10) | Opt-in reply/listen continuation and several stop paths are implemented. The complete session/interruption/approval criteria and physical behavior are not accepted. |
 | [#11 expression and stand motion](https://github.com/susumutomita/ZeroKeyMate/issues/11) | Eyes reflect rest/listening/thinking and face position; DockKit exposes tracking control. A shared approval/execution expression model and bounded nod/shake motion coordinator are not implemented. |
@@ -128,7 +128,7 @@ iPhone 17 Pro / iOS Simulator 26.2で4件成功、1件失敗、2件skipでした
 - 検査ログ・結果とSHA-256: `.build/validation/`
 - 正常証明・不正条件の拒否ログ: `.build/proofs/`
 
-成果物・ログ・ローカル設定はGitの無視対象です。アプリに含まれるペアリングトークンはこのインストール専用なので、そのまま一般配布する対象にはしません。
+成果物・ログ・ローカル設定はGitの無視対象です。アプリにはAPIの長期トークンを同梱しません。ペアリングコードと端末用セッションは非公開のまま扱ってください。
 
 ### Interactive launch selection — 2026-09-07
 

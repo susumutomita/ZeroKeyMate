@@ -15,4 +15,6 @@ Each action opens an existing screen. Login, deposit approval, deposit, mandate 
 
 A checkpoint scoped to the connection is stored only to offer Resume. The stage itself is recomputed from restored and freshly checked state, so restart does not repeat a successful registration or trust an earlier balance. Changed connections invalidate account observations. Failed checks retain the existing connection and show the failure.
 
-Validation: core state transitions cover restoration, pending-operation priority, missing account observations, drained balance and missing/expired mandate. A Simulator UI test opens connection setup, returns, defers, and resumes while camera remains off. Live login, funding, phone HTTPS, token lifetime/rotation and a real order remain acceptance work under #8/#16/#17.
+Validation: core state transitions cover restoration, pending-operation priority, missing account observations, drained balance and missing/expired mandate. A Simulator UI test opens connection setup, returns, defers, and resumes while camera remains off. Live login, funding, phone HTTPS and a real order remain acceptance work under #8/#16/#17.
+
+Runtime pairing uses a one-time 10-minute code and a one-hour/500-request session. Same-environment renewal preserves pending operations. Failed validation keeps the previous saved configuration. See the README pairing instructions.

@@ -73,13 +73,13 @@ make services
 
 These foreground commands fail if the real dependencies are unavailable. Ctrl+C stops the servers they own, retaining recovery journals. The iOS app remains installed/running; use **Rest** to stop capture and voice, or close it with the app switcher. `make start`, `make start-simulator`, and `make start-device` launch just the app and remain usable without live-service credentials.
 
-Open **Settings → Configure connection** on the phone. Enter the API URL and pairing token, select Arc, and supply the confirmed vault and public Privy IDs. **Check connection and save** checks the authenticated API's deployment and RPC chain before saving to Keychain. Pending executions or grants prevent switching settlement configuration. A phone cannot reach the Mac through `127.0.0.1`; use an HTTPS endpoint reachable from the phone, without exposing an unauthenticated server. Keep the provider and journal secrets off the phone.
+Open **Settings → Configure connection** on the phone. Run `npm run pair` on the Mac, open the private code file, and enter the API URL and one-time pairing code, select Arc, and supply the confirmed vault and public Privy IDs. **Check connection and save** checks the public deployment and RPC chain, exchanges the code and validates the new session before saving to Keychain. Pending executions or grants prevent switching settlement configuration. A phone cannot reach the Mac through `127.0.0.1`; use an HTTPS endpoint reachable from the phone, without exposing an unauthenticated server. Keep the provider and journal secrets off the phone.
 
 ### Physical iPhone HTTPS: Tailscale Serve
 
 Use [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve) for the private phone-to-Mac connection (official documentation checked 2026-09-10). Install/sign in on both devices using the same approved tailnet, with HTTPS enabled. Account, VPN and HTTPS consent remain explicit user setup steps.
 
-After the real API is ready, run `tailscale serve 8787` in a separate terminal. Keep the API bound to localhost. Copy the HTTPS URL printed by Serve into Mate's connection screen; enter the pairing token separately, never in the URL. Tailnet access does not replace API authentication. Confirm `/health` on the phone, then **Check connection and save** to verify authenticated deployment/chain binding.
+After the real API is ready, run `tailscale serve 8787` in a separate terminal. Keep the API bound to localhost. Copy the HTTPS URL printed by Serve into Mate's connection screen; enter the one-time pairing code separately, never in the URL. Tailnet access does not replace API authentication. Confirm `/health` on the phone, then **Check connection and save** to verify authenticated deployment/chain binding.
 
 Ctrl+C stops this foreground proxy. Do not use Funnel or disable certificate validation for this private connection. The publicly indexed specialist endpoint is configured separately. Until the phone reaches and validates this endpoint, HTTPS acceptance remains pending under #16/#17.
 

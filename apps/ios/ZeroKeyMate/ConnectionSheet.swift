@@ -3,6 +3,7 @@ import SwiftUI
 struct ConnectionSheet:View {
     @ObservedObject var model:CompanionModel
     @State private var value:AppConfiguration
+    @State private var pairingCode=""
     init(model:CompanionModel) {
         self.model=model
         _value=State(initialValue:model.configuration)
@@ -11,8 +12,12 @@ struct ConnectionSheet:View {
         Form {
             Section("Execution service") {
                 TextField("HTTPS API URL",text:$value.apiURL).keyboardType(.URL)
-                SecureField("Installation pairing token",text:$value.apiToken)
-                Text("Use the token from your private .env file. An iPhone needs an HTTPS endpoint reachable from the phone; Simulator can use localhost.").font(.footnote)
+                SecureField("One-time pairing code",text:$pairingCode)
+                Text("On your Mac, run npm run pair and open the private code file. The code works once within 10 minutes. The device connection lasts one hour or 500 requests.").font(.footnote)
+                if let expiry=value.apiTokenExpiresAt {
+                    LabeledContent("Pairing expires",value:Date(timeIntervalSince1970:TimeInterval(expiry)).formatted())
+                }
+                Text("Renewing the same connection preserves pending requests. Changing deployments requires resolving pending requests first.").font(.footnote)
             }
             Section("Settlement") {
                 Picker("Test network",selection:$value.chainID) {
@@ -37,7 +42,7 @@ struct ConnectionSheet:View {
             Section {
                 Button("Check connection and save") {
                     value.token=value.expectedToken ?? ""
-                    Task{await model.applyConfiguration(value)}
+                    Task{await model.applyConfiguration(value,pairingCode:pairingCode)}
                 }.disabled(model.financialBusy)
                 if model.financialBusy{ProgressView("Checking service and network…")}
                 Text("Settings stay in this device's Keychain. Saving stops camera and voice input and reconnects the wallet; it never signs a payment.").font(.footnote)

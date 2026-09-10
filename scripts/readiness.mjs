@@ -10,7 +10,7 @@ console.log(JSON.stringify({
   chainId:networkConfiguration(e).chainId,
   configuration:{
     privy:present(['PRIVY_APP_ID','PRIVY_IOS_CLIENT_ID']),
-    execution:present(['MATE_VAULT_ADDRESS','MATE_RELAYER_PRIVATE_KEY','MATE_API_TOKEN','MATE_JOURNAL_KEY']) && (e.MATE_ATTESTOR_MODE==='circle'?present(['CIRCLE_ATTESTOR_ADDRESS']):present(['MATE_ATTESTOR_PRIVATE_KEY'])),
+    execution:present(['MATE_VAULT_ADDRESS','MATE_RELAYER_PRIVATE_KEY','MATE_JOURNAL_KEY']) && (e.MATE_ATTESTOR_MODE==='circle'?present(['CIRCLE_ATTESTOR_ADDRESS']):present(['MATE_ATTESTOR_PRIVATE_KEY'])),
     graph:present(['GRAPH_API_KEY']),
     circleAgentWallet: e.MATE_ATTESTOR_MODE==='circle' && present(['CIRCLE_ATTESTOR_ADDRESS']),
     specialist:present(['OLLAMA_MODEL','PROVIDER_API_TOKEN','PROVIDER_RECIPIENT','PROVIDER_JOURNAL_KEY','MATE_ATTESTOR_ADDRESS']),

@@ -11,6 +11,7 @@ struct AppConfiguration: Codable, Sendable {
     var token:String
     var ensParent:String = ""
     var chainID:UInt64
+    var apiTokenExpiresAt:UInt64? = nil
 
     static func load() -> AppConfiguration {
         if let saved=try? LocalSecrets.read(Self.self,key:"connection-settings") { return saved }
@@ -35,8 +36,19 @@ struct AppConfiguration: Codable, Sendable {
         chainID == 11_155_111 ? name : "\(chainID):\(vault.lowercased()):\(name)"
     }
     var walletConfigured:Bool { !privyAppID.isEmpty && !privyClientID.isEmpty }
-    var paymentsConfigured:Bool {
-        expectedToken != nil && apiToken.count>=32
+    func sameEnvironment(as other:Self) -> Bool {
+        apiURL.trimmingCharacters(in:CharacterSet(charactersIn:"/")) == other.apiURL.trimmingCharacters(in:CharacterSet(charactersIn:"/"))
+        && rpcURL == other.rpcURL && chainID == other.chainID
+        && vault.lowercased() == other.vault.lowercased() && token.lowercased() == other.token.lowercased()
+        && privyAppID == other.privyAppID && privyClientID == other.privyClientID && ensParent == other.ensParent
+    }
+    var pairingValid:Bool {
+        apiToken.range(of:"^session_[a-f0-9]{64}$",options:.regularExpression) != nil
+        && (apiTokenExpiresAt ?? 0) > UInt64(Date().timeIntervalSince1970)
+    }
+    var paymentsConfigured:Bool { deploymentConfigured && pairingValid }
+    var deploymentConfigured:Bool {
+        expectedToken != nil
         && (try? CanonicalBytes.hex(vault,count:20))?.contains(where:{$0 != 0}) == true
         && token.lowercased()==expectedToken
         && URL(string:rpcURL)?.scheme == "https"

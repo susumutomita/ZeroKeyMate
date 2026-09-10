@@ -61,6 +61,8 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(connection.waitForExistence(timeout:15))
         connection.tap()
         XCTAssertTrue(app.navigationBars["Connection"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.secureTextFields["One-time pairing code"].exists)
+        XCTAssertFalse(app.secureTextFields["Installation pairing token"].exists)
         app.navigationBars.buttons.element(boundBy:0).tap()
         XCTAssertTrue(app.buttons["Do this later"].waitForExistence(timeout:5))
         app.buttons["Do this later"].tap()

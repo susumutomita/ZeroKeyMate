@@ -19,19 +19,19 @@ export const providerSchema=z.object({id:z.string().max(100).regex(/^11155111:[0
  endpoint:httpsURL,bearerToken:z.string().min(32).max(256)}).strict();
 export function configuration(e=process.env){
  const network=networkConfiguration(e);
- const required=['MATE_VAULT_ADDRESS','MATE_RELAYER_PRIVATE_KEY','MATE_API_TOKEN','MATE_JOURNAL_KEY'];
+ const required=['MATE_VAULT_ADDRESS','MATE_RELAYER_PRIVATE_KEY','MATE_JOURNAL_KEY'];
  if(e.MATE_ATTESTOR_MODE==='circle')required.push('CIRCLE_ATTESTOR_ADDRESS');else required.push('MATE_ATTESTOR_PRIVATE_KEY');
  const missing=required.filter(name=>!e[name]);
  if(missing.length)throw new ProductError('configuration_required',`未設定: ${missing.join(', ')}`,503);
  try{
   const parsed=z.object({rpcURL:httpsURL,vault:address,attestorKey:secretKey.or(z.literal('')),attestorMode:z.enum(['local','circle']),attestorAddress:address.or(z.literal('')),circleCLI:z.string().min(1).max(4096),circleHome:z.string().min(1).max(4096),relayerKey:secretKey,
-   apiToken:z.string().min(32).max(256),journalKey:z.string().regex(/^[\da-fA-F]{64}$/),
+   journalKey:z.string().regex(/^[\da-fA-F]{64}$/),
    host:z.enum(['127.0.0.1','::1','0.0.0.0']),port:z.coerce.number().int().min(1).max(65535),
    graphApiKey:z.string().max(512),graphSubgraphId:z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/),
    ensParent:ensName.or(z.literal('')),ensRegistry:address.or(z.literal('')),ensKey:secretKey.or(z.literal('')),
    ensFactory:address.or(z.literal('')),
   }).parse({rpcURL:network.rpcURL,vault:e.MATE_VAULT_ADDRESS,attestorKey:e.MATE_ATTESTOR_PRIVATE_KEY||'',attestorMode:e.MATE_ATTESTOR_MODE||'local',attestorAddress:e.CIRCLE_ATTESTOR_ADDRESS||'',circleCLI:e.MATE_CIRCLE_CLI||path.join(ROOT,'.tools/circle-cli/node_modules/.bin/circle'),circleHome:e.CIRCLE_CLI_HOME||path.join(ROOT,'.data/circle'),relayerKey:e.MATE_RELAYER_PRIVATE_KEY,
-   apiToken:e.MATE_API_TOKEN,journalKey:e.MATE_JOURNAL_KEY,host:e.MATE_BIND_HOST||'127.0.0.1',port:e.MATE_PORT||8787,
+   journalKey:e.MATE_JOURNAL_KEY,host:e.MATE_BIND_HOST||'127.0.0.1',port:e.MATE_PORT||8787,
    graphApiKey:e.GRAPH_API_KEY||'',graphSubgraphId:e.GRAPH_SUBGRAPH_ID||'6wQRC7geo9XYAhckfmfo8kbMRLeWU8KQd3XsJqFKmZLT',
    ensParent:e.ENS_PARENT_NAME||'',ensRegistry:e.ENS_SUBREGISTRY_ADDRESS||'',ensKey:e.ENS_OPERATOR_PRIVATE_KEY||'',ensFactory:e.ENS_RESOLVER_FACTORY||''});
   requireValue(parsed.attestorMode!=='circle' || (network.chainId===5042002 && !parsed.attestorKey),'attestor_configuration','Circle mode requires Arc Testnet and must not also supply a local attestor key.',503);

@@ -184,26 +184,41 @@ final class CompanionModel:ObservableObject {
             errorMessage=error.localizedDescription
         }
     }
-    func applyConfiguration(_ value:AppConfiguration) async {
+    func applyConfiguration(_ proposed:AppConfiguration,pairingCode:String="") async {
+        var value=proposed
+        let sameEnvironment=value.sameEnvironment(as:configuration)
         guard !financialBusy else{return}
         guard stateLoaded else{errorMessage="Unlock your phone and reopen Mate to restore pending operations first.";return}
-        guard pendingExecution == nil else{errorMessage="Recover the pending execution before changing connections.";return}
+        guard sameEnvironment || pendingExecution == nil else{errorMessage="Recover the pending execution before changing connections.";return}
         do {
-            if try LocalSecrets.read(PendingGrant.self,key:configuration.stateKey("pending-grant")) != nil {
+            if !sameEnvironment, try LocalSecrets.read(PendingGrant.self,key:configuration.stateKey("pending-grant")) != nil {
                 errorMessage="Recover the pending mandate before changing connections.";return
             }
         }catch{errorMessage=error.localizedDescription;return}
-        guard value.paymentsConfigured else{errorMessage="Enter a supported testnet, matching USDC token, vault and pairing token.";return}
+        guard value.deploymentConfigured else{errorMessage="Enter a supported testnet, matching USDC token and vault.";return}
+        guard !pairingCode.isEmpty || (sameEnvironment && value.pairingValid) else{errorMessage="Create a one-time pairing code on your Mac, then enter it here.";return}
         financialBusy=true;stopVoice();sensors.stopCapture();cancelConversation()
         let ticket=requestGeneration
         defer{financialBusy=false}
         do {
-            let candidate=NetworkService(configuration:value)
+            var candidate=NetworkService(configuration:value)
             try await candidate.validateDeployment()
             let candidateRPC=EthereumRPC(url:value.rpcURL,chainID:value.chainID)
             try await candidateRPC.ensureNetwork()
-            guard foreground,!sleeping,requestGeneration==ticket else{throw ProductError.cancelled}
+            guard foreground,requestGeneration==ticket else{throw ProductError.cancelled}
+            if !pairingCode.isEmpty {
+                value=try await candidate.pair(code:pairingCode.trimmingCharacters(in:.whitespacesAndNewlines))
+                candidate=NetworkService(configuration:value)
+            }
+            try await candidate.validatePairing()
+            guard foreground,requestGeneration==ticket else{throw ProductError.cancelled}
             try LocalSecrets.write(value,key:"connection-settings")
+            if sameEnvironment {
+                configuration=value;network=candidate;rpc=candidateRPC
+                errorMessage=nil
+                sheet = sheet == .setup ? .setup : .settings
+                return
+            }
             let returnToSetup=sheet == .setup
             configurationGeneration=UUID();stateLoaded=false;setupConnected=false;accountCheckedAt=nil
             configuration=value;network=candidate;rpc=candidateRPC;wallet=WalletService(configuration:value)
