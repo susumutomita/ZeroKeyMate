@@ -1,5 +1,4 @@
-import {spawn} from 'node:child_process';
-import {once} from 'node:events';
+import {startOwnedLauncher} from '../services/api/owned-launcher.mjs';
 import {createHash} from 'node:crypto';
 import {SpecialistModel} from '../services/provider/model.mjs';
 import {startAPI} from '../services/api/server.mjs';
@@ -11,13 +10,17 @@ import {claimLauncherOwnership} from '../services/api/launcher-ownership.mjs';
 let api,provider,launcher,claim,closing=false;
 async function close() {
   closing=true;
-  launcher?.kill('SIGTERM');
-  await Promise.all([api,provider].filter(Boolean).map(server=>new Promise(resolve=>{
+  const stops=[api,provider].filter(Boolean).map(server=>new Promise(resolve=>{
     const timer=setTimeout(()=>{server.closeAllConnections();},5_000);
     server.whenDrained.then(()=>{clearTimeout(timer);resolve();});
     server.close();
     server.closeIdleConnections();
-  })));
+  }));
+  if(launcher)stops.push(launcher.stop());
+  const results=await Promise.allSettled(stops);
+  if(results.some(result=>result.status==='rejected')) {
+    console.error('Shutdown could not be confirmed. Launcher ownership was retained.');process.exitCode=1;return;
+  }
   claim?.release?.();
 }
 for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>{void close();});
@@ -55,11 +58,11 @@ try {
   if(!process.argv.includes('--services-only')) {
     console.log('[5/5] Launching Mate');
     const mode=process.argv.includes('--device')?['--device','auto']:process.argv.includes('--simulator')?['--simulator']:['--choose'];
-    launcher=spawn('./mate',mode,{stdio:'inherit'});
-    const [code]=await once(launcher,'exit');launcher=null;
-    if(code!==0)throw new Error('App launch did not complete. Services are being stopped.');
+    launcher=startOwnedLauncher('./mate',mode);
+    const {code,error}=await launcher.completion;launcher=null;
+    if(!closing && (error || code!==0))throw new Error('App launch did not complete. Services are being stopped.');
   }
-  console.log('API and specialist are running. Press Ctrl+C to stop; pending executions remain recoverable.');
+  if(!closing)console.log('API and specialist are running. Press Ctrl+C to stop; pending executions remain recoverable.');
 } catch(error) {
   console.error(error.message);await close();process.exitCode=1;
 }
