@@ -4,6 +4,10 @@ set -euo pipefail
 umask 077
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
+if [[ "${1:-}" == stop ]]; then
+  [[ $# == 1 ]] || { echo 'Usage: ./mate stop' >&2;exit 2; }
+  exec node scripts/stop.mjs
+fi
 MODE=launch
 CHOOSE=0
 DEVICE="${MATE_DEVICE_UDID:-}"
@@ -16,7 +20,7 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { echo 'A device UDID or auto is required.' >&2;exit 2; }
       DEVICE="$2";shift 2 ;;
     --simulator) DEVICE="";shift ;;
-    --help) printf '%s\n' 'make start: choose Simulator or iPhone; make start-device: iPhone; make start-simulator: Simulator' './mate [--choose | --simulator | --device auto|UDID] [--verify | --readiness]';exit 0 ;;
+    --help) printf '%s\n' 'make start: choose Simulator or iPhone; make start-device: iPhone; make start-simulator: Simulator' './mate [--choose | --simulator | --device auto|UDID] [--verify | --readiness]' './mate stop: request shutdown of owned services in this checkout';exit 0 ;;
     *) echo "Unknown argument: $1" >&2;exit 2 ;;
   esac
 done
