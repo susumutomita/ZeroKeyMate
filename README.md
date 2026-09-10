@@ -29,6 +29,17 @@ After a successful run, tap **Prepare proof file for sharing**, then **Share pro
 .tools/bin/provekit-cli verify --verifier .build/proofs/mate_policy.pkv --proof /path/to/exported-proof.np
 ```
 
+To save an independent verification record, build the repository's Rust verifier and run:
+
+```sh
+cargo +nightly-2026-03-04 build --release --locked --manifest-path services/verifier/Cargo.toml
+python3 scripts/verify-exported-proof.py /path/to/exported-proof.np \
+  --resources apps/ios/ZeroKeyMate/Resources/Proofs \
+  --report .build/export-verification.json
+```
+
+This checks the verifier key against the supplied build manifest, verifies the original, rejects a modified copy, then verifies the original again. It writes a new private report with proof/key/binary hashes and never overwrites an earlier record. A timeout or verifier crash is a failure, not tamper-rejection evidence. Keep the exact resources from the installed build. The report cannot establish that the file came from an iPhone or was generated offline; record those observations separately. See [device evidence](docs/device-proof-evidence.md).
+
 The verifier key must match the bundled setup manifest; using another circuit or setup is not a valid comparison. The proof file contains embedded public inputs, not the private witness. This phone-export round trip still needs physical-device acceptance.
 
 This is an **offline proof exercise**, using fresh request identifiers and example Sepolia addresses, with no payment or wallet signature. The paid execution flow separately binds the actual transaction context. Physical-iPhone measurements and the new screen's runtime acceptance remain pending; a simulator build is not device evidence.
