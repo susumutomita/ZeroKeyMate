@@ -16,7 +16,7 @@ With an encrypted-journal key (`MATE_JOURNAL_KEY`) configured, run:
 npm run register-provider -- --submit
 ```
 
-The command verifies Sepolia and the registry, mints an identity, verifies its owner, sets the payout wallet when needed, publishes the registration data URI, and reads back owner/wallet/URI. The wallet signature binds the registry, chain, identity, owner, recipient and a short deadline. Public result evidence is saved under `.build/registrations/provider.json`; it reports indexing as unverified.
+The command verifies Sepolia, registry bytecode and the expected EIP-712 domain, mints an identity, verifies its owner, sets the payout wallet when needed, publishes the registration data URI, and reads back owner/wallet/URI. The wallet signature binds the registry, chain, identity, owner, recipient and a short deadline. Public result evidence is saved under `.build/registrations/provider.json`; it reports indexing as unverified.
 
 Signed transactions are encrypted in `.data/provider-registration/<owner>/registration.sqlite` before broadcast. Repeating the same command recovers the same operations. Keep the journal and original settings after timeouts; changing metadata mid-recovery is refused. Do not remove a journal to resolve an unknown outcome.
 
@@ -45,3 +45,5 @@ Reviewed 2026-09-10 against the [ERC-8004 specification](https://eips.ethereum.o
 The inspected indexer supports IPFS and base64 registration data URIs in its [identity mapping](https://github.com/agent0lab/subgraph/blob/909a9d4518432c641e06fdb731b480fb0e9340dd/src/identity-registry.ts). The CLI uses a data URI; it does not assume arbitrary hosted HTTPS metadata is fetched. Confirm the deployed subgraph's behavior through the live check. [The Graph's Agent0 documentation](https://thegraph.com/docs/en/subgraphs/existing-subgraphs/agent0/) describes the discovery schema and API-key setup.
 
 Tests use an explicitly synthetic chain adapter to cover lost-response recovery, stable registration operations, changed-environment refusal, separate-wallet signatures and confirmed-revert renewal. Public testnet registration and Graph/quote acceptance remain unverified until the commands succeed against configured real services.
+
+A read-only public Sepolia RPC check on 2026-09-10 confirmed the configured registry has bytecode and the expected signature domain. No registration transaction was signed or sent during that check; it is not live registration or Graph acceptance.

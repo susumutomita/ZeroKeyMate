@@ -5,6 +5,7 @@ import {requireValue} from './errors.mjs';
 export const REGISTRY='0x8004A818BFB912233c491871b3d84c89A494BD9e',REGISTRATION_CHAIN=11155111;
 export const registrationABI=parseAbi([
   'function register() returns (uint256)',
+  'function eip712Domain() view returns (bytes1 fields,string name,string version,uint256 chainId,address verifyingContract,bytes32 salt,uint256[] extensions)',
   'function setAgentURI(uint256 agentId,string newURI)',
   'function ownerOf(uint256 agentId) view returns (address)',
   'function tokenURI(uint256 agentId) view returns (string)',
@@ -40,6 +41,10 @@ export async function registerProvider({config,client,lane,journal,recipientSign
   requireValue(lane.address.toLowerCase()===config.owner.toLowerCase(),'registration_owner','Registration signer does not match the selected owner.');
   const code=await client.getCode({address:REGISTRY});
   requireValue(code && code!=='0x','registration_registry','The selected RPC has no supported identity registry.');
+  const domain=await client.readContract({address:REGISTRY,abi:registrationABI,functionName:'eip712Domain'});
+  requireValue(domain[0]==='0x0f' && domain[1]==='ERC8004IdentityRegistry' && domain[2]==='1' && domain[3]===BigInt(REGISTRATION_CHAIN)
+    && domain[4].toLowerCase()===REGISTRY.toLowerCase() && domain[5]==='0x'+'00'.repeat(32) && domain[6].length===0,
+    'registration_domain','The registry signature domain changed. Review its current deployment before registering.');
   const binding={chainId:REGISTRATION_CHAIN,registry:REGISTRY,...config};
   const previous=journal.get('registration-binding');
   requireValue(!previous || JSON.stringify(previous.value)===JSON.stringify(binding),'registration_changed','This registration journal belongs to different public settings. Restore its original settings to recover pending work.');

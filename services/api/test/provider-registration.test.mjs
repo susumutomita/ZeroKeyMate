@@ -15,7 +15,7 @@ function fixture(separate=false) {
     getTransactionReceipt:async()=>({status:'success',transactionHash:hash,logs:[{address:REGISTRY,
       topics:encodeEventTopics({abi:registrationABI,eventName:'Registered',args:{agentId:42n,owner:owner.address}}),
       data:encodeAbiParameters([{type:'string'}],[''])}]}),
-    readContract:async({functionName})=>functionName==='ownerOf'?owner.address:functionName==='getAgentWallet'?wallet:uri};
+    readContract:async({functionName})=>functionName==='eip712Domain'?['0x0f','ERC8004IdentityRegistry','1',11155111n,REGISTRY,'0x'+'00'.repeat(32),[]]:functionName==='ownerOf'?owner.address:functionName==='getAgentWallet'?wallet:uri};
   const lane={address:owner.address,send:async(operation,request)=>{
     if(transactions.has(operation)){assert.deepEqual(request,transactions.get(operation));return {hash};}
     const decoded=decodeFunctionData({abi:registrationABI,data:request.data});
@@ -89,7 +89,7 @@ test('wrong network, missing registration event and transferred owner stop subse
     assert.equal(f.calls.length,0);
     await assert.rejects(registerProvider({...f,client:{...f.client,getTransactionReceipt:async()=>({status:'success',transactionHash:'0x'+'aa'.repeat(32),logs:[]})}}),{code:'registration_event'});
     assert.deepEqual(f.calls,['register']);
-    await assert.rejects(registerProvider({...f,client:{...f.client,readContract:async()=>recipient.address}}),{code:'registration_owner'});
+    await assert.rejects(registerProvider({...f,client:{...f.client,readContract:async request=>request.functionName==='ownerOf'?recipient.address:f.client.readContract(request)}}),{code:'registration_owner'});
     assert.deepEqual(f.calls,['register']);
   }finally{f.journal.close();}
 });
@@ -107,4 +107,12 @@ test('CLI defaults to a public preview and never prints configured private mater
 test('oversized UTF-8 metadata is rejected before registration can mint an identity',()=>{
   assert.throws(()=>registrationConfiguration({PROVIDER_RECIPIENT:owner.address,PROVIDER_PUBLIC_URL:'https://example.com/'+ 'a'.repeat(2000),
     PROVIDER_REGISTRATION_DESCRIPTION:'あ'.repeat(1024),PROVIDER_REGISTRATION_IMAGE_URL:'https://example.com/'+ 'b'.repeat(2000)},owner.address),{code:'registration_metadata_size'});
+});
+
+test('registry domain drift is refused before minting or signing wallet authorization',async()=>{
+  const f=fixture(true);
+  try {
+    await assert.rejects(registerProvider({...f,client:{...f.client,readContract:async()=>['0x0f','OtherRegistry','1',11155111n,REGISTRY,'0x'+'00'.repeat(32),[]]}}),{code:'registration_domain'});
+    assert.equal(f.calls.length,0);assert.equal(f.journal.get('registration-wallet'),null);
+  }finally{f.journal.close();}
 });
