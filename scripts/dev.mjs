@@ -55,7 +55,7 @@ try {
   if(!process.argv.includes('--services-only')) {
     console.log('[5/5] Launching Mate');
     const mode=process.argv.includes('--device')?['--device','auto']:process.argv.includes('--simulator')?['--simulator']:['--choose'];
-    launcher=startOwnedLauncher('./mate',mode);
+    launcher=startOwnedLauncher('./mate',mode,{env:{...process.env,MATE_REQUIRE_API_CONNECTION:'1'}});
     const {code,error}=await launcher.completion;launcher=null;
     if(!closing && (error || code!==0))throw new Error('App launch did not complete. Services are being stopped.');
   }

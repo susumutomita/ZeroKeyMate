@@ -57,6 +57,9 @@ if [[ "$MODE" == verify ]]; then
   exit 0
 fi
 if [[ -n "$DEVICE" ]]; then
+  if [[ "${MATE_REQUIRE_API_CONNECTION:-0}" == 1 ]]; then
+    node --env-file-if-exists=.env scripts/check-device-api.mjs
+  fi
   echo 'Checking the connected iPhone and signing team.'
   # Keep assignment separate from export so a failed selector stops this script.
   MATE_DEVELOPMENT_TEAM="$(python3 scripts/device-launch.py team)"

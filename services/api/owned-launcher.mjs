@@ -1,9 +1,9 @@
 import {spawn} from 'node:child_process';
 
 // The group ID comes only from this spawn, never a persisted PID/lock file.
-export function startOwnedLauncher(command,args,{stdout=process.stdout,stderr=process.stderr,stdin='inherit',graceMs=2_000}={}) {
+export function startOwnedLauncher(command,args,{stdout=process.stdout,stderr=process.stderr,stdin='inherit',env=process.env,graceMs=2_000}={}) {
   if(process.platform==='win32')throw new Error('The native launcher requires POSIX process groups.');
-  const child=spawn(command,args,{detached:true,stdio:[stdin,'pipe','pipe']});
+  const child=spawn(command,args,{detached:true,env,stdio:[stdin,'pipe','pipe']});
   child.stdout.pipe(stdout,{end:false});child.stderr.pipe(stderr,{end:false});
   let settled=false,failure,stopping;
   child.once('error',error=>{failure=error;});
