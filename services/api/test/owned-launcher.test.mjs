@@ -30,3 +30,10 @@ test('failed spawn closes cleanly and repeated stop is harmless',async()=>{
   const result=await owned.completion;assert.equal(result.error.code,'ENOENT');
   await owned.stop();await owned.stop();
 });
+
+test('full-stack launch requirements reach the owned app process',async()=>{
+  const output=new PassThrough();output.resume();
+  const owned=startOwnedLauncher(process.execPath,['-e',"process.exit(process.env.MATE_REQUIRE_API_CONNECTION==='1'?0:1)"],
+    {stdout:output,stderr:output,stdin:'ignore',env:{...process.env,MATE_REQUIRE_API_CONNECTION:'1'}});
+  assert.equal((await owned.completion).code,0);
+});
