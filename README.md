@@ -219,6 +219,8 @@ Apple documents the [charger connection trigger](https://support.apple.com/guide
 
 Run `npm run merchant` to open the English-first shop console at `http://127.0.0.1:8790`. The shop independently verifies the client ZK proof and withholds delivery until its own on-chain payment check succeeds. See [merchant setup and trust boundaries](docs/merchant.md).
 
+Provider discovery also needs a real on-chain identity and indexed metadata. `npm run register-provider` previews the public registration; `-- --submit` sends the reviewed Sepolia registration through a durable transaction journal. `npm run check-provider -- 11155111:AGENT_ID` then checks the same Graph and live-quote path used by Mate. See [provider registration and recovery](docs/provider-registration.md).
+
 ### Pair an iPhone without rebuilding
 
 Once the API deployment and proof verifier are ready, run `npm run pair` on the Mac. Open the private `pairing-code.txt` at the path printed by the command and enter its code under **Settings → Configure connection → One-time pairing code**. Enter the reachable HTTPS API origin, matching testnet/vault and public Privy IDs, then check and save. The app checks the public deployment and RPC chain before exchanging the code, checks its new session, and saves only after all checks pass.
@@ -231,4 +233,3 @@ The app bundle contains no API bearer or server RPC credential. The server store
 
 Full-stack iPhone launch (`make dev-device`, or the iPhone choice in `make dev`) checks `MATE_API_URL` over HTTPS before building the app. It rejects localhost URLs, embedded credentials, unavailable proof verification and a mismatched chain/vault/token. This is a Mac-side connectivity check; the phone still validates its own connection during runtime pairing. The app-only launcher remains usable for offline features without a configured API. Configure the HTTPS route using [the Tailscale Serve procedure](docs/arc-setup.md#physical-iphone-https-tailscale-serve).
 
-Provider discovery also needs a real on-chain identity and indexed metadata. `npm run register-provider` previews the public registration; `-- --submit` sends the reviewed Sepolia registration through a durable transaction journal. `npm run check-provider -- 11155111:AGENT_ID` then checks the same Graph and live-quote path used by Mate. See [provider registration and recovery](docs/provider-registration.md).

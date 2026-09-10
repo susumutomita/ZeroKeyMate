@@ -82,12 +82,14 @@ test('an unknown wallet outcome reuses its signature and cannot create a renewal
     assert.equal(f.calls.filter(call=>call==='setAgentWallet').length,1);
   }finally{f.journal.close();}
 });
-test('wrong network and unexpected receipt owner stop before subsequent transactions',async()=>{
+test('wrong network, missing registration event and transferred owner stop subsequent transactions',async()=>{
   const f=fixture();
   try {
     await assert.rejects(registerProvider({...f,client:{...f.client,getChainId:async()=>5042002}}),{code:'registration_chain'});
     assert.equal(f.calls.length,0);
     await assert.rejects(registerProvider({...f,client:{...f.client,getTransactionReceipt:async()=>({status:'success',transactionHash:'0x'+'aa'.repeat(32),logs:[]})}}),{code:'registration_event'});
+    assert.deepEqual(f.calls,['register']);
+    await assert.rejects(registerProvider({...f,client:{...f.client,readContract:async()=>recipient.address}}),{code:'registration_owner'});
     assert.deepEqual(f.calls,['register']);
   }finally{f.journal.close();}
 });
