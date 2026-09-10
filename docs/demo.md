@@ -1,6 +1,6 @@
 # Three-minute demo guide
 
-One story: **an iPhone proves a paid translation follows a private policy, and another machine can check the proof without receiving that policy.** The new home-screen **Try private rules on this device** entry exercises the production native circuit before any wallet setup. Actual phone performance, export and the complete mobile payment path still require acceptance; do not splice terminal results into an apparent live phone transaction.
+One story: **an iPhone proves a paid translation follows a private policy, and another machine can check the proof without receiving that policy.** The **Settings → Try private rules on this device** entry exercises the production native circuit before any wallet setup. Actual phone performance, export and the complete mobile payment path still require acceptance; do not splice terminal results into an apparent live phone transaction.
 
 Lead with the local proof, not the eyes or stand. Use an installed native build, show airplane mode, enter a private limit and public quote, and generate a proof. Keep the real elapsed time visible. Share the `.np` file explicitly, transfer it to the verification computer and run the README's verification command using the matching setup key. This is the proposed strongest demonstration; it is not yet recorded device evidence. If device acceptance is unavailable, present the terminal proof segment as a terminal segment.
 
@@ -29,7 +29,7 @@ MATE_TEST_OLLAMA_URL=http://127.0.0.1:11434 npm run test:local
 
 Replace `YOUR_INSTALLED_MODEL` with the actual model name. This mode fails when the model is unavailable; it does not fall back to a canned response or download weights. Discovery remains a fixture and settlement remains Anvil simulation. The recorded local research evaluation used `qwen2.5:3b`; its license is not a blanket permission for deployment or redistribution. [Evaluation details](validation.md#push前のローカル実動確認) and [CPU setup (日本語)](setup.md#実モデルを使うローカル動作確認).
 
-Before recording, verify the target Simulator/device actually opens the app. In this managed local environment Simulator access was blocked, so the committed screenshots come from this repository's CI Simulator. Do not describe those captures as physical-device footage. If local access is still blocked, use the attributed CI captures for the UI explanation and label the runnable terminal segment separately.
+Before recording, verify the exact installed build opens on the target phone. Existing screenshots are CI Simulator attachments, not physical-device footage. Keep actual phone, Simulator and local-chain segments explicitly labeled. A successful device install does not establish voice, stand, offline or payment acceptance.
 
 ## Recording sequence and narration
 

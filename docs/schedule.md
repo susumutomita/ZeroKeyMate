@@ -1,12 +1,12 @@
 # Delivery schedule
 
-Updated 2026-09-07. **The entrant has not confirmed the event.** The dates below are a proposed plan for ETHOnline 2026, not a confirmed registration, eligibility decision or completion promise. All working dates are in Japan Standard Time (JST, UTC+9).
+Updated 2026-09-10. ETHOnline 2026 and the Building from Scratch selection were previously recorded in the entrant dashboard. The official deadline was rechecked on September 10; this does not establish eligibility or a completed submission. All working dates below are Japan Standard Time (JST, UTC+9).
 
-## Deadline to confirm
+## Official deadline
 
-The official [ETHOnline 2026 submission guide](https://ethglobal.com/events/ethonline2026/info/details) specifies **September 13, 2026 at 12:00 pm EDT**, which is **September 14, 2026 at 01:00 JST** (September 13 at 16:00 UTC). The [event listing](https://ethglobal.com/events) runs September 4–16; the event end date is not the submission deadline. This leaves roughly six days from September 7.
+The official [ETHOnline 2026 submission guide](https://ethglobal.com/events/ethonline2026/info/details) specifies **September 13, 2026 at 12:00 pm EDT**, which is **September 14, 2026 at 01:00 JST** (September 13 at 16:00 UTC). The [event listing](https://ethglobal.com/events) runs September 4–16; the event end date is not the submission deadline.
 
-Confirm the actual event URL, registration/track and deadline in the Hacker Dashboard before treating this as the project's deadline. If the event is different, replace these dates. Our proposed submission target is **September 13 at 18:00 JST**, seven hours before the ETHOnline cutoff.
+Recheck the entrant account, selected pool and final submission state in the Hacker Dashboard before sending the entry. Our proposed submission target is **September 13 at 18:00 JST**, seven hours before the ETHOnline cutoff.
 
 ## One demonstration to finish
 
@@ -29,14 +29,16 @@ The current evidence supports native UI plus a separate local proof/payment/reco
 
 This is an aggressive planning estimate. Apple signing/device availability, on-device proving and live service configuration are dependencies, not solved tasks. If the critical path cannot finish by September 10, use the honest local-demo scope; some prize requirements may then be unmet.
 
-## Priorities and ownership
+## Original planning priorities and ownership
+
+The list below records the September 7 plan, not current Issue status. As of September 10, #5–#11 are closed; #14–#18 hold physical, live and submission acceptance.
 
 - **Implementation first:** #6 correctness and #5 source completeness audit. The #5 title refers to source recovery, but this plan does not authorize importing unrelated private code.
 - **Minimum necessary demo plumbing:** the needed parts of #7 startup and #8 connection setup; existing setup steps can remain documented if reliable. Foreground `make dev` orchestration and validated in-app connection settings are implemented; phone-reachable HTTPS provisioning and full onboarding acceptance remain.
 - **After the core demo:** expanded conversational commands (#9), full continuous-voice acceptance (#10) and expressive stand motion (#11). Do not call these completed because the smaller demo works.
 - **Entrant actions:** confirm event/track, supply access through the normal local setup, operate unavailable physical hardware, review contributions and record the narration. Submission itself is a separate entrant action; no organizer submission has been made.
 
-The open items were checked against [the product backlog](https://github.com/susumutomita/ZeroKeyMate/issues/4) on September 7. English-interface commit `07d2fe5` passed [iOS/enforcement CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34094233861) and [cryptographic acceptance](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34094233863). These results do not verify physical DockKit or the full live mobile flow.
+Historical planning baseline: the open items were checked against [the product backlog](https://github.com/susumutomita/ZeroKeyMate/issues/4) on September 7. English-interface commit `07d2fe5` passed [iOS/enforcement CI](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34094233861) and [cryptographic acceptance](https://github.com/susumutomita/ZeroKeyMate/actions/runs/34094233863). These results do not verify physical DockKit or the full live mobile flow.
 
 ## Submission package
 
