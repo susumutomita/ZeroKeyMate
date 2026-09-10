@@ -52,7 +52,7 @@ struct LocalProofSheet: View {
                     LabeledContent("Thermal state before", value: L10n.text(evidence.proof.thermalStateBefore))
                     LabeledContent("Thermal state after", value: L10n.text(evidence.proof.thermalStateAfter))
                     LabeledContent("Proof size", value: L10n.format("%lld bytes",evidence.proof.bytes.count))
-                    Text("Measured with a monotonic clock on this device. Total includes preparation; queue wait and modified-proof checking are excluded. First key loading is not a cold-device benchmark. Peak memory requires a separate Instruments measurement.").font(.footnote)
+                    Text("Measured with a monotonic clock on this device. Total includes preparation; queue wait and modified-proof checking are excluded. First key loading is not a cold-device benchmark. Peak memory requires a separate Xcode measurement.").font(.footnote)
                 }.accessibilityIdentifier("local-proof-evidence")
                 Section("Verify independently") {
                     Text("Export only the proof and its embedded public inputs. Your private rule values and salt are not included. Anyone with this circuit's matching verifier key can verify the file.").font(.footnote)

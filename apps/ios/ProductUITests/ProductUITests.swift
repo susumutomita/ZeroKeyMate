@@ -259,6 +259,33 @@ final class ProductUITests: XCTestCase {
         throw XCTSkip("This source-only build explicitly has no native prover. Run the native acceptance workflow.")
 #endif
     }
+    func testNativeLocalProofMemoryFootprint() throws {
+#if MATE_NATIVE_PROOFS
+        let app = launch()
+        let options = XCTMeasureOptions()
+        options.iterationCount = 3
+        options.invocationOptions = [.manuallyStart, .manuallyStop]
+        measure(metrics: [XCTMemoryMetric(application: app)], options: options) {
+            // A fresh app process per iteration; OS/file caches may remain warm.
+            app.terminate()
+            app.launch()
+            XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout: 15))
+            app.buttons["companion-face"].swipeUp()
+            app.buttons["open-settings"].tap()
+            tapPadding(app.buttons["open-local-proof"])
+            let generate = app.buttons["generate-local-proof"]
+            XCTAssertTrue(generate.waitForExistence(timeout: 5))
+            XCTAssertFalse(app.descendants(matching: .any)["local-proof-ready"].exists)
+            startMeasuring()
+            generate.tap()
+            XCTAssertTrue(app.descendants(matching: .any)["local-proof-ready"].waitForExistence(timeout: 120))
+            stopMeasuring()
+        }
+#else
+        throw XCTSkip("Native proof memory requires the real bundled prover.")
+#endif
+    }
+
     func testLanguageSwitchPersistsAndLocalProofRefusalIsTranslated() {
         let app=launch()
         app.buttons["open-settings"].tap()
