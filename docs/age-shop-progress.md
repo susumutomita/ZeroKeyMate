@@ -3,6 +3,12 @@
 Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
 project finished from unit tests, a simulator, a catalog page or a configured URL.
 
+Current integration: signed-card circuit/contract PR #39 and native mobile prover
+PR #40 are merged into main. Purchase integration PR #41 contains the phone flow,
+local shopping proposal, receipt recovery and the review fixes documented below.
+Earlier dated experiment notes are historical; the latest sections supersede
+their lists of remaining implementation work.
+
 ## Working increment
 
 - An explicit iPhone NFC session reads the input-assistance application's birth
@@ -343,3 +349,50 @@ reported about 2.00 GB maximum resident size and 1.30 GB peak memory footprint
 with macOS time resource accounting. This is host evidence, not an iPhone memory
 or timing result. Measure the physical app with its local model and camera before
 calling the mobile experience accepted.
+
+### Purchase review and real local-model acceptance
+
+The actual Foundation Models service on this Mac initially opened shopping for
+translation, past-tense and hypothetical statements. Production `ShopPlanner`
+now checks the speech act before product extraction, routes language tasks away
+from checkout and limits proposals to current purchase-request forms. Fourteen
+canned English/Japanese cases passed through this production pipeline with the
+real host model available: supported one-beer requests, quantity two, unsupported
+Amazon goods, negation, translation, past events and hypotheticals. Some cases
+are rejected by the request guard before model invocation. This is a bounded
+host acceptance corpus, not proof of every natural-language phrasing or physical
+voice recognition. No order, wallet, card data or payment was accessed.
+
+Reproduce on a Mac with Foundation Models available:
+
+```sh
+CLANG_MODULE_CACHE_PATH="$PWD/.build/ModuleCache" xcrun swiftc -parse-as-library \
+  -module-cache-path "$PWD/.build/ModuleCache" apps/ios/ZeroKeyMate/ShopPlanner.swift \
+  scripts/test-shop-planner.swift -o .build/shop-planner-acceptance
+.build/shop-planner-acceptance
+```
+
+The local prover now establishes an order-hash marker in device-only storage
+before sending its public proof. A server-supplied `age_verified` state cannot
+create that marker or skip card authentication. Signing and confirmed completion
+both require locally established proof evidence for the same order. Successful
+card reading/proving stops at the approval screen; only the separate payment
+button can initiate Face ID/passcode approval. Archived completed purchases are
+accessible in Activity, which projects only the product/date/transaction receipt
+and does not expose order capabilities or signed payment headers.
+
+Purchase headings, status messages, controls, privacy text and PIN errors have
+English/Japanese resources; display still defaults to English and follows the
+explicit language setting. Simulator review acceptance passed four tests with
+zero skips: request boundaries, server age-state spoofing, finalized payment
+expiry/RPC failures and unavailable-shop retry/background/close UI. The two
+inspected screenshots cover entry and unavailable handling, not the full card
+and payment journey.
+
+After localization, focused Simulator acceptance passed another four tests with
+zero skips, including the actual wallet SDK's encoding of a complete USDC v2
+EIP-712 domain and unchanged six-field authorization. It initializes no wallet
+and requests no signature. The focused result is
+`.build/native-evidence/shop-signing-encoding-20260913`. `make test` again passed
+(80 Swift, 58 Node, 16 Python); the unsigned build skips only the `.env`-reading
+project configuration target.

@@ -12,12 +12,18 @@ private struct SavedShopOrder: Codable {
     var paymentHeader: String?
     var paymentExpiresAt: UInt64?
     var paymentRetiredAtBlockHash: String?
+    var locallyProvenOrderHash: String?
     var completed = false
 }
 private struct PendingShopCreation: Codable {
     let connection: AgeShopConnection
     let key: String
     let payer: String
+}
+struct ShopPurchaseRecord: Identifiable, Sendable {
+    let id: String
+    let date: Date
+    let transaction: String
 }
 
 @MainActor final class ShopCheckout: ObservableObject {
@@ -40,6 +46,17 @@ private struct PendingShopCreation: Codable {
     static func hasSavedOrder() -> Bool {
         (try? LocalSecrets.read(SavedShopOrder.self, key: "base-sepolia-age-shop-order-v1")) != nil ||
         (try? LocalSecrets.read(PendingShopCreation.self, key: "base-sepolia-age-shop-creation-v1")) != nil
+    }
+    static func completedPurchases() throws -> [ShopPurchaseRecord] {
+        var records = try LocalSecrets.read([SavedShopOrder].self, key: "base-sepolia-shop-history") ?? []
+        if let current = try LocalSecrets.read(SavedShopOrder.self, key: "base-sepolia-age-shop-order-v1") { records.append(current) }
+        var seen = Set<String>()
+        return records.reversed().compactMap { saved in
+            guard saved.completed, saved.order.state == .complete, seen.insert(saved.order.id).inserted,
+                  let transaction = saved.order.paymentTransaction,
+                  (try? CanonicalBytes.hex(transaction, count: 32)) != nil else { return nil }
+            return ShopPurchaseRecord(id: saved.order.id, date: Date(timeIntervalSince1970: Double(saved.order.createdAt)), transaction: transaction)
+        }
     }
 
     func load() {
@@ -98,7 +115,7 @@ private struct PendingShopCreation: Codable {
         phase = recoverablePhase
     }
 
-    func readCard(pin: String, wallet: WalletService) {
+    func readCard(pin: String) {
         guard !busy, phase == .card, let saved, let client, JPKICardReader.validSigningPIN(pin) else { return }
         message = nil
         phase = .readingCard
@@ -111,11 +128,16 @@ private struct PendingShopCreation: Codable {
             let proof = try await self.prover.prove(authentication: credential.authentication,
                 orderHash: CanonicalBytes.hex(order.orderHash, count: 32), nonce: CanonicalBytes.hex(order.paymentNonce, count: 32),
                 referenceTime: order.createdAt, expiresAt: order.expiresAt)
-            try self.check(ticket); self.phase = .verifying
+            try self.check(ticket)
+            // Only the local authenticated-card prover can establish this
+            // marker. No server field is copied into local proof evidence.
+            guard var local = self.saved, local.order.orderHash == order.orderHash else { throw AgeShopError.invalidOrder }
+            local.locallyProvenOrderHash = order.orderHash
+            try LocalSecrets.write(local, key: self.storageKey); self.saved = local
+            self.phase = .verifying
             let verified = try await client.verifyAge(order: order, key: saved.key, proof: proof)
             try self.check(ticket); try self.store(verified)
             self.phase = .paymentApproval
-            try await self.signAndPay(wallet: wallet, ticket: ticket)
         }
     }
 
@@ -126,12 +148,14 @@ private struct PendingShopCreation: Codable {
 
     private func signAndPay(wallet: WalletService, ticket: UUID) async throws {
         guard let client, let saved, saved.paymentHeader == nil, saved.paymentRetiredAtBlockHash == nil,
+              Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash),
               saved.order.state == .ageVerified else { throw ProductError.invalidResponse }
         let required = try await client.paymentChallenge(order: saved.order, key: saved.key)
         try check(ticket)
         let signature = try await wallet.signShopPayment(order: saved.order, required: required) {
             try self.check(ticket)
             guard self.saved?.order.orderHash == saved.order.orderHash, self.saved?.paymentHeader == nil,
+                  Self.hasLocalProof(saved.order, marker: self.saved?.locallyProvenOrderHash),
                   saved.order.expiresAt > UInt64(Date().timeIntervalSince1970) else { throw AgeShopError.expiredOrder }
         }
         try check(ticket)
@@ -157,6 +181,7 @@ private struct PendingShopCreation: Codable {
         try check(ticket); try store(current)
         if current.state == .complete {
             phase = .pending
+            guard Self.hasLocalProof(current, marker: saved.locallyProvenOrderHash) else { throw AgeShopError.invalidOrder }
             async let base = EthereumRPC(url: "https://sepolia.base.org", chainID: AgeShopProtocol.chainID).confirmShop(current)
             async let independent = EthereumRPC(url: "https://base-sepolia-rpc.publicnode.com", chainID: AgeShopProtocol.chainID).confirmShop(current)
             let hashes = try await (base, independent)
@@ -190,7 +215,7 @@ private struct PendingShopCreation: Codable {
             message = "Checking the original payment. Its order and nonce are preserved."
         } else if current.expiresAt <= UInt64(Date().timeIntervalSince1970) {
             phase = .unavailable; message = "This order expired before payment. Nothing was paid."
-        } else if current.state == .ageVerified { phase = .paymentApproval }
+        } else if current.state == .ageVerified && Self.hasLocalProof(current, marker: saved.locallyProvenOrderHash) { phase = .paymentApproval }
         else { phase = .card }
     }
 
@@ -235,12 +260,16 @@ private struct PendingShopCreation: Codable {
         // Foregrounding may check status, but must never resume PIN use or sign.
         phase = .initial; canStart = false
     }
+    static func hasLocalProof(_ order: AgeShopOrder, marker: String?) -> Bool {
+        guard let marker, (try? CanonicalBytes.hex(marker, count: 32)) != nil else { return false }
+        return marker.lowercased() == order.orderHash.lowercased()
+    }
     private var recoverablePhase: Phase {
         guard let saved else { return .unavailable }
         if saved.paymentRetiredAtBlockHash != nil { return .pending }
         if saved.paymentHeader != nil || [.paymentPending, .paymentExpired, .complete].contains(saved.order.state) { return .pending }
         if saved.order.expiresAt <= UInt64(Date().timeIntervalSince1970) { return .unavailable }
-        return saved.order.state == .ageVerified ? .paymentApproval : .card
+        return saved.order.state == .ageVerified && Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash) ? .paymentApproval : .card
     }
     func retryAvailability() {
         guard !busy else { return }
@@ -264,7 +293,7 @@ private struct PendingShopCreation: Codable {
     static func explanation(_ error: Error) -> String {
         if let card = error as? MyNumberCardError {
             switch card {
-            case .pinRejected(let attempts): return "The signature PIN was rejected. \(attempts) attempts remain. Mate did not retry."
+            case .pinRejected(let attempts): return L10n.format("The signature PIN was rejected. %lld attempts remain. Mate did not retry.", Int64(attempts))
             case .pinBlocked: return "The card PIN is locked. Mate made no further attempt."
             default: return "The card could not be read. No personal information was sent."
             }

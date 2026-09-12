@@ -747,10 +747,25 @@ private struct DisclosureSheet:View {
 
 private struct ActivitySheet:View {
     @ObservedObject var model:CompanionModel
+    @State private var purchases:[ShopPurchaseRecord]=[]
+    @State private var purchaseHistoryError:String?
     @Environment(\.locale) private var locale
     var body:some View {
         let _ = locale.identifier
         List{
+            if let purchaseHistoryError { Section { Text(L10n.text(purchaseHistoryError)) } }
+            if !purchases.isEmpty {
+                Section("Beer purchases") {
+                    ForEach(purchases) { purchase in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Mate Lager · 0.10 test USDC").font(.headline)
+                            Text(purchase.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale))).font(.subheadline).foregroundStyle(.secondary)
+                            Text("Recorded on Base Sepolia · No physical delivery").font(.footnote).foregroundStyle(.secondary)
+                            if let url=URL(string:"https://sepolia.basescan.org/tx/"+purchase.transaction) { Link("View payment receipt", destination:url) }
+                        }.padding(.vertical,8)
+                    }
+                }
+            }
             if let pending=model.pendingExecution {
                 Section("Awaiting confirmation"){
                     SectionNote(text:"The result is not confirmed yet. If the service has not received the request, retry with the same saved signature and request ID. New payments are paused.")
@@ -759,7 +774,7 @@ private struct ActivitySheet:View {
                     Button("Cancel if no payment was sent",role:.destructive){Task{await model.cancelPendingExecution()}}.disabled(model.financialBusy)
                 }
             }
-            if model.receipts.isEmpty {
+            if model.receipts.isEmpty && purchases.isEmpty && purchaseHistoryError == nil {
                 Section{
                     VStack(alignment:.leading,spacing:14){
                         Text("No executions yet.").font(.system(size:25)).tracking(-0.6)
@@ -780,5 +795,9 @@ private struct ActivitySheet:View {
                 }
             }
         }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Activity").navigationBarTitleDisplayMode(.inline)
+            .task {
+                do { purchases=try ShopCheckout.completedPurchases() }
+                catch { purchaseHistoryError="Purchase history could not be read. Unlock this iPhone and reopen Activity." }
+            }
     }
 }

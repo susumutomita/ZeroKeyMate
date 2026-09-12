@@ -126,12 +126,7 @@ final class WalletService: ObservableObject {
         let end = min(order.expiresAt, now + 180)
         let authorization = ["from": order.payer, "to": order.recipient, "value": order.amount,
                              "validAfter": String(now - 1), "validBefore": String(end), "nonce": order.paymentNonce]
-        let typed = EthereumRpcRequest.EIP712TypedData(
-            domain: .init(name: "USDC", version: "2", chainId: Int(AgeShopProtocol.chainID), verifyingContract: AgeShopProtocol.token),
-            primaryType: "TransferWithAuthorization", types: ["TransferWithAuthorization": [
-                .init("from", type: "address"), .init("to", type: "address"), .init("value", type: "uint256"),
-                .init("validAfter", type: "uint256"), .init("validBefore", type: "uint256"), .init("nonce", type: "bytes32")]],
-            message: authorization)
+        let typed = Self.shopTypedData(authorization: authorization)
         let signature = try await ownerWallet.provider.request(.ethSignTypedDataV4(address: ownerWallet.address, typedData: typed))
         try validateApproval()
         _ = try CanonicalBytes.hex(signature, count: 65)
@@ -139,6 +134,18 @@ final class WalletService: ObservableObject {
         struct Payment: Encodable { let x402Version = 2; let accepted: ShopPaymentRequirements; let payload: Payload }
         let data = try JSONEncoder().encode(Payment(accepted: required, payload: Payload(signature: signature, authorization: authorization)))
         return ShopSignature(header: data.base64EncodedString(), validBefore: end)
+    }
+    /// A complete EIP-712 request for USDC v2. Do not depend on a wallet
+    /// inferring omitted domain types when encoding eth_signTypedData_v4.
+    static func shopTypedData(authorization: [String: String]) -> EthereumRpcRequest.EIP712TypedData {
+        EthereumRpcRequest.EIP712TypedData(
+            domain: .init(name: "USDC", version: "2", chainId: Int(AgeShopProtocol.chainID), verifyingContract: AgeShopProtocol.token),
+            primaryType: "TransferWithAuthorization", types: ["EIP712Domain": [
+                .init("name", type: "string"), .init("version", type: "string"),
+                .init("chainId", type: "uint256"), .init("verifyingContract", type: "address")], "TransferWithAuthorization": [
+                .init("from", type: "address"), .init("to", type: "address"), .init("value", type: "uint256"),
+                .init("validAfter", type: "uint256"), .init("validBefore", type: "uint256"), .init("nonce", type: "bytes32")]],
+            message: authorization)
     }
     func signGrant(_ grant: MandateGrant,validateApproval:() throws -> Void) async throws -> String {
         guard let ownerWallet, ownerWallet.address.lowercased() == grant.owner.lowercased(),

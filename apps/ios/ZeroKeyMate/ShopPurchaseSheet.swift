@@ -37,12 +37,12 @@ struct ShopPurchaseSheet: View {
                         Text("0.10 test USDC").font(.headline)
                     }
                 }
-                Text(heading).font(.title2.bold()).accessibilityIdentifier("shop-phase")
+                Text(L10n.text(heading)).font(.title2.bold()).accessibilityIdentifier("shop-phase")
                 if let url = checkout.storeURL {
                     Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }.font(.subheadline)
                 }
                 if let message = checkout.message {
-                    Text(message).foregroundStyle(.secondary).accessibilityIdentifier("shop-message")
+                    Text(L10n.text(message)).foregroundStyle(.secondary).accessibilityIdentifier("shop-message")
                 }
                 switch checkout.phase {
                 case .review:
@@ -60,13 +60,13 @@ struct ShopPurchaseSheet: View {
                         .textInputAutocapitalization(.characters).autocorrectionDisabled().keyboardType(.asciiCapable)
                         .textFieldStyle(.roundedBorder).accessibilityIdentifier("shop-signature-pin")
                     Button("Tap card and continue") {
-                        let oneUse = pin; pin = ""; checkout.readCard(pin: oneUse, wallet: wallet)
+                        let oneUse = pin; pin = ""; checkout.readCard(pin: oneUse)
                     }.buttonStyle(.borderedProminent).disabled(!JPKICardReader.validSigningPIN(pin) || checkout.busy)
                         .accessibilityIdentifier("shop-tap-card")
                     privacy
                 case .readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
-                    Text(progressDetail).foregroundStyle(.secondary)
+                    Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
                 case .paymentApproval:
                     Text("The store has checked the age proof. This approves only this order, recipient and amount on Base Sepolia.")
                     Button("Approve 0.10 test USDC") { checkout.continuePayment(wallet: wallet) }
