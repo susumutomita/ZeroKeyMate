@@ -46,6 +46,7 @@ struct MateView:View {
                         case .localProof:LocalProofSheet(proofs:model.proofs) { model.makeDraft(service:.translation) }
                         case .connection:ConnectionSheet(model:model)
                         case .cardAge:CardAgeSheet()
+                        case .shop:ShopPurchaseSheet(model:model,wallet:model.wallet)
                         }
                     }
                     .toolbar{
@@ -187,6 +188,7 @@ private struct ControlsSheet:View {
                 }.disabled(model.financialBusy || voice.requestingPermission || model.preparingCompanion)
                     .accessibilityIdentifier("speak-now")
                 Button("Read or type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
+                Button("Mate's beer order"){model.openShop()}.accessibilityIdentifier("open-shop")
                 Button("Rest and stop camera and microphone"){model.rest();model.sheet=nil}
                     .accessibilityIdentifier("rest-button")
             }
@@ -393,6 +395,7 @@ private struct SettingsSheet:View {
                 SectionNote(text:"Changing language rests Mate. Tap the resting face to resume.")
             }
             Section("Requests and evidence") {
+                Button("Mate's beer order"){model.openShop()}.accessibilityIdentifier("open-shop")
                 Button(L10n.text(UserDefaults.standard.string(forKey:model.setupCheckpointKey) == nil ? "Set up external requests":"Resume external request setup")){model.sheet = .setup}.accessibilityIdentifier("open-setup")
                 Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
                 Button { model.sheet = .cardAge } label: {

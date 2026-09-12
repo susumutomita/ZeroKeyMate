@@ -46,8 +46,8 @@ async function verifiedAge(env,order) {
   return checkedAgeCall(env,[client(),secondaryClient()],args,true);
 }
 
-async function confirmedPayment(order,transaction) {
-  const rpc=client();
+async function confirmedPaymentAt(rpc,order,transaction) {
+  if(await rpc.getChainId()!==CHAIN_ID)return false;
   const receipt=await rpc.getTransactionReceipt({hash:transaction});
   if(receipt.status!=='success' || await rpc.getBlockNumber()<receipt.blockNumber+1n)return false;
   const block=await rpc.getBlock({blockNumber:receipt.blockNumber});
@@ -56,8 +56,14 @@ async function confirmedPayment(order,transaction) {
     if(log.address.toLowerCase()!==USDC.toLowerCase())return [];
     try {return [decodeEventLog({abi:TRANSFER_ABI,data:log.data,topics:log.topics})];} catch {return [];}
   });
-  return events.some(event=>event.eventName==='Transfer' && event.args.from.toLowerCase()===order.payer && event.args.to.toLowerCase()===order.recipient && event.args.value===BigInt(order.amount))
+  const matches=events.some(event=>event.eventName==='Transfer' && event.args.from.toLowerCase()===order.payer && event.args.to.toLowerCase()===order.recipient && event.args.value===BigInt(order.amount))
     && events.some(event=>event.eventName==='AuthorizationUsed' && event.args.authorizer.toLowerCase()===order.payer && event.args.nonce.toLowerCase()===order.paymentNonce.toLowerCase());
+  return matches ? receipt.blockHash : false;
+}
+
+async function confirmedPayment(order,transaction) {
+  const results=await Promise.all([client(),secondaryClient()].map(rpc=>confirmedPaymentAt(rpc,order,transaction)));
+  return results[0]!==false && results[0]===results[1];
 }
 
 async function reconcile(env,record) {

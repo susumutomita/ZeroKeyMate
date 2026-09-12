@@ -12,7 +12,7 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
 - The separate `MyNumberNFCService.authenticate(pin:challenge:)` path reads the
   JPKI signing certificate and asks the card to sign a domain-separated order
   hash and nonce. It requires the **6–16 uppercase alphanumeric signing PIN**,
-  not the four-digit input-assistance PIN. It is not yet called by a purchase UI.
+  not the four-digit input-assistance PIN. The Mate beer purchase screen now calls this path after explicit PIN entry and a tap.
 - Local Security.framework verification uses only fingerprint-pinned official
   2019/2023 J-LIS roots, disables network fetching, verifies the certificate chain
   and card signature, and reads DOB only from the signed SAN otherName field.
@@ -46,8 +46,7 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
 1. The actual signed-card age circuit is implemented and checked with synthetic
    certificates. Validate its deliberately narrow physical-card certificate
    profile on a real card; no physical identity acceptance has been performed.
-2. Connect the implemented native age prover to the purchase/card UI and measure
-   it on a physical phone. The separate native library, private Swift witness
+2. Measure the now-connected native age prover and purchase/card UI on a physical phone. The separate native library, private Swift witness
    preparation, fixed setup hashes and actual Simulator proving now work.
    Cancellation discards a completed result; it cannot yet interrupt the backend
    halfway through. Desktop Groth16 and actual EVM verification pass, but
@@ -57,10 +56,11 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
    flow is ready and the specific deployment credentials are authorized. `/age`
    now accepts a proof and directly verifies it with the contract via `eth_call`;
    no public contract, Worker or age transaction has been deployed by this work.
-4. Implement the Mate beer-shopping tool and review/card/proof/payment/result
-   sequence, persist the non-sensitive order context, and connect wallet signing
-   under an explicit shop/purpose/amount delegation. The local model does not
-   get signing keys, card data, arbitrary URLs or final payment authority.
+4. Validate the implemented local-model beer tool and complete purchase sequence
+   against the deployed shop. Creation capability and exact limited authorization
+   persist in the device-only Keychain before their network request. The model
+   proposes only the supported item; it gets no card data, URL, wallet or signing
+   access. Face ID/passcode approval signs one exact 0.10 test-USDC transfer.
 5. Define credential revocation handling without disclosing a person's certificate
    or serial number to an unapproved endpoint. Do not claim revocation is checked.
 6. Complete terminal settlement recovery after authorization expiry. Pre-broadcast
@@ -274,3 +274,39 @@ reviewing/updating those pins and its matching shop verifier. A new setup can be
 tested separately with `--artifacts .build/age-source-validation/artifacts`.
 No real card, existing private key, device signing identity, public deployment,
 or payment was used. The beer tool, purchase UI and payment connection are next.
+
+
+## Native checkout checkpoint — 2026-09-13
+
+- On-device Foundation Models proposes a beer order. Unsupported goods and
+  quantities are explained without fabricating a purchase. Controls and Settings
+  also expose the same purchase screen. Opening it pauses microphone input before
+  PIN entry; closing/backgrounding cancels work and never resumes a card PIN or
+  payment signature automatically.
+- The phone recomputes the capability ID, payment nonce and complete ABI order
+  commitment using RustCrypto Keccak. It rejects a changed chain, token, amount,
+  product, quantity, payer, recipient, gate, nonce or lifetime. Only a public proof
+  and pinned root hash go to the age endpoint.
+- Same-order creation recovery survives a lost response. A signed x402 v2
+  EIP-3009 authorization is saved before submission and can only be retried
+  unchanged. The Worker and phone each require matching canonical transfer and
+  nonce evidence from Base and PublicNode before reporting completion.
+- Store configuration is deliberately absent pending authorized deployment.
+  `scripts/stage-shop-connection.mjs` accepts only public deployment coordinates,
+  checks the gate's reviewed code hash through both providers and writes one
+  ignored app resource without overwriting an existing connection. It never
+  reads `.env`, a wallet or a deployment credential.
+- Every native build now recreates the checksum-verified upstream source and
+  reapplies both checked patches, rather than trusting an old marker. Both WHIR
+  and EVM paths recreate all six pinned Noir dependencies with local paths.
+  Native proving uses a dedicated two-worker pool.
+- Validation: 80 Swift, 58 Node and 16 Python unit tests passed; shop 35 tests
+  passed. The unsigned iOS build passed. Updated real Simulator acceptance had
+  3 passes, 0 failures and 0 skips: two real masked proofs with changed commitment,
+  underage/changed-order rejection, native Keccak/order commitment and the honest
+  unconfigured-shop retry/background/reopen/close UI. This does not prove physical
+  NFC, wallet signing, the local model's actual classification or live settlement.
+- The reviewed screenshots show a visible beer-order entry, clear fixed price,
+  unavailable status, large retry/close controls and testnet/no-delivery wording.
+  Card, proving, approval, pending and completed screens still need a connected
+  flow or explicitly isolated UI harness review; no end-to-end UX claim is made.

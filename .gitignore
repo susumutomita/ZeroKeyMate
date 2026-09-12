@@ -25,3 +25,5 @@ __pycache__/
 .dev.vars
 .dev.vars.*
 services/shop/worker-configuration.d.ts
+
+/apps/ios/ZeroKeyMate/Resources/ShopConnection.json

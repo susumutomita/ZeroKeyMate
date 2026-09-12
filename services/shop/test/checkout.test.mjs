@@ -255,3 +255,14 @@ test('the test-shop order capacity survives concurrent requests',async t=>{
   assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,1000);
   assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,false);
 });
+
+
+test('payment success requires both providers to agree on receipt evidence',async t=>{
+  const h=harness(t),order=await h.order();await h.approve(order);h.settleReceipt(order);
+  const receipt=h.secondary.getTransactionReceipt;
+  h.secondary.getTransactionReceipt=async()=>({...h.state.receipt,logs:[]});
+  assert.equal((await (await h.pay(order)).json()).order.state,'payment_pending');
+  h.secondary.getTransactionReceipt=receipt;
+  assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'complete');
+  assert.equal(h.state.settles,1);
+});

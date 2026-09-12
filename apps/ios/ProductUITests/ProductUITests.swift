@@ -52,6 +52,25 @@ final class ProductUITests: XCTestCase {
             XCTAssertGreaterThanOrEqual(button.frame.height, 44, id)
         }
     }
+    func testUnconfiguredBeerShopIsHonestAndCanRetryOrClose() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["open-shop"].waitForExistence(timeout: 5))
+        capture("shop-entry-controls")
+        app.buttons["open-shop"].tap()
+        XCTAssertTrue(app.staticTexts["shop-phase"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["The store connection is not installed yet. No order or payment has been made."].waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["shop-start-order"].exists)
+        let retry = app.buttons["Check again"]
+        XCTAssertTrue(retry.isHittable)
+        capture("shop-unconfigured")
+        retry.tap()
+        XCTAssertTrue(app.staticTexts["The store connection is not installed yet. No order or payment has been made."].waitForExistence(timeout: 10))
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.staticTexts["The store connection is not installed yet. No order or payment has been made."].waitForExistence(timeout: 10))
+        closeSheet(app)
+        XCTAssertTrue(app.staticTexts["Camera off"].exists)
+    }
     func testSetupCanBeDeferredAndResumedWithoutStartingSensors() {
         let app=launch()
         XCTAssertTrue(app.staticTexts["Camera off"].exists)

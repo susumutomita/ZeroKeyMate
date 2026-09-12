@@ -182,7 +182,7 @@ actor EthereumRPC {
     }
     func ensureNetwork() async throws {
         let chain:String?=try await call(method:"eth_chainId",params:[])
-        guard [UInt64(11_155_111),5_042_002].contains(chainID), chain?.lowercased() == "0x" + String(chainID,radix:16) else {throw ProductError.unavailable("The connected network does not match this installation. Signing and payment have been stopped.")}
+        guard [UInt64(11_155_111),5_042_002,84_532].contains(chainID), chain?.lowercased() == "0x" + String(chainID,radix:16) else {throw ProductError.unavailable("The connected network does not match this installation. Signing and payment have been stopped.")}
     }
     func confirm(hash:String) async throws -> Receipt {
         _=try CanonicalBytes.hex(hash,count:32)
@@ -215,5 +215,13 @@ actor EthereumRPC {
                 actionHash:pending.actionHash,proofHash:pending.proofHash,spentAfter:spent,action:pending.submission?.action)) != nil
         }
         guard matches.count==1 else{throw ProductError.invalidResponse}
+    }
+    func confirmShop(_ order: AgeShopOrder) async throws -> String {
+        guard chainID == AgeShopProtocol.chainID, order.chainId == chainID,
+              order.token.lowercased() == AgeShopProtocol.token, order.amount == AgeShopProtocol.amount,
+              let transaction = order.paymentTransaction else { throw AgeShopError.invalidPayment }
+        let receipt = try await confirm(hash: transaction)
+        try AgeShopReceipt.validate(order: order, logs: receipt.logs.map { .init(address: $0.address, topics: $0.topics, data: $0.data) })
+        return receipt.blockHash.lowercased()
     }
 }

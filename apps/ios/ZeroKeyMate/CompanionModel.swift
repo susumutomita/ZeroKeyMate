@@ -45,11 +45,15 @@ private struct PendingRevoke {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection,cardAge;var id:String{rawValue}}
+    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection,cardAge,shop;var id:String{rawValue}}
     @Published var sheet:Sheet? {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
-            if let sheet,sheet != .conversation && sheet != .controls {
+            if sheet == .shop {
+                // A purchase pauses speech input before a PIN can be entered.
+                // Existing explicit camera consent remains under sensor control.
+                stopVoice(); cancelConversation(); requestGeneration = UUID(); sleeping = false
+            } else if let sheet,sheet != .conversation && sheet != .controls {
                 rest()
                 // Opening an explicit request screen is a new user interaction, not
                 // sensor consent. Existing approval guards still require an awake app.
@@ -65,10 +69,10 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var executionStatus:String? {didSet{if executionStatus == nil{executionActivity=nil}}}
     @Published private(set) var executionActivity:CompanionActivity? {didSet{updateStandApproval()}}
     private func updateStandApproval() {
-        sensors.setApprovalPending(executionActivity == .approval || agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules)
+        sensors.setApprovalPending(executionActivity == .approval || agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules || sheet == .shop)
     }
     var activity:CompanionActivity {
-        let approval=agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules
+        let approval=agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules || sheet == .shop
         return .resolve(resting:sleeping || (isResting && !approval && pendingExecution == nil && executionStatus == nil),
             operation:executionActivity ?? (financialBusy || executionStatus != nil ? .thinking:nil),
             pending:pendingExecution != nil,outcome:lastOutcome,approval:approval,
@@ -128,6 +132,8 @@ final class CompanionModel:ObservableObject {
     let voice=VoiceService()
     @Published private(set) var wallet:WalletService
     private let planner:any AgentPlanning
+    private let shopPlanner = ShopPlanner()
+    private var shopReplyLanguage = AppLanguage.english
     private var agentOffer:AgentOffer? {didSet{updateStandApproval()}}
     private let conversation:any ConversationResponding
     // A single actor serializes native work across payment and offline screens.
@@ -348,7 +354,10 @@ final class CompanionModel:ObservableObject {
                         self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
                         return
                     }
-                    if self.pendingExecution != nil {
+                    if self.pendingExecution == nil && ShopCheckout.hasSavedOrder() {
+                        self.openShop(language: replyLanguage)
+                        self.agentSay(replyLanguage == .japanese ? "保存したビールの注文を確認します。新しく支払いはしません。" : "I'll check your saved beer order. This won't create a new payment.", language: replyLanguage)
+                    } else if self.pendingExecution != nil {
                         self.executionStatus=replyLanguage == .japanese ? "同じ注文の結果を確認しています" : "Checking the existing order"
                         await self.recoverExecution()
                         self.executionStatus=nil
@@ -447,6 +456,27 @@ final class CompanionModel:ObservableObject {
                     }
                     return
                 }
+                if ShopPlanner.relevant(input) {
+                    let plan = try await self.shopPlanner.plan(input)
+                    try Task.checkCancellation()
+                    guard self.foreground, self.conversationGeneration == generation else { return }
+                    switch plan.operation {
+                    case .buyBeer:
+                        guard plan.quantity == 1 else {
+                            self.agentSay(replyLanguage == .japanese ? "今の店舗は1本ずつの注文に対応しています。1本を注文する場合は、そう話しかけてください。" : "The store currently accepts one bottle per order. Ask me for one bottle if that's what you'd like.", language: replyLanguage)
+                            return
+                        }
+                        self.openShop(language: replyLanguage)
+                        self.agentSay(replyLanguage == .japanese
+                            ? "Mate Lagerを1本、0.10テストUSDCで注文できます。内容を確認したら、カードをタッチしてください。生年月日はiPhoneに残したまま証明します。"
+                            : "I can order one Mate Lager for 0.10 test USDC. Review the order, then tap your card. Your birth date stays on this iPhone.", language: replyLanguage)
+                        return
+                    case .unsupportedPurchase:
+                        self.agentSay(replyLanguage == .japanese ? "今つながっている店舗で買えるのはMate Lagerです。Amazonやほかの商品はまだ注文できません。" : "The connected store sells Mate Lager. Amazon and other products aren't connected yet.", language: replyLanguage)
+                        return
+                    case .chat: break
+                    }
+                }
                 if let request=try await self.planner.request(from:input) {
                     try Task.checkCancellation()
                     guard self.foreground,self.conversationGeneration==generation else{return}
@@ -471,6 +501,11 @@ final class CompanionModel:ObservableObject {
         messages.append(ConversationMessage(isUser:false,text:text));messages=Array(messages.suffix(40))
         if readAloud{voice.speak(text,locale:language.speechLocale)}
     }
+    func finishShopConversation() {
+        let language = shopReplyLanguage
+        agentSay(language == .japanese ? "Mate Lagerのテスト購入が完了しました。カードの情報はこのiPhoneに残したままです。" : "Your Mate Lager test purchase is complete. Your card details stayed on this iPhone.", language: language)
+    }
+    func openShop(language: AppLanguage = .english) { shopReplyLanguage = language; sheet = .shop }
     private func reportAgentResult(language:AppLanguage) {
         if let message=errorMessage {
             errorMessage=nil
