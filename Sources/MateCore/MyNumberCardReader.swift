@@ -29,7 +29,7 @@ public struct MyNumberCardResponse: Sendable {
 
 public enum MyNumberCardError: Error, Equatable {
     case invalidPIN, pinRejected(remainingAttempts: Int), pinBlocked
-    case commandRejected, malformedResponse, invalidBirthDate
+    case commandRejected, malformedResponse, invalidBirthDate, requestExpired
 }
 
 /// Deliberately distinct from a verified age credential. Not Codable and never

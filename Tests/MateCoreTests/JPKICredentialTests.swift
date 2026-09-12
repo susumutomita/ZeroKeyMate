@@ -66,11 +66,13 @@ final class JPKICredentialTests: XCTestCase {
 }
 
 @MainActor final class JPKICardReaderTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+    private let deadline = Date(timeIntervalSince1970: 1_800_000_900)
     private func challenge() throws -> JPKIChallenge { try .init(orderHash: Data(repeating: 1, count: 32), nonce: Data(repeating: 2, count: 32)) }
     func testWrongSigningPINIsNeverRetriedAndCertificateIsNeverRead() async throws {
         var commands: [MyNumberCardCommand] = []
         do {
-            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge()) { command in
+            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge(), expiresAt: deadline, now: { self.now }) { command in
                 commands.append(command)
                 return command.instruction == 0x20 ? .init(sw1: 0x63, sw2: 0xC4) : .init()
             }
@@ -86,7 +88,7 @@ final class JPKICredentialTests: XCTestCase {
     func testInvalidPINDoesNotContactCard() async throws {
         for pin in ["1234", "abcdef", "ABCDEF", "123456", "ＡBC123", "abc123", " ABC123", String(repeating: "A1", count: 9)] {
             do {
-                _ = try await JPKICardReader.authenticate(pin: pin, challenge: challenge()) { _ in XCTFail("Unexpected card operation"); return .init() }
+                _ = try await JPKICardReader.authenticate(pin: pin, challenge: challenge(), expiresAt: deadline, now: { self.now }) { _ in XCTFail("Unexpected card operation"); return .init() }
                 XCTFail("Invalid signing PIN accepted")
             } catch { XCTAssertEqual(error as? MyNumberCardError, .invalidPIN) }
         }
@@ -94,7 +96,7 @@ final class JPKICredentialTests: XCTestCase {
     func testOversizedCertificateHeaderNeverReadsPagesOrSigns() async throws {
         var reads = 0
         do {
-            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge()) { command in
+            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge(), expiresAt: deadline, now: { self.now }) { command in
                 if command.instruction == 0xB0 { reads += 1; return .init(data: Data([0x30,0x82,0xFF,0xFF])) }
                 XCTAssertNotEqual(command.instruction, 0x2A)
                 return .init()
@@ -102,6 +104,83 @@ final class JPKICredentialTests: XCTestCase {
             XCTFail("Oversized certificate accepted")
         } catch { XCTAssertEqual(error as? MyNumberCardError, .malformedResponse) }
         XCTAssertEqual(reads, 1)
+    }
+
+    func testExpiredRequestMakesNoCardCommand() async throws {
+        for current in [deadline, deadline.addingTimeInterval(1)] {
+            do {
+                _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge(), expiresAt: deadline, now: { current }) { _ in
+                    XCTFail("An expired order must not contact the card"); return .init()
+                }
+                XCTFail("Expired request accepted")
+            } catch { XCTAssertEqual(error as? MyNumberCardError, .requestExpired) }
+        }
+    }
+
+    func testExpiryDuringSelectionNeverSendsPIN() async throws {
+        var current = now, commands: [UInt8] = []
+        do {
+            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge(), expiresAt: deadline, now: { current }) { command in
+                commands.append(command.instruction); current = self.deadline
+                return .init()
+            }
+            XCTFail("Expired request accepted")
+        } catch { XCTAssertEqual(error as? MyNumberCardError, .requestExpired) }
+        XCTAssertEqual(commands, [0xA4])
+    }
+
+    func testExpiryDuringPINResponsePreventsCertificateReadAndSignature() async throws {
+        var current = now, commands: [UInt8] = []
+        do {
+            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge(), expiresAt: deadline, now: { current }) { command in
+                commands.append(command.instruction)
+                if command.instruction == 0x20 { current = self.deadline }
+                return .init()
+            }
+            XCTFail("Expired request accepted")
+        } catch { XCTAssertEqual(error as? MyNumberCardError, .requestExpired) }
+        XCTAssertEqual(commands, [0xA4, 0xA4, 0x20])
+    }
+
+    func testExpiryDuringCertificateReadStopsFurtherPagesAndSigning() async throws {
+        var current = now, reads = 0, signs = 0
+        do {
+            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge(), expiresAt: deadline, now: { current }) { command in
+                if command.instruction == 0x2A { signs += 1 }
+                if command.instruction == 0xB0 {
+                    reads += 1
+                    if reads == 1 { return .init(data: Data([0x30, 0x82, 0x04, 0x00])) }
+                    current = self.deadline
+                    return .init(data: Data(repeating: 0, count: command.responseLength))
+                }
+                return .init()
+            }
+            XCTFail("Expired request accepted")
+        } catch { XCTAssertEqual(error as? MyNumberCardError, .requestExpired) }
+        XCTAssertEqual(reads, 2); XCTAssertEqual(signs, 0)
+    }
+
+    func testRejectedPINRemainsVisibleIfDeadlineCrossesInFlight() async throws {
+        var current = now, attempts = 0
+        do {
+            _ = try await JPKICardReader.authenticate(pin: "ABC123", challenge: challenge(), expiresAt: deadline, now: { current }) { command in
+                if command.instruction == 0x20 {
+                    attempts += 1; current = self.deadline
+                    return .init(sw1: 0x63, sw2: 0xC4)
+                }
+                return .init()
+            }
+            XCTFail("Rejected PIN accepted")
+        } catch { XCTAssertEqual(error as? MyNumberCardError, .pinRejected(remainingAttempts: 4)) }
+        XCTAssertEqual(attempts, 1)
+    }
+
+    func testInvalidClocksFailClosedAndTheInstantBeforeExpiryIsAllowed() throws {
+        XCTAssertNoThrow(try JPKICardReader.requireUnexpired(expiresAt: deadline, now: deadline.addingTimeInterval(-0.001)))
+        for invalid in [Double.nan, .infinity, -.infinity, -1] {
+            XCTAssertThrowsError(try JPKICardReader.requireUnexpired(expiresAt: deadline, now: Date(timeIntervalSince1970: invalid)))
+        }
+        XCTAssertThrowsError(try JPKICardReader.requireUnexpired(expiresAt: Date(timeIntervalSince1970: .infinity), now: now))
     }
 }
 #endif
