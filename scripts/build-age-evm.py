@@ -5,6 +5,7 @@ parameters. Never deploys, signs, reads .env/keys, contacts a card or starts pay
 The shipping iOS proof runtime is left untouched. Requires Rust nightly-2026-03-04,
 Python cryptography 49.0.0, Node and Anvil (the latter only for test-age-evm.mjs).
 """
+from age_sources import materialize, vendor_circuit
 from hashlib import sha256
 from pathlib import Path
 import argparse
@@ -48,32 +49,7 @@ def run(name, args, cwd=ROOT):
     assert result.returncode == 0 and "bug:" not in output and "panicked at" not in output, f"Failed {name}; inspect its synthetic-only log"
 
 
-def download(name):
-    archive = BASE / (name + ".tar.gz")
-    # A prior verified local public download can be reused, never a credential cache.
-    cached = ROOT / ".build/age-source-archives" / archive.name
-    if not archive.exists():
-        if cached.exists():
-            shutil.copyfile(cached, archive)
-        else:
-            archive.write_bytes(urllib.request.urlopen(CONFIG[name]["url"], timeout=60).read())
-    data = archive.read_bytes()
-    assert sha256(data).hexdigest() == CONFIG[name]["sha256"], "Unexpected public archive"
-    destination = BASE / name
-    if not destination.exists():
-        with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
-            members = tar.getmembers()
-            prefix = members[0].name.split("/")[0] + "/"
-            for member in members:
-                if member.name.rstrip("/") == prefix.rstrip("/"):
-                    continue
-                assert member.name.startswith(prefix)
-                member.name = member.name[len(prefix):]
-                tar.extract(member, destination, filter="data")
-    return destination
-
-
-source = download("provekit")
+source = materialize("provekit", BASE, BASE / "provekit")
 marker = source / ".mate-compiler-patch"
 patch_hash = sha256(PATCH.read_bytes()).hexdigest()
 if marker.exists():
@@ -90,28 +66,7 @@ else:
     hiding_marker.write_text(hiding_hash)
 run("engine-build", [cargo, "build", "--release", "--locked", "--no-default-features", "-p", "provekit-cli", "--manifest-path", source / "Cargo.toml"])
 cli = BASE / "target/release/provekit-cli"
-circuit = BASE / "circuit"
-shutil.copytree(ROOT / "circuits/jpki_age/src", circuit / "src", dirs_exist_ok=True)
-for name in ["rsa", "bignum", "poseidon", "sha256", "sha512", "sha1"]:
-    shutil.copytree(download(name), circuit / "vendor" / name, dirs_exist_ok=True)
-manifest = (ROOT / "circuits/jpki_age/Nargo.toml").read_text()
-manifest = manifest.replace('{ tag = "v0.11.0", git = "https://github.com/zkpassport/noir_rsa" }', '{ path = "vendor/rsa" }')
-manifest = manifest.replace('{ tag = "v0.10.0", git = "https://github.com/noir-lang/noir-bignum" }', '{ path = "vendor/bignum" }')
-manifest = manifest.replace('{ tag = "v0.3.0", git = "https://github.com/noir-lang/sha256" }', '{ path = "vendor/sha256" }')
-(circuit / "Nargo.toml").write_text(manifest)
-for name, old, new in [
-    ("rsa/Nargo.toml", '{tag = "v0.10.0", git = "https://github.com/noir-lang/noir-bignum"}', '{ path = "../bignum" }'),
-    ("rsa/Nargo.toml", '{ tag = "v0.3.0", git = "https://github.com/noir-lang/sha256" }', '{ path = "../sha256" }'),
-    ("rsa/Nargo.toml", '{ tag = "v0.2.0", git = "https://github.com/zkpassport/sha512" }', '{ path = "../sha512" }'),
-    ("rsa/Nargo.toml", '{ tag = "v0.11", git = "https://github.com/zac-williamson/sha1" }', '{ path = "../sha1" }'),
-    ("bignum/Nargo.toml", '{ git = "https://github.com/noir-lang/poseidon", tag = "v0.3.0" }', '{ path = "../poseidon" }'),
-    ("poseidon/src/lib.nr", 'pub use std::hash::poseidon2_permutation;',
-     '// Noir beta.19 requires the state length argument.\npub fn poseidon2_permutation<let N: u32>(input: [Field; N]) -> [Field; N] { std::hash::poseidon2_permutation(input,N) }'),
-]:
-    file = circuit / "vendor" / name
-    text = file.read_text()
-    assert text.count(old) == 1, "Unexpected public dependency API"
-    file.write_text(text.replace(old, new))
+circuit = vendor_circuit(BASE / "circuit", BASE, beta19=True)
 run("prepare", [cli, "prepare", circuit, "--backend", "groth16", "--mmap", "--pkp", OUT / "age.pkp", "--pkv", OUT / "age.pkv"])
 spec = importlib.util.spec_from_file_location("fixtures", ROOT / "scripts/jpki-age-fixtures.py")
 module = importlib.util.module_from_spec(spec)

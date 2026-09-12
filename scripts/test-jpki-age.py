@@ -1,8 +1,9 @@
 """Compile the actual age circuit, prove a synthetic adult and reject bad witnesses.
 
 Uses ProveKit 1.0.1's hiding WHIR path. This is NOT an EVM/mobile acceptance test.
-The EVM backend is a separate, unpublished experiment until reviewed and pinned.
+The EVM/mobile backend has a separate acceptance suite.
 """
+from age_sources import CONFIG, DEPENDENCIES, vendor_circuit
 from hashlib import sha256
 from pathlib import Path
 import importlib.util
@@ -42,7 +43,8 @@ def run(name, *args, reject=False):
 
 OUT.mkdir(parents=True, exist_ok=True)
 cases = module.fixtures(OUT / "inputs")
-elapsed = run("prepare", "prepare", ROOT / "circuits/jpki_age", "--target-dir", OUT / "acir", "--pkp", OUT / "age.pkp", "--pkv", OUT / "age.pkv")
+circuit = vendor_circuit(OUT / "circuit", OUT / "archives")
+elapsed = run("prepare", "prepare", circuit, "--target-dir", OUT / "acir", "--pkp", OUT / "age.pkp", "--pkv", OUT / "age.pkv")
 prove_time = run("valid", "prove", "--prover", OUT / "age.pkp", "--input", OUT / "inputs/valid.toml", "--out", OUT / "valid.np")
 run("verify", "verify", "--verifier", OUT / "age.pkv", "--proof", OUT / "valid.np")
 for name in cases:
@@ -99,7 +101,8 @@ for name, dob, day, delta, reject in [
     if not reject:
         run("date-"+name+"-verify", "verify", "--verifier", helpers / "date/check.pkv", "--proof", helpers / "date/proof.np")
 manifest = {
-    "backend": "ProveKit 1.0.1 hiding WHIR", "syntheticCredentialsOnly": True,
+    "backend": "ProveKit 1.0.1 hiding WHIR",
+    "dependencyArchives": {name: CONFIG[name] for name in DEPENDENCIES}, "syntheticCredentialsOnly": True,
     "physicalCard": False, "mobileProof": False, "evmVerification": False,
     "validProofVerified": True, "invalidWitnessesRejected": len(cases)-1,
     "prepareSeconds": elapsed, "proveSeconds": prove_time,
