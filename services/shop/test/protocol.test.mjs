@@ -5,7 +5,7 @@ import {configuration,newOrder,orderHash,requirements,paymentPayload,USDC} from 
 import worker from '../src/worker.mjs';
 
 // Public, synthetic addresses and disposable order keys; no private keys.
-const env={SHOP_CHAIN_ID:'84532',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:'0x'+'aa'.repeat(32),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{},API_LIMIT:{async limit(){return {success:true};}}};
+const env={SHOP_CHAIN_ID:'5042002',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:'0x'+'aa'.repeat(32),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{},API_LIMIT:{async limit(){return {success:true};}}};
 const key='ab'.repeat(32), now=1_800_000_000;
 const make=()=>newOrder({productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)},key,env,now);
 function payload(order){return {x402Version:2,accepted:requirements(order),payload:{signature:'0x'+'44'.repeat(65),authorization:{from:order.payer,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+200),nonce:order.paymentNonce}}};}
@@ -20,7 +20,7 @@ test('unconfigured catalog reports unavailable and all order operations remain c
 });
 test('configuration cannot enable a real-money chain or an unpinned age gate',()=>{
   assert.equal(Boolean(configuration(env)),true);
-  for(const changed of [{SHOP_CHAIN_ID:'8453'},{AGE_GATE_ADDRESS:''},{AGE_GATE_CODE_HASH:''},{PAYMENT_RECIPIENT:'0x'+'00'.repeat(20)},{ORDERS:null}])assert.equal(Boolean(configuration({...env,...changed})),false);
+  for(const changed of [{SHOP_CHAIN_ID:'84532'},{SHOP_CHAIN_ID:'8453'},{AGE_GATE_ADDRESS:''},{AGE_GATE_CODE_HASH:''},{PAYMENT_RECIPIENT:'0x'+'00'.repeat(20)},{ORDERS:null}])assert.equal(Boolean(configuration({...env,...changed})),false);
 });
 test('order commitments bind all payment and age conditions',()=>{
   const order=make();assert.equal(order.state,'awaiting_age');assert.equal(order.minimumAge,20);assert.equal(order.token,USDC);
@@ -48,7 +48,7 @@ test('a copied payment cannot authorize a different payer, recipient, amount or 
 });
 test('wrong token, network or mainnet payment requirements are rejected',()=>{
   const order=make();
-  for(const changed of [{network:'eip155:8453'},{asset:env.PAYMENT_RECIPIENT},{amount:'900000'},{payTo:order.payer}]){
+  for(const changed of [{network:'eip155:84532'},{network:'eip155:8453'},{asset:env.PAYMENT_RECIPIENT},{amount:'900000'},{payTo:order.payer}]){
     const raw=payload(order);Object.assign(raw.accepted,changed);
     assert.throws(()=>paymentPayload(encodePaymentSignatureHeader(raw),order,now),/payment_mismatch/);
   }

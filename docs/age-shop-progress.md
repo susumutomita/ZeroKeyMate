@@ -3,11 +3,14 @@
 Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
 project finished from unit tests, a simulator, a catalog page or a configured URL.
 
-Current integration: signed-card circuit/contract PR #39 and native mobile prover
-PR #40 are merged into main. Purchase integration PR #41 contains the phone flow,
-local shopping proposal, receipt recovery and the review fixes documented below.
-Earlier dated experiment notes are historical; the latest sections supersede
-their lists of remaining implementation work.
+Current integration: PRs #39–#43 are merged, including signed-card proving,
+purchase integration, pinned deployment artifacts and the order deadline guard.
+The purchase target is now **Arc Testnet (5042002)** at the user's request.
+The phone, shop and age gate have been migrated; the shop self-facilitates exact
+x402 USDC transfers with a separately approved testnet gas wallet. No public key
+setup, deployment or payment has been performed. See [Arc acceptance, sources
+and remaining work](arc-checkout.md). Earlier dated experiment notes are
+historical and must not be treated as the current deployment plan.
 
 ## Working increment
 
@@ -15,7 +18,7 @@ their lists of remaining implementation work.
   date with the four-digit PIN. PIN verification is sequential and never retried
   automatically. The Settings > Age verification screen uses this diagnostic
   path only and says that checkout remains locked.
-- The separate `MyNumberNFCService.authenticate(pin:challenge:)` path reads the
+- The separate `MyNumberNFCService.authenticate(pin:challenge:expiresAt:)` path reads the
   JPKI signing certificate and asks the card to sign a domain-separated order
   hash and nonce. It requires the **6–16 uppercase alphanumeric signing PIN**,
   not the four-digit input-assistance PIN. The Mate beer purchase screen now calls this path after explicit PIN entry and a tap.
@@ -28,12 +31,12 @@ their lists of remaining implementation work.
   persisted or transmitted by either reader. Cancellation resolves an outstanding
   APDU continuation so it does not retain a read indefinitely.
 - `services/shop` contains an English, responsive Workers storefront and D1
-  order API for one 0.10 test-USDC Mate Lager on **Base Sepolia (84532)**.
-  Existing Arc service routes are separate and unchanged.
+  order API for one 0.10 test-USDC Mate Lager on **Arc Testnet (5042002)**.
+  Existing Arc service routes remain separate.
 - Orders commit to product, quantity, payer, merchant, token, chain, amount,
   expiry, age threshold and payment nonce. A capability header retrieves the
   same persistent order across retries. The Worker uses the actual x402 v2 SDK
-  and public test facilitator interface.
+  and the store gas-sponsorship adapter.
 - Payment is reserved in D1 before settlement. An uncertain result stays pending
   and looks for the original `AuthorizationUsed` event. Completion requires a
   successful canonical receipt, two confirmations, the exact nonce and matching

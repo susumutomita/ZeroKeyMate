@@ -1,18 +1,18 @@
 import {createPublicClient, http, keccak256, parseAbi, decodeEventLog} from 'viem';
-import {baseSepolia} from 'viem/chains';
-import {HTTPFacilitatorClient} from '@x402/core/server';
+import {arcTestnet} from 'viem/chains';
 import {encodePaymentRequiredHeader, encodePaymentResponseHeader} from '@x402/core/http';
 import {CHAIN_ID, NETWORK, USDC, PRODUCTS, configuration, hex32, hashKey, newOrder, nowSeconds, requirements, paymentPayload} from './protocol.mjs';
 import {checkoutReady, supportedNetworks, MAX_ORDERS} from './readiness.mjs';
 import {ageArguments, ageSubmission} from './age.mjs';
 import {checkedAgeCall} from './age-rpc.mjs';
 import {expiredUnusedPayment} from './expiry.mjs';
+import {createArcSettlement} from './settlement.mjs';
 
 const TRANSFER_ABI = parseAbi(['event Transfer(address indexed from, address indexed to, uint256 value)', 'event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)']);
 const security = {'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 const json = (value,status=200,headers={}) => Response.json(value,{status,headers:{...security,...headers}});
-const productionClient = () => createPublicClient({chain:baseSepolia,transport:http('https://sepolia.base.org',{timeout:4000,retryCount:0})});
-const independentClient = () => createPublicClient({chain:baseSepolia,transport:http('https://base-sepolia-rpc.publicnode.com',{timeout:4000,retryCount:0})});
+const productionClient = () => createPublicClient({chain:arcTestnet,transport:http('https://rpc.testnet.arc.io',{timeout:4000,retryCount:0})});
+const independentClient = () => createPublicClient({chain:arcTestnet,transport:http('https://rpc.drpc.testnet.arc.io',{timeout:4000,retryCount:0})});
 
 async function body(request) {
   if (!request.headers.get('content-type')?.startsWith('application/json')) throw new Error('invalid_request');
@@ -29,7 +29,7 @@ async function body(request) {
 
 // Dependencies can be replaced only by module-level tests, never by a request
 // or a Worker binding. Age checks use fixed, separately operated testnet RPCs.
-export function createShop({client=productionClient, secondaryClient=independentClient, facilitatorClient=()=>new HTTPFacilitatorClient({url:'https://x402.org/facilitator',timeoutMs:20000}),supported=supportedNetworks,clock=nowSeconds}={}) {
+export function createShop({client=productionClient, secondaryClient=independentClient, facilitatorClient=createArcSettlement,supported=supportedNetworks,clock=nowSeconds}={}) {
 async function load(env,id) {
   const row=await env.ORDERS.prepare('SELECT revision,value FROM orders WHERE id=?').bind(id).first();
   return row ? {revision:row.revision,order:JSON.parse(row.value)} : null;
@@ -91,7 +91,7 @@ async function reconcile(env,record) {
 
 async function settleReserved(env,pending,payload,required) {
   let settled;
-  try {settled=await facilitatorClient().settle(payload,required);}catch{return json({order:pending,message:'Checking the original payment. Keep this order.'},202);}
+  try {settled=await facilitatorClient(env).settle(payload,required);}catch{return json({order:pending,message:'Checking the original payment. Keep this order.'},202);}
   if(!settled.success || settled.network!==NETWORK || settled.payer?.toLowerCase()!==pending.payer || !hex32(settled.transaction))return json({order:pending,message:'The original payment can be checked or resubmitted after one minute.'},202);
   let current=await load(env,pending.id);
   if(current.order.state==='complete')return json({order:current.order});
@@ -183,7 +183,7 @@ async function route(request,env) {
   if(!header){const challenge={x402Version:2,resource:{url:`${url.origin}${url.pathname}`,description:'Mate Lager testnet order',mimeType:'application/json'},accepts:[required]};
     return json({...challenge,paymentNonce:order.paymentNonce,expiresAt:order.expiresAt},402,{'PAYMENT-REQUIRED':encodePaymentRequiredHeader(challenge)});}
   const payload=paymentPayload(header,order,clock());
-  const facilitator=facilitatorClient();
+  const facilitator=facilitatorClient(env);
   const verification=await facilitator.verify(payload,required);
   if(!verification.isValid || verification.payer?.toLowerCase()!==order.payer)return json({error:'payment_rejected'},402);
   const paymentStartBlock=(await client().getBlockNumber()).toString();

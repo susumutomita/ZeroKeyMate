@@ -7,7 +7,7 @@ import {USDC} from '../src/protocol.mjs';
 function setup() {
   const order={createdAt:1000,expiresAt:1900,paymentValidBefore:1180,payer:'0x'+'11'.repeat(20),paymentNonce:'0x'+'22'.repeat(32)};
   const hash='0x'+'33'.repeat(32),calls=[];
-  const rpc={async getChainId(){return 84532;},async getBlock({blockNumber}={}){return {number:blockNumber??100n,hash,timestamp:1200n};},
+  const rpc={async getChainId(){return 5042002;},async getBlock({blockNumber}={}){return {number:blockNumber??100n,hash,timestamp:1200n};},
     async readContract(call){calls.push(call);return false;}};
   return {order,hash,calls,clients:[{...rpc},{...rpc}]};
 }

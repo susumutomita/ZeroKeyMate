@@ -13,7 +13,7 @@ test('a deployer cannot authorize an always-success verifier using copied setup 
   // Valid EVM returning true. The old loader accepted this self-consistent package.
   const runtimeTemplate='0x600160005260206000f3';
   const verifier={runtimeTemplate,runtimeCodeHash:keccak256(runtimeTemplate),immutableReferences:{}};
-  const pkg={format:1,chainId:84532,testnetOnly:true,publicSetup,verifier,
+  const pkg={format:1,chainId:5042002,testnetOnly:true,publicSetup,verifier,
    gate:{...verifier,immutableNames:{}}};
   await writeFile(path.join(directory,'deployment.json'),JSON.stringify(pkg));
   await assert.rejects(()=>loadAgeDeployment(directory),/independently reviewed build/);

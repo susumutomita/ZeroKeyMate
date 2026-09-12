@@ -23,11 +23,11 @@ local D1 database, use `npx wrangler d1 migrations apply ORDERS --local`. Do not
 remove `--local` without reviewing the destination. Do not deploy before the
 gate/prover/payer flow and Cloudflare authorization are ready.
 
-Public configuration is in `wrangler.jsonc`: only chain 84532 is accepted, and the
+Public configuration is in `wrangler.jsonc`: only chain 5042002 is accepted, and the
 gate address, pinned runtime code hash and payment recipient must all be present.
 These fields are not wallet private keys. Readiness checks the chain ID, a recent
 block, pinned gate code, rejection of an empty order, D1 table/capacity and the
-facilitator's x402 v2 Base Sepolia support. Outages reject new orders while leaving
+store's explicitly configured Arc settlement wallet, gas balance and fee cap. Outages reject new orders while leaving
 existing order retrieval available. This probe is not a substitute for a real
 proof/payment acceptance run.
 
@@ -74,8 +74,8 @@ Revocation is not checked. Private inputs do not belong in D1, Worker logs or UI
 # Age verification RPC trust
 
 The Worker calls the pinned `MateAgeGate` bytecode through two separately
-operated Base Sepolia providers: Base (`sepolia.base.org`) and Allnodes/PublicNode
-(`base-sepolia-rpc.publicnode.com`). Both must agree on the same recent block
+operated Arc Testnet providers: the primary Arc endpoint (`rpc.testnet.arc.io`)
+and dRPC (`rpc.drpc.testnet.arc.io`). Both must agree on the same recent block
 hash, timestamp, chain, bytecode hash and contract result before age acceptance,
 and the check repeats immediately before settlement. Disagreement or failure
 keeps checkout locked. A single fabricated approval is insufficient.
@@ -154,7 +154,51 @@ an ignored `.build/shop-integration-*/acceptance.json` report.
 
 The official government-root gate must reject the synthetic card. Positive age
 acceptance uses an explicitly test-only subclass with a fresh synthetic root.
-The token and settlement adapter are test-only, two clients share the same local
-node, and SQLite substitutes for deployed D1. This does **not** verify a physical
-card, Circle USDC, the public facilitator, independent RPC operators, Cloudflare
-hosting or the complete iPhone UI. None of these test substitutes is shipped.
+The token is test-only. Settlement uses the actual product adapter with a fresh
+local sponsor key; two clients share the same standard Anvil node, and SQLite
+substitutes for deployed D1. Standard Anvil does not reproduce Arc native-USDC
+precompile semantics. This does **not** verify a physical
+card, Circle USDC settlement, independent RPC operators, Cloudflare
+hosting or the complete iPhone UI. No synthetic token, root or test wallet is shipped.
+
+## Arc settlement and credential boundary
+
+The shop self-facilitates x402 v2 `exact` EIP-3009 payments. The former
+`x402.org/facilitator` supports Base Sepolia but did not advertise Arc at the
+2026-09-13 check. An Arcon URL found in public research did not resolve. Neither
+is used as a fallback. Circle Gateway nanopayments use a different signing
+domain and settlement model; they are not interchangeable with this direct
+USDC transfer.
+
+`ARC_SETTLER_ADDRESS` is public configuration. `ARC_SETTLER_KEY` must be a
+**new, separately approved, testnet-only** Worker secret whose derived address
+matches it. Never use an existing personal wallet key. No key is bundled,
+generated, read from disk, or uploaded by building/testing this code. Live
+configuration and funding require explicit owner approval. The buyer's key stays
+on the phone; the Worker sees only the exact signed 0.10 USDC authorization.
+
+The sponsor can submit only `transferWithAuthorization` to Arc's official USDC
+address, with the configured merchant receiving exactly 100,000 atomic units
+(0.10 USDC, ERC-20 six decimals). It validates the signature independently,
+simulates the real USDC call, and rejects a wrong chain, amount, receiver,
+domain, expired authorization or fee above the cap. Native gas uses **18**
+decimals: 150,000 gas at 25 gwei caps each submitted attempt at **0.00375 test
+USDC**. Its funding balance bounds aggregate exposure. Never fund this key with
+real assets on any network. No unrestricted facilitator endpoint is exposed.
+
+A submitted transaction is not a completed order. The Worker and phone require
+matching receipt evidence from both fixed providers. Only ERC-20 logs emitted
+by `0x3600000000000000000000000000000000000000` count; Arc's separate native
+18-decimal system-emitter logs must not be counted as an extra purchase.
+
+Arc uses a new Worker/D1 name and phone storage namespace. Old Base order state
+is not migrated, discarded, or interpreted as an Arc authorization. The
+experimental prover parameters and verifier stay unchanged; the gate's chain
+allowlist and the reviewed whole-package digest are updated for Arc.
+
+Arc deployment is relevant to the Arc/USDC payments prize. This checkout alone
+**does not claim Circle Agent Stack integration**. The separate API's Circle
+attestor adapter is not part of this age-checkout path. An Agent Stack prize
+submission still needs a meaningful, live, separately authorized integration,
+plus the current prize's frontend/backend, diagram, video and documentation.
+See the source review in `docs/arc-checkout.md`.

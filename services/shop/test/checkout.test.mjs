@@ -18,13 +18,13 @@ function harness(t) {
   db.exec(readFileSync(new URL('../migrations/0001_orders.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('../migrations/0002_payment_expiry.sql',import.meta.url),'utf8'));
   const state={age:true,settles:0,receipt:null,logs:[],updateCount:0,failUpdate:0,now:Math.floor(Date.now()/1000)};
-  const env={SHOP_CHAIN_ID:'84532',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:keccak256('0x6000'),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{
+  const env={SHOP_CHAIN_ID:'5042002',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:keccak256('0x6000'),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{
     prepare(sql){return {async first(){return db.prepare(sql).get()??null;},bind(...values){return {
       async first(){return db.prepare(sql).get(...values)??null;},
       async run(){if(sql.startsWith('UPDATE') && ++state.updateCount===state.failUpdate)throw new Error('injected_write_failure');return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}
     };}};}
   },API_LIMIT:{async limit(){return {success:true};}},ORDER_CREATION_LIMIT:{async limit(){return {success:true};}}};
-  const rpc={async getChainId(){return 84532;},async getCode(){return '0x6000';},async readContract({args}){return args[2]===0n?false:state.age;},async getBlockNumber(){return 102n;},
+  const rpc={async getChainId(){return 5042002;},async getCode(){return '0x6000';},async readContract({args}){return args[2]===0n?false:state.age;},async getBlockNumber(){return 102n;},
     async getBlock({blockNumber=102n}={}){return {number:blockNumber,hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
     async getLogs(){return state.logs;}};
   const facilitator={async verify(){return {isValid:true,payer:'0x'+'33'.repeat(20)};},async settle(){state.settles++;if(state.timeout)throw new Error('timeout');return {success:true,payer:'0x'+'33'.repeat(20),network:NETWORK,transaction};}};
@@ -240,7 +240,7 @@ test('an outage prevents new orders but leaves existing order recovery available
   assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,1);
 });
 test('rate limits stop external work and new order creation',async t=>{
-  const h=harness(t);let rpcCalls=0;h.rpc.getChainId=async()=>{rpcCalls++;return 84532;};
+  const h=harness(t);let rpcCalls=0;h.rpc.getChainId=async()=>{rpcCalls++;return 5042002;};
   h.env.API_LIMIT.limit=async()=>({success:false});
   const response=await h.request('/catalog');assert.equal(response.status,429);assert.equal(response.headers.get('Retry-After'),'60');assert.equal(rpcCalls,0);
   h.env.API_LIMIT.limit=async()=>({success:true});h.env.ORDER_CREATION_LIMIT.limit=async()=>({success:false});

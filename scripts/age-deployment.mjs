@@ -17,7 +17,7 @@ export async function loadAgeDeployment(directory) {
   'Deployment package is not the independently reviewed build');
  const pkg=JSON.parse(file);
  const pins=JSON.parse(await readFile(path.join(root,'config/age-runtime-pins.json')));
- assert.equal(pkg.format,1);assert.equal(pkg.chainId,84532);assert.equal(pkg.testnetOnly,true);
+ assert.equal(pkg.format,1);assert.equal(pkg.chainId,5042002);assert.equal(pkg.testnetOnly,true);
  assert.deepEqual(pkg.publicSetup,pins,'Package does not match the reviewed iPhone setup');
  assert.match(pkg.verifier.runtimeTemplate,/^0x[0-9a-f]+$/);
  assert.equal(keccak256(pkg.verifier.runtimeTemplate),pkg.verifier.runtimeCodeHash);
@@ -44,7 +44,7 @@ export async function checkAgeDeployment(pkg,{verifier,gate},rpcs,now=Math.floor
  assert.equal(rpcs.length,2);assert.notEqual(rpcs[0],rpcs[1]);
  assert.ok(isAddress(gate,{strict:false})&&!/^0x0{40}$/i.test(gate));
  const expected=expectedGateRuntime(pkg,verifier),gateCodeHash=keccak256(expected);
- const heads=await Promise.all(rpcs.map(async rpc=>{assert.equal(await rpc.getChainId(),84532);return rpc.getBlock({blockTag:'latest'});}));
+ const heads=await Promise.all(rpcs.map(async rpc=>{assert.equal(await rpc.getChainId(),5042002);return rpc.getBlock({blockTag:'latest'});}));
  assert.ok(heads.every(head=>typeof head.number==='bigint'&&head.number>=0n));
  const blockNumber=heads[0].number<heads[1].number?heads[0].number:heads[1].number;
  const hashes=await Promise.all(rpcs.map(async rpc=>{
