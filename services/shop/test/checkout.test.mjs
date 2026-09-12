@@ -104,6 +104,17 @@ test('a malformed payment header is a client error and never reaches settlement'
   const response=await h.request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':'not-json'});
   assert.equal(response.status,400);assert.equal(h.state.settles,0);
 });
+test('invalid JSON and non-object orders are client errors without database writes',async t=>{
+  const h=harness(t);
+  for(const body of ['null','[]','true','"order"','3','{']) {
+    const response=await h.worker.fetch(new Request('https://shop.example/api/orders',{
+      method:'POST',headers:{'X-Order-Key':h.key,'content-type':'application/json'},body
+    }),h.env);
+    assert.equal(response.status,400,body);
+    assert.equal((await response.json()).error,'invalid_request');
+  }
+  assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,0);
+});
 test('revoked on-chain age approval or a changed bytecode pin blocks payment',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);h.state.age=false;
   assert.equal((await h.pay(order)).status,403);h.state.age=true;h.env.AGE_GATE_CODE_HASH='0x'+'aa'.repeat(32);

@@ -6,7 +6,7 @@ import CryptoKit
 /// 12f015240c4980d704e5bf2f6cd2f0e4ae4045b9, src/jpki.rs and reader.rs.
 /// No logging, PIN retry, persistence or networking is performed here.
 public enum JPKICardReader {
-    public static let applicationID = Data([0xD3, 0x92, 0xF0, 0x00, 0x26, 0x01, 0x00, 0x00, 0x01])
+    public static let applicationID = Data([0xD3, 0x92, 0xF0, 0x00, 0x26, 0x01, 0x00, 0x00, 0x00, 0x01])
 
     public static func validSigningPIN(_ pin: String) -> Bool {
         let bytes = Array(pin.utf8)

@@ -78,7 +78,10 @@ final class JPKICredentialTests: XCTestCase {
         } catch { XCTAssertEqual(error as? MyNumberCardError, .pinRejected(remainingAttempts: 4)) }
         XCTAssertEqual(commands.filter { $0.instruction == 0x20 }.count, 1)
         XCTAssertFalse(commands.contains { $0.instruction == 0xB0 || $0.instruction == 0x2A })
-        XCTAssertEqual(commands.first?.data, JPKICardReader.applicationID)
+        // Assert the public JPKI protocol bytes, independently of the reader's
+        // constant: a missing zero selects an entirely different application.
+        XCTAssertEqual(commands.first, MyNumberCardCommand(instruction: 0xA4, p1: 4, p2: 0x0C,
+            data: Data([0xD3, 0x92, 0xF0, 0x00, 0x26, 0x01, 0x00, 0x00, 0x00, 0x01])))
     }
     func testInvalidPINDoesNotContactCard() async throws {
         for pin in ["1234", "abcdef", "ABCDEF", "123456", "ＡBC123", "abc123", " ABC123", String(repeating: "A1", count: 9)] {

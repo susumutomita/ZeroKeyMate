@@ -16,7 +16,10 @@ async function body(request) {
   let text='',size=0; const decoder=new TextDecoder();
   try {
     while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2048)throw new Error('request_too_large');text+=decoder.decode(value,{stream:true});}
-    return JSON.parse(text+decoder.decode());
+    let parsed;
+    try { parsed=JSON.parse(text+decoder.decode()); } catch { throw new Error('invalid_request'); }
+    if(!parsed || typeof parsed!=='object' || Array.isArray(parsed))throw new Error('invalid_request');
+    return parsed;
   } finally { await reader.cancel(); }
 }
 
