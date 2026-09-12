@@ -11,6 +11,7 @@ private struct SavedShopOrder: Codable {
     var order: AgeShopOrder
     var paymentHeader: String?
     var paymentExpiresAt: UInt64?
+    var paymentRetiredAtBlockHash: String?
     var completed = false
 }
 private struct PendingShopCreation: Codable {
@@ -124,7 +125,8 @@ private struct PendingShopCreation: Codable {
     }
 
     private func signAndPay(wallet: WalletService, ticket: UUID) async throws {
-        guard let client, let saved, saved.paymentHeader == nil, saved.order.state == .ageVerified else { throw ProductError.invalidResponse }
+        guard let client, let saved, saved.paymentHeader == nil, saved.paymentRetiredAtBlockHash == nil,
+              saved.order.state == .ageVerified else { throw ProductError.invalidResponse }
         let required = try await client.paymentChallenge(order: saved.order, key: saved.key)
         try check(ticket)
         let signature = try await wallet.signShopPayment(order: saved.order, required: required) {
@@ -162,11 +164,14 @@ private struct PendingShopCreation: Codable {
             var complete = self.saved!; complete.paymentHeader = nil; complete.paymentExpiresAt = nil; complete.completed = true
             try LocalSecrets.write(complete, key: storageKey); self.saved = complete
             phase = .complete; message = nil
-        } else if current.state == .paymentExpired {
+        } else if current.state == .paymentExpired || (saved.paymentExpiresAt.map { $0 <= UInt64(Date().timeIntervalSince1970) } ?? false) {
             phase = .pending
             // Compare against the expiration we saved BEFORE sending the actual
             // signature. A shop must not invent an earlier deadline to close it.
-            guard let end = saved.paymentExpiresAt, end == current.paymentValidBefore else { throw AgeShopError.invalidPayment }
+            // A lost POST can leave the shop at age_verified with no deadline.
+            // Our saved signed deadline still permits a read-only unused check.
+            guard let end = saved.paymentExpiresAt,
+                  current.paymentValidBefore == nil || end == current.paymentValidBefore else { throw AgeShopError.invalidPayment }
             let base = EthereumRPC(url: "https://sepolia.base.org", chainID: AgeShopProtocol.chainID)
             let independent = EthereumRPC(url: "https://base-sepolia-rpc.publicnode.com", chainID: AgeShopProtocol.chainID)
             async let firstHeight = base.finalizedShopHeight()
@@ -177,7 +182,7 @@ private struct PendingShopCreation: Codable {
             async let second = independent.confirmUnusedShop(current, validBefore: end, blockNumber: height)
             let hashes = try await (first, second)
             try check(ticket); guard hashes.0 == hashes.1 else { throw ProductError.invalidResponse }
-            var closed = self.saved!; closed.paymentHeader = nil
+            var closed = self.saved!; closed.paymentHeader = nil; closed.paymentRetiredAtBlockHash = hashes.0
             try LocalSecrets.write(closed, key: storageKey); self.saved = closed
             phase = .expired; message = nil
         } else if saved.paymentHeader != nil || current.state == .paymentPending {
@@ -232,6 +237,7 @@ private struct PendingShopCreation: Codable {
     }
     private var recoverablePhase: Phase {
         guard let saved else { return .unavailable }
+        if saved.paymentRetiredAtBlockHash != nil { return .pending }
         if saved.paymentHeader != nil || [.paymentPending, .paymentExpired, .complete].contains(saved.order.state) { return .pending }
         if saved.order.expiresAt <= UInt64(Date().timeIntervalSince1970) { return .unavailable }
         return saved.order.state == .ageVerified ? .paymentApproval : .card

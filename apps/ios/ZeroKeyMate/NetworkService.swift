@@ -244,7 +244,7 @@ actor EthereumRPC {
     func confirmUnusedShop(_ order: AgeShopOrder, validBefore: UInt64, blockNumber: UInt64) async throws -> String {
         guard chainID == AgeShopProtocol.chainID, order.chainId == chainID,
               order.token.lowercased() == AgeShopProtocol.token,
-              validBefore == order.paymentValidBefore, validBefore > order.createdAt,
+              (order.paymentValidBefore == nil || validBefore == order.paymentValidBefore), validBefore > order.createdAt,
               validBefore <= order.expiresAt else { throw AgeShopError.invalidPayment }
         let height = "0x" + String(blockNumber, radix: 16)
         let block: Block? = try await call(method: "eth_getBlockByNumber", params: [height, false])

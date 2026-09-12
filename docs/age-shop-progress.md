@@ -323,7 +323,9 @@ block hash/time must agree and both must report unused. No receipt/log absence
 or wall-clock timeout alone can close a payment. The phone repeats that check
 and compares the deadline with its own saved pre-submission authorization before
 allowing a new order. API failures retain the old order. Older pending orders
-without a stored deadline remain pending rather than guessing.
+without a stored deadline remain pending on the server rather than guessing.
+The phone can also retire a POST lost before server reservation using its own
+saved signed deadline, but only after the same finalized unused-nonce checks.
 
 Validation: 39 shop tests passed, including schema preservation, independent RPC
 failures and terminal expiry without an extra settlement. The iOS RPC failure
@@ -331,3 +333,13 @@ suite passed in Simulator (1 test, 0 skips), rejecting used nonces, noncanonical
 boolean responses, premature blocks, changed signed deadlines and wrong chains.
 This is controlled failure injection, not live-chain acceptance. The native
 proof/Keccak/UI suite separately passed 3 tests with 0 skips.
+
+
+### Host resource measurement
+
+The freshly rebuilt two-worker native backend produced a synthetic valid proof
+in 8.3 seconds on this Mac. The complete repeated-proof/rejection test process
+reported about 2.00 GB maximum resident size and 1.30 GB peak memory footprint
+with macOS time resource accounting. This is host evidence, not an iPhone memory
+or timing result. Measure the physical app with its local model and camera before
+calling the mobile experience accepted.

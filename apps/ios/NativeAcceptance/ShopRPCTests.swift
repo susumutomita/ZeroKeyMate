@@ -66,6 +66,11 @@ final class ShopRPCTests: XCTestCase {
         let height = try await client.finalizedShopHeight(); XCTAssertEqual(height, 100)
         let hash = try await client.confirmUnusedShop(order, validBefore: end, blockNumber: height)
         XCTAssertEqual(hash, "0x" + String(repeating: "bb", count: 32))
+        var lostPost = try JSONSerialization.jsonObject(with: JSONEncoder().encode(order)) as! [String: Any]
+        lostPost.removeValue(forKey: "paymentValidBefore"); lostPost["state"] = "age_verified"
+        let unreceived = try JSONDecoder().decode(AgeShopOrder.self, from: JSONSerialization.data(withJSONObject: lostPost))
+        let lostHash = try await client.confirmUnusedShop(unreceived, validBefore: end, blockNumber: height)
+        XCTAssertEqual(lostHash, hash, "A lost POST must be recoverable using the locally saved signed deadline")
         for mode in ["used", "short", "early"] {
             do { _ = try await rpc(mode, end: end).confirmUnusedShop(order, validBefore: end, blockNumber: 100); XCTFail("Accepted \(mode)") }
             catch { }
