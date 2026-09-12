@@ -24,11 +24,12 @@ function harness(t) {
     };}};}
   },API_LIMIT:{async limit(){return {success:true};}},ORDER_CREATION_LIMIT:{async limit(){return {success:true};}}};
   const rpc={async getChainId(){return 84532;},async getCode(){return '0x6000';},async readContract({args}){return args[2]===0n?false:state.age;},async getBlockNumber(){return 102n;},
-    async getBlock(){return {hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
+    async getBlock({blockNumber=102n}={}){return {number:blockNumber,hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
     async getLogs(){return state.logs;}};
   const facilitator={async verify(){return {isValid:true,payer:'0x'+'33'.repeat(20)};},async settle(){state.settles++;if(state.timeout)throw new Error('timeout');return {success:true,payer:'0x'+'33'.repeat(20),network:NETWORK,transaction};}};
   const supported=async()=>({kinds:[{x402Version:2,network:NETWORK,scheme:'exact'}]});
-  const worker=createShop({client:()=>rpc,facilitatorClient:()=>facilitator,supported,clock:()=>state.now});
+  const secondary={...rpc};
+  const worker=createShop({client:()=>rpc,secondaryClient:()=>secondary,facilitatorClient:()=>facilitator,supported,clock:()=>state.now});
   const key='ab'.repeat(32);
   const request=(path,method='GET',body,headers={})=>worker.fetch(new Request('https://shop.example/api'+path,{method,headers:{'X-Order-Key':key,...(body===undefined?{}:{'content-type':'application/json'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})}),env);
   async function order(){const res=await request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)});assert.equal(res.status,201);return (await res.json()).order;}
@@ -39,7 +40,7 @@ function harness(t) {
     {address:USDC,topics:encodeEventTopics({abi:events,eventName:'Transfer',args:{from:order.payer,to:order.recipient}}),data:encodeAbiParameters([{type:'uint256'}],[BigInt(order.amount)])},
     {address:USDC,topics:encodeEventTopics({abi:events,eventName:'AuthorizationUsed',args:{authorizer:order.payer,nonce}}),data:'0x'}
   ]};state.logs=[{transactionHash:transaction}];}
-  return {db,env,state,rpc,facilitator,worker,key,request,order,approve,header,pay,settleReceipt,supported};
+  return {db,env,state,rpc,secondary,facilitator,worker,key,request,order,approve,header,pay,settleReceipt,supported};
 }
 
 test('SQLite persists one order and one nonce under concurrent creation/restart',async t=>{
@@ -89,6 +90,32 @@ test('the 402 challenge carries official x402 v2 requirements and this order non
   const challenge=decodePaymentRequiredHeader(response.headers.get('PAYMENT-REQUIRED'));
   assert.deepEqual(challenge.accepts,[requirements(order)]);
   assert.equal((await response.json()).paymentNonce,order.paymentNonce);assert.equal(h.state.settles,0);
+});
+test('one fabricated RPC approval cannot unlock age or reach settlement',async t=>{
+  const h=harness(t),order=await h.order();
+  h.rpc.readContract=async()=>true;h.secondary.readContract=async()=>false;
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)})).status,403);
+  assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
+});
+test('independent provider timeout, fork, wrong code or stale snapshot fails closed',async t=>{
+  const h=harness(t),order=await h.order();const original={...h.secondary};
+  const request=()=>h.request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)});
+  for(const failure of [
+    {readContract:async()=>{throw new Error('timeout');}},
+    {getBlock:async()=>({number:102n,hash:'0x'+'99'.repeat(32),timestamp:BigInt(Math.floor(Date.now()/1000))})},
+    {getBlock:async()=>({number:102n,hash:blockHash,timestamp:1n})},
+    {getCode:async()=> '0x6001'},
+    {getChainId:async()=>8453},
+  ]) {
+    Object.assign(h.secondary,original,failure);
+    assert.equal((await request()).status,403);
+    assert.equal(h.state.settles,0);
+  }
+});
+test('age is checked again by both providers immediately before payment',async t=>{
+  const h=harness(t),order=await h.order();await h.approve(order);
+  h.secondary.readContract=async()=>false;
+  assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
 });
 test('concurrent payment requests reserve durably and settle at most once',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);h.settleReceipt(order);
@@ -196,7 +223,7 @@ test('catalog stays unavailable when RPC, code, clock, storage or facilitator ar
   }
   Object.assign(h.rpc,base);
   for(const kinds of [[],[{x402Version:1,network:NETWORK,scheme:'exact'}],[{x402Version:2,network:'eip155:1',scheme:'exact'}]]) {
-    const worker=createShop({client:()=>h.rpc,supported:async()=>({kinds})});
+    const worker=createShop({client:()=>h.rpc,secondaryClient:()=>h.secondary,supported:async()=>({kinds})});
     const response=await worker.fetch(new Request('https://shop.example/api/catalog'),h.env);
     assert.equal((await response.json()).checkoutAvailable,false);
   }

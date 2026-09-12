@@ -7,6 +7,7 @@ Python cryptography 49.0.0, Node and Anvil (the latter only for test-age-evm.mjs
 """
 from hashlib import sha256
 from pathlib import Path
+import argparse
 import importlib.util
 import io
 import json
@@ -19,12 +20,15 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / ".build/age-proof-engine"
-OUT = BASE / "artifacts"
+parser = argparse.ArgumentParser()
+parser.add_argument("--artifacts", default=".build/age-proof-engine/artifacts")
+OUT = (ROOT / parser.parse_args().artifacts).resolve()
+assert OUT.is_relative_to(ROOT / ".build"), "Use an isolated local build artifact directory"
 CONFIG = json.loads((ROOT / "config/age-proof-sources.json").read_text())
 PATCH = ROOT / "patches/provekit-groth16-noir-directory.patch"
 HIDING_PATCH = ROOT / "patches/provekit-groth16-hiding.patch"
 BASE.mkdir(parents=True, exist_ok=True)
-OUT.mkdir(exist_ok=True)
+OUT.mkdir(parents=True, exist_ok=True)
 env = {**os.environ, "CARGO_HOME": str(BASE / "cargo"), "CARGO_TARGET_DIR": str(BASE / "target"),
        "CARGO_BUILD_JOBS": "2", "RAYON_NUM_THREADS": "2", "RUSTUP_TOOLCHAIN": "nightly-2026-03-04",
        "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_TERMINAL_PROMPT": "0"}
@@ -88,14 +92,18 @@ run("engine-build", [cargo, "build", "--release", "--locked", "--no-default-feat
 cli = BASE / "target/release/provekit-cli"
 circuit = BASE / "circuit"
 shutil.copytree(ROOT / "circuits/jpki_age/src", circuit / "src", dirs_exist_ok=True)
-for name in ["rsa", "bignum", "poseidon"]:
+for name in ["rsa", "bignum", "poseidon", "sha256", "sha512", "sha1"]:
     shutil.copytree(download(name), circuit / "vendor" / name, dirs_exist_ok=True)
 manifest = (ROOT / "circuits/jpki_age/Nargo.toml").read_text()
 manifest = manifest.replace('{ tag = "v0.11.0", git = "https://github.com/zkpassport/noir_rsa" }', '{ path = "vendor/rsa" }')
 manifest = manifest.replace('{ tag = "v0.10.0", git = "https://github.com/noir-lang/noir-bignum" }', '{ path = "vendor/bignum" }')
+manifest = manifest.replace('{ tag = "v0.3.0", git = "https://github.com/noir-lang/sha256" }', '{ path = "vendor/sha256" }')
 (circuit / "Nargo.toml").write_text(manifest)
 for name, old, new in [
     ("rsa/Nargo.toml", '{tag = "v0.10.0", git = "https://github.com/noir-lang/noir-bignum"}', '{ path = "../bignum" }'),
+    ("rsa/Nargo.toml", '{ tag = "v0.3.0", git = "https://github.com/noir-lang/sha256" }', '{ path = "../sha256" }'),
+    ("rsa/Nargo.toml", '{ tag = "v0.2.0", git = "https://github.com/zkpassport/sha512" }', '{ path = "../sha512" }'),
+    ("rsa/Nargo.toml", '{ tag = "v0.11", git = "https://github.com/zac-williamson/sha1" }', '{ path = "../sha1" }'),
     ("bignum/Nargo.toml", '{ git = "https://github.com/noir-lang/poseidon", tag = "v0.3.0" }', '{ path = "../poseidon" }'),
     ("poseidon/src/lib.nr", 'pub use std::hash::poseidon2_permutation;',
      '// Noir beta.19 requires the state length argument.\npub fn poseidon2_permutation<let N: u32>(input: [Field; N]) -> [Field; N] { std::hash::poseidon2_permutation(input,N) }'),
@@ -129,4 +137,4 @@ record = {"status": "experimental single-party test setup, not an iPhone runtime
           "circuitSHA256": {str(p.relative_to(ROOT)): sha256(p.read_bytes()).hexdigest() for p in sorted((ROOT / "circuits/jpki_age").rglob("*")) if p.is_file() and (p.suffix == ".nr" or p.name == "Nargo.toml")},
           "artifactSHA256": {name: sha256((OUT / name).read_bytes()).hexdigest() for name in ["age.pkp", "age.pkv", "Verifier.sol"]}}
 (OUT / "provenance.json").write_text(json.dumps(record, indent=2)+"\n")
-print("Built a synthetic local proof. Next: node scripts/test-age-evm.mjs .build/age-proof-engine/artifacts")
+print(f"Built a synthetic local proof. Next: node scripts/test-age-evm.mjs {OUT.relative_to(ROOT)}")

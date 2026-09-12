@@ -14,5 +14,17 @@
   "poseidon": {
     "url": "https://codeload.github.com/noir-lang/poseidon/tar.gz/refs/tags/v0.3.0",
     "sha256": "cd47b33bdf4b850209c467624770c655078ce8174f95482b1aaacb05eaf2e375"
+  },
+  "sha256": {
+    "url": "https://codeload.github.com/noir-lang/sha256/tar.gz/refs/tags/v0.3.0",
+    "sha256": "ae6e30dc12bc909f616024ab6ce36609b5e7de119236430caaaad9212162bbe8"
+  },
+  "sha512": {
+    "url": "https://codeload.github.com/zkpassport/sha512/tar.gz/refs/tags/v0.2.0",
+    "sha256": "088ab2c9a805d0a82433797a4f7e1d2b3fc13a6fb88e96adfe3f05de009d26a9"
+  },
+  "sha1": {
+    "url": "https://codeload.github.com/zac-williamson/sha1/tar.gz/refs/tags/v0.11",
+    "sha256": "ca8bd58410ab1dd21af261ad528e8b665d843be5b9b59b15449feb7f07080f87"
   }
 }

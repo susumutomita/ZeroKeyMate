@@ -29,6 +29,7 @@ jobs:
             .build/age-proof-engine/cargo
             .build/age-proof-engine/target
           key: age-groth16-linux-${{ hashFiles('config/age-proof-sources.json', 'patches/provekit-groth16-*.patch') }}
+          restore-keys: age-groth16-linux-
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: v1.3.1

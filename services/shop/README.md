@@ -69,3 +69,17 @@ The package test suite uses SQLite and injected network outcomes; it never
 performs a real payment. The repository's separate `test-age-evm.mjs` executes
 the actual proof and gate on a local chain with explicitly synthetic credentials.
 Revocation is not checked. Private inputs do not belong in D1, Worker logs or UI.
+# Age verification RPC trust
+
+The Worker calls the pinned `MateAgeGate` bytecode through two separately
+operated Base Sepolia providers: Base (`sepolia.base.org`) and Allnodes/PublicNode
+(`base-sepolia-rpc.publicnode.com`). Both must agree on the same recent block
+hash, timestamp, chain, bytecode hash and contract result before age acceptance,
+and the check repeats immediately before settlement. Disagreement or failure
+keeps checkout locked. A single fabricated approval is insufficient.
+
+This is a 2-of-2 RPC trust assumption, **not** a light-client proof of execution.
+Collusion/compromise of both providers can fabricate the result. Both receive
+only the public order-bound proof and inputs. The x402 USDC authorization does
+not itself execute the age gate; merchant fulfillment depends on this Worker
+boundary. Do not describe this as trustless or an on-chain age transaction.

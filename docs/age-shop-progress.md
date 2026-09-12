@@ -225,3 +225,12 @@ A further external ChatGPT review request was rejected by automatic approval
 review because its payload included unpublished cryptographic design details.
 That payload was not sent; the work continued using read-only public security
 advisories and source code. Do not retry sending the rejected design indirectly.
+
+PR #39 review follow-up: all SHA dependencies (including transitive SHA-1 and
+SHA-512 manifests) are now checksum-pinned and locally vendored before prepare.
+Age verification now requires agreement between the Base and PublicNode RPCs
+at a common recent block, including chain, block hash/time, gate bytecode and
+the proof result. This prevents one fabricated RPC response from unlocking an
+order. It remains a 2-of-2 provider trust boundary, not light-client verification;
+both-provider collusion is outside that guarantee. x402 USDC settlement does
+not independently invoke the age gate. See the shop README for this assumption.

@@ -4,12 +4,14 @@ import {HTTPFacilitatorClient} from '@x402/core/server';
 import {encodePaymentRequiredHeader, encodePaymentResponseHeader} from '@x402/core/http';
 import {CHAIN_ID, NETWORK, USDC, PRODUCTS, configuration, hex32, hashKey, newOrder, nowSeconds, requirements, paymentPayload} from './protocol.mjs';
 import {checkoutReady, supportedNetworks, MAX_ORDERS} from './readiness.mjs';
-import {AGE_ABI, ageArguments, ageSubmission} from './age.mjs';
+import {ageArguments, ageSubmission} from './age.mjs';
+import {checkedAgeCall} from './age-rpc.mjs';
 
 const TRANSFER_ABI = parseAbi(['event Transfer(address indexed from, address indexed to, uint256 value)', 'event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)']);
 const security = {'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 const json = (value,status=200,headers={}) => Response.json(value,{status,headers:{...security,...headers}});
 const productionClient = () => createPublicClient({chain:baseSepolia,transport:http('https://sepolia.base.org',{timeout:4000,retryCount:0})});
+const independentClient = () => createPublicClient({chain:baseSepolia,transport:http('https://base-sepolia-rpc.publicnode.com',{timeout:4000,retryCount:0})});
 
 async function body(request) {
   if (!request.headers.get('content-type')?.startsWith('application/json')) throw new Error('invalid_request');
@@ -25,8 +27,8 @@ async function body(request) {
 }
 
 // Dependencies can be replaced only by module-level tests, never by a request
-// or a Worker binding. The deployed export always uses the fixed testnet RPC.
-export function createShop({client=productionClient, facilitatorClient=()=>new HTTPFacilitatorClient({url:'https://x402.org/facilitator',timeoutMs:20000}),supported=supportedNetworks,clock=nowSeconds}={}) {
+// or a Worker binding. Age checks use fixed, separately operated testnet RPCs.
+export function createShop({client=productionClient, secondaryClient=independentClient, facilitatorClient=()=>new HTTPFacilitatorClient({url:'https://x402.org/facilitator',timeoutMs:20000}),supported=supportedNetworks,clock=nowSeconds}={}) {
 async function load(env,id) {
   const row=await env.ORDERS.prepare('SELECT revision,value FROM orders WHERE id=?').bind(id).first();
   return row ? {revision:row.revision,order:JSON.parse(row.value)} : null;
@@ -40,11 +42,8 @@ async function save(env,record,next) {
 async function verifiedAge(env,order) {
   const args=ageArguments(order);
   if(!args || order.minimumAge!==20)return false;
-  const rpc=client();
-  if(await rpc.getChainId()!==CHAIN_ID)return false;
-  const code=await rpc.getCode({address:order.ageGate});
-  if (!code || code==='0x' || keccak256(code).toLowerCase()!==env.AGE_GATE_CODE_HASH.toLowerCase()) return false;
-  return await rpc.readContract({address:order.ageGate,abi:AGE_ABI,functionName:'verifyOrderAge',args,gas:1000000n}) === true;
+  if(order.ageGate.toLowerCase()!==env.AGE_GATE_ADDRESS.toLowerCase())return false;
+  return checkedAgeCall(env,[client(),secondaryClient()],args,true);
 }
 
 async function confirmedPayment(order,transaction) {
@@ -98,7 +97,7 @@ async function settleReserved(env,pending,payload,required) {
 async function route(request,env) {
   const url=new URL(request.url);
   if(request.method==='GET' && url.pathname==='/api/catalog') {
-    const available=await checkoutReady(env,client(),supported);
+    const available=await checkoutReady(env,client(),supported,secondaryClient());
     return json({name:'Mate Atelier',products:PRODUCTS,network:NETWORK,chainId:CHAIN_ID,testnet:true,shipsPhysicalGoods:false,
       checkoutAvailable:available,unavailableReason:available?null:'The shop cannot accept new orders right now. Check again shortly. Existing orders can still be checked.'});
   }
@@ -115,7 +114,7 @@ async function route(request,env) {
     let record=await load(env,id);
     if(!record) {
       if(!env.ORDER_CREATION_LIMIT || !(await env.ORDER_CREATION_LIMIT.limit({key:'new-orders'})).success)return json({error:'try_later'},429,{'Retry-After':'60'});
-      if(!await checkoutReady(env,client(),supported))return json({error:'shop_not_ready'},503);
+      if(!await checkoutReady(env,client(),supported,secondaryClient()))return json({error:'shop_not_ready'},503);
       // Bound this test shop's total stored orders atomically, even when many
       // callers pass the earlier readiness check at the same time.
       await env.ORDERS.prepare('INSERT OR IGNORE INTO orders(id,state,value,created_at) SELECT ?,?,?,? WHERE (SELECT count(*) FROM orders) < ?')

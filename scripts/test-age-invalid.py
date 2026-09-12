@@ -1,5 +1,6 @@
 """Reject synthetic invalid witnesses with the actual masked Groth16 backend."""
 from pathlib import Path
+import argparse
 import importlib.util
 import json
 import os
@@ -8,7 +9,10 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / ".build/age-proof-engine"
-OUT = BASE / "artifacts"
+parser = argparse.ArgumentParser()
+parser.add_argument("--artifacts", default=".build/age-proof-engine/artifacts")
+OUT = (ROOT / parser.parse_args().artifacts).resolve()
+assert OUT.is_relative_to(ROOT / ".build"), "Use an isolated local test artifact directory"
 CLI = BASE / "target/release/provekit-cli"
 provenance = json.loads((OUT / "provenance.json").read_text())
 assert provenance["sameWitnessCommitmentsDiffer"] is True
