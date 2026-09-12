@@ -1,6 +1,6 @@
 # Physical-card age checkout: implementation checkpoint
 
-Updated 2026-09-12. This is **not a completed purchase flow**. Do not mark the
+Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
 project finished from unit tests, a simulator, a catalog page or a configured URL.
 
 ## Working increment
@@ -43,18 +43,19 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
 
 ## Still required (implementation work, not a request for the user to debug)
 
-1. An age circuit must verify government certificate/card signatures and bind
-   private DOB to a valid signed field, current reference date and order. The
-   existing `mate_policy` circuit proves spending policy only. Calling local Swift
-   validation before proving arbitrary DOB would **not** solve this.
-2. Produce a proof locally on the iPhone that an EVM contract can verify. The
-   pinned ProveKit source contains a gnark recursive verifier, but a working
-   exported Solidity verifier, small public-input binding, safe setup lifecycle,
-   mobile/runtime integration and execution resource budget remain unverified.
-   Do not replace this with an attestor signature and call it direct ZK checking.
-3. Implement the age gate and proof submission. Current `/age` only queries a
-   proposed `isOrderAgeVerified` ABI. There is **no deployed gate** and this route
-   does not yet accept a ZK proof. Its address and code hash remain blank.
+1. The actual signed-card age circuit is implemented and checked with synthetic
+   certificates. Validate its deliberately narrow physical-card certificate
+   profile on a real card; no physical identity acceptance has been performed.
+2. Integrate the EVM-compatible age prover into the iPhone, including private
+   witness preparation, cancellation, native runtime/artifact pins and measured
+   memory/time. The current shipping native runtime still proves spending policy.
+   Desktop Groth16 proof generation and actual EVM verification now pass, but
+   this is an unaudited upstream branch with single-party test setup. Production
+   setup/security review remains required; no mainnet use is authorized.
+3. Publish matching verifier/gate and configure the Worker only after the native
+   flow is ready and the specific deployment credentials are authorized. `/age`
+   now accepts a proof and directly verifies it with the contract via `eth_call`;
+   no public contract, Worker or age transaction has been deployed by this work.
 4. Implement the Mate beer-shopping tool and review/card/proof/payment/result
    sequence, persist the non-sensitive order context, and connect wallet signing
    under an explicit shop/purpose/amount delegation. The local model does not
@@ -78,7 +79,7 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
   passed after the NFC authentication/cancellation changes.
 - Three real Simulator UI tests passed: card screen explicit start/PIN cleared on
   reopening, setup deferred/resumed without sensors, and editable unsent request.
-- Shop: 28 tests passed. Protocol/schema tests use the actual x402 SDK; SQLite
+- Shop: 31 tests passed. Protocol/schema tests use the actual x402 SDK; SQLite
   checkout tests inject RPC/facilitator failures. They are **not** a live payment
   or ZK verification. Wrangler dry-run build passed without deploying.
 - Browser: desktop 1200px and mobile 393px inspected; no horizontal overflow at
@@ -155,3 +156,81 @@ Groth16+BSB22 Solidity export. Its public source is isolated under
 `.build/age-groth16-source/` for examination; no mobile proof, resource budget or
 trusted setup has been verified for it. This is a candidate to investigate,
 not a completed replacement or an excuse to disclose private witnesses.
+
+
+## Signed-card circuit and direct EVM increment — 2026-09-13
+
+Branch `codex/jpki-age-proof` starts at merged PR #38 (`0774fd0`).
+`circuits/jpki_age` verifies both RSA-2048 signatures, extracts DOB within signed
+TBS, checks strict DER/profile/calendar/validity and binds the exact Swift card
+challenge to the order. Eight public inputs pack the three public hashes into
+u128 halves, plus reference/expiry. DOB, certificate, card signature and card key
+are private. The government root modulus hash is public and pinned by the gate.
+
+`MateAgeGate.verifyOrderAge` checks expected order/nonce, the exact 15-minute
+window and official root validity before directly calling the proof verifier.
+The Worker builds those inputs from its saved order, accepts only the 384-byte
+proof and root hash, and verifies via `eth_call` with a bounded gas budget. It
+stores the public proof for repeat verification immediately before x402 payment.
+There is no attestor, age-signing wallet or age transaction. This is an intentional
+replacement of the old proposed `isOrderAgeVerified` state-query interface.
+
+Validation: the actual hiding WHIR age proof verified, 17 invalid witnesses were
+rejected, 10 independent SHA vectors and 9 calendar boundary cases passed. The
+same age statement also proved/verified with the isolated direct Groth16 backend,
+and its real Solidity verifier and age gate passed on Anvil. The test verifies
+all eight input mutations, changed expected order/nonce/expiry, expired proof,
+malformed proofs, and rejection of the synthetic root by the official gate. It
+uses a separate, explicitly generated test-only subclass to accept the synthetic
+root for positive gate testing. No fake verifier is used.
+
+The generated proof is 384 bytes and the masked verifier runtime 5,840 bytes;
+direct verifier gas estimate was 369,793. These are desktop/local-EVM results,
+not iPhone or Base Sepolia measurements. A boolean-returning gate must not be
+gas-estimated directly: insufficient gas can yield false through its catch path.
+The Worker uses an explicit 1,000,000 eth_call gas budget.
+
+Separate ChatGPT feedback corroborated an upstream Solidity buffer-boundary bug;
+local source inspection and a real EVM memory-canary test confirmed the fix.
+`patch-age-verifier.py` pins the exact template hash and allocates five words for
+two accumulator plus three ECMUL input words. A Noir beta.19 diagnostic in the
+upstream SHA helper was avoided by directly constraining padding and byte packing.
+The circuit now compiles with checks enabled and without that diagnostic.
+
+Reproduction: `test-jpki-age.py` for the shipping-version WHIR circuit tests;
+`build-age-evm.py` followed by `test-age-evm.mjs .build/age-proof-engine/artifacts`
+for the separate experimental Groth16 path. Its public source archive hashes,
+compiler patch and setup artifact provenance are recorded. It does not modify
+`.tools/provekit-source`, the existing mobile runtime, `.env` or private keys.
+
+Remaining immediately useful work: native age FFI and private witness preparation,
+shop request/card/proof/payment/result UI, real worker-to-contract acceptance,
+terminal expired-payment recovery. Card tap/PIN remains for the user when awake.
+
+
+Privacy audit follow-up: source inspection found a deterministic BSB22 private
+commitment in the candidate backend. This is the class described in gnark's
+published GHSA-9xcg-3q8v-7fq6; successful proof verification did not establish
+hiding. All earlier unmasked Groth16 artifacts are synthetic-only and must not
+be used for real credentials. The isolated backend now includes the published
+post-optimization random-mask method, with solver-column remapping, a nonzero
+mask-basis setup check, new prover metadata and a repeated-identical-witness
+commitment test. The reproducible masked build passed: identical private inputs
+produced different commitment points, both proofs passed native and real EVM
+verification, all eight public-input mutations failed, and the official gate
+rejected the synthetic root. This is regression evidence, not an independent
+cryptographic audit. No real personal data was used in these experiments.
+
+A further external ChatGPT review request was rejected by automatic approval
+review because its payload included unpublished cryptographic design details.
+That payload was not sent; the work continued using read-only public security
+advisories and source code. Do not retry sending the rejected design indirectly.
+
+PR #39 review follow-up: all SHA dependencies (including transitive SHA-1 and
+SHA-512 manifests) are now checksum-pinned and locally vendored before prepare.
+Age verification now requires agreement between the Base and PublicNode RPCs
+at a common recent block, including chain, block hash/time, gate bytecode and
+the proof result. This prevents one fabricated RPC response from unlocking an
+order. It remains a 2-of-2 provider trust boundary, not light-client verification;
+both-provider collusion is outside that guarantee. x402 USDC settlement does
+not independently invoke the age gate. See the shop README for this assumption.

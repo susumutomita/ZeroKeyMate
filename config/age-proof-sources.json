@@ -1,0 +1,30 @@
+{
+  "provekit": {
+    "url": "https://codeload.github.com/worldfnd/provekit/tar.gz/dd237e542403302186c8de4bd10df6e5c9b6725a",
+    "sha256": "2209cb126a6687508e9d7fb98c5358cd1b8180fd079e87d507123b3c8630ef99"
+  },
+  "rsa": {
+    "url": "https://codeload.github.com/zkpassport/noir_rsa/tar.gz/refs/tags/v0.11.0",
+    "sha256": "5ef3ddf90a1c03ae50466e0afc21cb78a751edac9cf4f7bd2f61d2305acfd394"
+  },
+  "bignum": {
+    "url": "https://codeload.github.com/noir-lang/noir-bignum/tar.gz/refs/tags/v0.10.0",
+    "sha256": "a5dc1b96edd1a9d1c53a5a4892095ce015a2839f3311dd52025f1322707854e4"
+  },
+  "poseidon": {
+    "url": "https://codeload.github.com/noir-lang/poseidon/tar.gz/refs/tags/v0.3.0",
+    "sha256": "cd47b33bdf4b850209c467624770c655078ce8174f95482b1aaacb05eaf2e375"
+  },
+  "sha256": {
+    "url": "https://codeload.github.com/noir-lang/sha256/tar.gz/refs/tags/v0.3.0",
+    "sha256": "ae6e30dc12bc909f616024ab6ce36609b5e7de119236430caaaad9212162bbe8"
+  },
+  "sha512": {
+    "url": "https://codeload.github.com/zkpassport/sha512/tar.gz/refs/tags/v0.2.0",
+    "sha256": "088ab2c9a805d0a82433797a4f7e1d2b3fc13a6fb88e96adfe3f05de009d26a9"
+  },
+  "sha1": {
+    "url": "https://codeload.github.com/zac-williamson/sha1/tar.gz/refs/tags/v0.11",
+    "sha256": "ca8bd58410ab1dd21af261ad528e8b665d843be5b9b59b15449feb7f07080f87"
+  }
+}

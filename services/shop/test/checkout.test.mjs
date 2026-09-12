@@ -6,6 +6,7 @@ import {keccak256,encodeEventTopics,encodeAbiParameters,parseAbi} from 'viem';
 import {encodePaymentSignatureHeader,decodePaymentRequiredHeader} from '@x402/core/http';
 import {createShop} from '../src/worker.mjs';
 import {requirements,USDC,NETWORK} from '../src/protocol.mjs';
+import {ageArguments} from '../src/age.mjs';
 
 // Failure-injection tests: real SQLite schema and worker routes, synthetic RPC
 // and facilitator responses. These do not prove ZK, valid payment signatures,
@@ -22,23 +23,24 @@ function harness(t) {
       async run(){if(sql.startsWith('UPDATE') && ++state.updateCount===state.failUpdate)throw new Error('injected_write_failure');return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}
     };}};}
   },API_LIMIT:{async limit(){return {success:true};}},ORDER_CREATION_LIMIT:{async limit(){return {success:true};}}};
-  const rpc={async getChainId(){return 84532;},async getCode(){return '0x6000';},async readContract({args}){return args[3]===0n?false:state.age;},async getBlockNumber(){return 102n;},
-    async getBlock(){return {hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
+  const rpc={async getChainId(){return 84532;},async getCode(){return '0x6000';},async readContract({args}){return args[2]===0n?false:state.age;},async getBlockNumber(){return 102n;},
+    async getBlock({blockNumber=102n}={}){return {number:blockNumber,hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
     async getLogs(){return state.logs;}};
   const facilitator={async verify(){return {isValid:true,payer:'0x'+'33'.repeat(20)};},async settle(){state.settles++;if(state.timeout)throw new Error('timeout');return {success:true,payer:'0x'+'33'.repeat(20),network:NETWORK,transaction};}};
   const supported=async()=>({kinds:[{x402Version:2,network:NETWORK,scheme:'exact'}]});
-  const worker=createShop({client:()=>rpc,facilitatorClient:()=>facilitator,supported,clock:()=>state.now});
+  const secondary={...rpc};
+  const worker=createShop({client:()=>rpc,secondaryClient:()=>secondary,facilitatorClient:()=>facilitator,supported,clock:()=>state.now});
   const key='ab'.repeat(32);
   const request=(path,method='GET',body,headers={})=>worker.fetch(new Request('https://shop.example/api'+path,{method,headers:{'X-Order-Key':key,...(body===undefined?{}:{'content-type':'application/json'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})}),env);
   async function order(){const res=await request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)});assert.equal(res.status,201);return (await res.json()).order;}
-  async function approve(order){assert.equal((await request(`/orders/${order.id}/age`,'POST')).status,200);}
+  async function approve(order){assert.equal((await request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)})).status,200);}
   function header(order){const now=Math.floor(Date.now()/1000);return encodePaymentSignatureHeader({x402Version:2,accepted:requirements(order),payload:{signature:'0x'+'44'.repeat(65),authorization:{from:order.payer,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+200),nonce:order.paymentNonce}}});}
   const pay=order=>request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header(order)});
   function settleReceipt(order,nonce=order.paymentNonce){state.receipt={status:'success',blockNumber:100n,blockHash,logs:[
     {address:USDC,topics:encodeEventTopics({abi:events,eventName:'Transfer',args:{from:order.payer,to:order.recipient}}),data:encodeAbiParameters([{type:'uint256'}],[BigInt(order.amount)])},
     {address:USDC,topics:encodeEventTopics({abi:events,eventName:'AuthorizationUsed',args:{authorizer:order.payer,nonce}}),data:'0x'}
   ]};state.logs=[{transactionHash:transaction}];}
-  return {db,env,state,rpc,facilitator,worker,key,request,order,approve,header,pay,settleReceipt,supported};
+  return {db,env,state,rpc,secondary,facilitator,worker,key,request,order,approve,header,pay,settleReceipt,supported};
 }
 
 test('SQLite persists one order and one nonce under concurrent creation/restart',async t=>{
@@ -50,8 +52,37 @@ test('SQLite persists one order and one nonce under concurrent creation/restart'
 });
 test('raw age claims cannot unlock a shop order or reach the facilitator',async t=>{
   const h=harness(t),order=await h.order();h.state.age=false;
-  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',{over20:true,proofVerified:true})).status,403);
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',{over20:true,proofVerified:true})).status,400);
   assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
+});
+test('age submission sends only the proof and server-bound inputs to the EVM contract',async t=>{
+  const h=harness(t),order=await h.order();let call;
+  h.rpc.readContract=async value=>{call=value;return true;};
+  await h.approve(order);
+  const saved=(await (await h.request(`/orders/${order.id}`)).json()).order;
+  assert.equal(saved.state,'age_verified');assert.equal(call.functionName,'verifyOrderAge');
+  assert.deepEqual(call.args,ageArguments(saved));assert.equal(call.gas,1000000n);
+  assert.equal(call.args[0],order.orderHash);assert.equal(call.args[1],order.paymentNonce);
+  assert.equal(call.args[4][6],BigInt(order.createdAt));assert.equal(call.args[4][7],BigInt(order.expiresAt));
+  for(const field of ['birthDate','certificate','signature','pin'])assert.equal(saved[field],undefined);
+});
+test('unexpected private fields, malformed proofs and caller-supplied inputs are rejected before RPC',async t=>{
+  const h=harness(t),order=await h.order();let calls=0;h.rpc.readContract=async()=>{calls++;return true;};
+  const valid={proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)};
+  for(const input of [{...valid,birthDate:'synthetic'},{...valid,inputs:[]},{...valid,proof:'0x'},{...valid,rootKeyHash:'bad'}]){
+    assert.equal((await h.request(`/orders/${order.id}/age`,'POST',input)).status,400);
+  }
+  assert.equal(calls,0);assert.equal(h.state.settles,0);
+  assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'awaiting_age');
+});
+test('a proof rejected by the contract or a wrong chain cannot grant age status',async t=>{
+  const h=harness(t),order=await h.order();
+  const input={proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)};
+  h.state.age=false;
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',input)).status,403);
+  h.state.age=true;h.rpc.getChainId=async()=>8453;
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',input)).status,403);
+  assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'awaiting_age');
 });
 test('the 402 challenge carries official x402 v2 requirements and this order nonce',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);
@@ -59,6 +90,32 @@ test('the 402 challenge carries official x402 v2 requirements and this order non
   const challenge=decodePaymentRequiredHeader(response.headers.get('PAYMENT-REQUIRED'));
   assert.deepEqual(challenge.accepts,[requirements(order)]);
   assert.equal((await response.json()).paymentNonce,order.paymentNonce);assert.equal(h.state.settles,0);
+});
+test('one fabricated RPC approval cannot unlock age or reach settlement',async t=>{
+  const h=harness(t),order=await h.order();
+  h.rpc.readContract=async()=>true;h.secondary.readContract=async()=>false;
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)})).status,403);
+  assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
+});
+test('independent provider timeout, fork, wrong code or stale snapshot fails closed',async t=>{
+  const h=harness(t),order=await h.order();const original={...h.secondary};
+  const request=()=>h.request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)});
+  for(const failure of [
+    {readContract:async()=>{throw new Error('timeout');}},
+    {getBlock:async()=>({number:102n,hash:'0x'+'99'.repeat(32),timestamp:BigInt(Math.floor(Date.now()/1000))})},
+    {getBlock:async()=>({number:102n,hash:blockHash,timestamp:1n})},
+    {getCode:async()=> '0x6001'},
+    {getChainId:async()=>8453},
+  ]) {
+    Object.assign(h.secondary,original,failure);
+    assert.equal((await request()).status,403);
+    assert.equal(h.state.settles,0);
+  }
+});
+test('age is checked again by both providers immediately before payment',async t=>{
+  const h=harness(t),order=await h.order();await h.approve(order);
+  h.secondary.readContract=async()=>false;
+  assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
 });
 test('concurrent payment requests reserve durably and settle at most once',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);h.settleReceipt(order);
@@ -147,7 +204,7 @@ test('invalid JSON and non-object orders are client errors without database writ
   }
   assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,0);
 });
-test('revoked on-chain age approval or a changed bytecode pin blocks payment',async t=>{
+test('an invalid proof or a changed bytecode pin blocks payment',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);h.state.age=false;
   assert.equal((await h.pay(order)).status,403);h.state.age=true;h.env.AGE_GATE_CODE_HASH='0x'+'aa'.repeat(32);
   assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
@@ -166,7 +223,7 @@ test('catalog stays unavailable when RPC, code, clock, storage or facilitator ar
   }
   Object.assign(h.rpc,base);
   for(const kinds of [[],[{x402Version:1,network:NETWORK,scheme:'exact'}],[{x402Version:2,network:'eip155:1',scheme:'exact'}]]) {
-    const worker=createShop({client:()=>h.rpc,supported:async()=>({kinds})});
+    const worker=createShop({client:()=>h.rpc,secondaryClient:()=>h.secondary,supported:async()=>({kinds})});
     const response=await worker.fetch(new Request('https://shop.example/api/catalog'),h.env);
     assert.equal((await response.json()).checkoutAvailable,false);
   }

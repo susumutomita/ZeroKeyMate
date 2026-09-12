@@ -1,0 +1,74 @@
+--- a/tooling/cli/src/cmd/prepare.rs
++++ b/tooling/cli/src/cmd/prepare.rs
+@@ -93,8 +93,13 @@
+     fn run(&self) -> Result<()> {
+         let hash_config = HashConfig::from_str(&self.hash).map_err(|e| anyhow::anyhow!("{}", e))?;
+         let scheme = match self.compiler {
+-            Compiler::Noir => NoirCompiler::from_file(&self.program_path, hash_config)
+-                .context("while compiling Noir program")?,
++            Compiler::Noir => {
++                if self.program_path.is_dir() {
++                    NoirCompiler::from_program(compile_directory(&self.program_path)?, hash_config)
++                } else {
++                    NoirCompiler::from_file(&self.program_path, hash_config)
++                }.context("while compiling Noir program")?
++            },
+             Compiler::Mavros => {
+                 let r1cs_path = self
+                     .r1cs_path
+@@ -271,3 +276,23 @@
+         Ok(())
+     }
+ }
++
++// Local experiment: compile source with this backend's exact Noir version.
++// Adapted from MIT ProveKit 1.0.1 prepare command, retaining compiler checks.
++fn compile_directory(path: &std::path::Path) -> Result<noirc_artifacts::program::ProgramArtifact> {
++    use nargo::{insert_all_files_for_workspace_into_file_manager, parse_all,
++        ops::{check_program, compile_program, report_errors}};
++    use nargo_toml::{find_root, get_package_manifest, resolve_workspace_from_toml, PackageSelection};
++    use noirc_driver::{CompileOptions, NOIR_ARTIFACT_VERSION_STRING};
++    let root = find_root(&std::fs::canonicalize(path)?, true)?;
++    let workspace = resolve_workspace_from_toml(&get_package_manifest(&root)?,
++        PackageSelection::DefaultOrAll, Some(NOIR_ARTIFACT_VERSION_STRING.to_owned()))?;
++    let mut files = workspace.new_file_manager();
++    insert_all_files_for_workspace_into_file_manager(&workspace, &mut files);
++    let parsed = parse_all(&files);
++    let packages: Vec<_> = workspace.into_iter().filter(|p| p.is_binary()).collect();
++    anyhow::ensure!(packages.len() == 1, "Exactly one circuit is required");
++    let result = compile_program(&files, &parsed, &workspace, packages[0], &CompileOptions::default(), None)
++        .and_then(|(program, warnings)| { check_program(&program)?; Ok((program, warnings)) });
++    Ok(report_errors(result, &files, false, false)?.into())
++}
+--- a/tooling/cli/Cargo.toml
++++ b/tooling/cli/Cargo.toml
+@@ -20,6 +20,8 @@
+ # Noir language
+ acir.workspace = true
+ nargo_toml.workspace = true
++nargo.workspace = true
++noirc_artifacts.workspace = true
+ noirc_abi.workspace = true
+ noirc_driver.workspace = true
+ 
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -4613,8 +4613,10 @@
+  "ark-serialize 0.5.0",
+  "base64",
+  "hex",
++ "nargo",
+  "nargo_toml",
+  "noirc_abi",
++ "noirc_artifacts",
+  "noirc_driver",
+  "postcard",
+  "provekit-common",
+@@ -4716,7 +4718,6 @@
+  "provekit-common",
+  "rayon",
+  "serde",
+- "sha2 0.10.9",
+  "sha3",
+  "tempfile",
+  "tracing",

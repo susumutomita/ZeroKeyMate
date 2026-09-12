@@ -1,8 +1,9 @@
 # Mate Atelier
 
 Workers static assets + D1 + x402 v2, testnet only. The storefront currently
-reports checkout unavailable. This package does not contain the age circuit,
-deployed gate or iPhone purchase integration. See
+reports checkout unavailable. The repository now contains the signed-card age
+circuit and a directly verifying EVM gate, but no public deployment or iPhone
+purchase integration. See
 [the implementation checkpoint](../../docs/age-shop-progress.md).
 
 ## Local development
@@ -44,9 +45,13 @@ capability into a URL or logs. Keep it with the pending order on the phone.
 - `GET /api/catalog`: product and live readiness status.
 - `POST /api/orders`: `{productId: "mate-lager", quantity: 1, payer: "0x…"}`.
 - `GET /api/orders/{id}`: retrieve/reconcile this order.
-- `POST /api/orders/{id}/age`: query the proposed on-chain age gate. This is not
-  proof submission yet; no DOB, card certificate, PIN or raw card signature belongs
-  in this endpoint.
+- `POST /api/orders/{id}/age`: `{proof: "0x…", rootKeyHash: "0x…"}`. The proof is
+  exactly 384 bytes from the age Groth16 backend. The Worker constructs all eight
+  public inputs from this order and asks `MateAgeGate.verifyOrderAge` via
+  `eth_call`. It stores the public proof only after successful contract checking,
+  and checks it again before payment. No age transaction, signer or attestor is
+  used. DOB, card certificate, PIN, raw card signature and caller-supplied public
+  inputs are rejected; they do not belong in this endpoint.
 - `POST /api/orders/{id}/pay`: returns actual x402 v2 requirements in
   `PAYMENT-REQUIRED`. A subsequent `PAYMENT-SIGNATURE` must authorize the original
   order's nonce, payer, recipient, token, amount, chain and time window.
@@ -60,5 +65,21 @@ longer validity. Keep that header securely on the phone while pending; the Worke
 stores only its hash. GET only reconciles and never submits a payment. If the
 authorization has expired without a confirmed outcome, keep checking the order;
 terminal failure/cancellation recovery still needs implementation.
-The test suite uses SQLite and injected network outcomes; it never performs a
-real payment. Private inputs do not belong in D1, Worker logs or the shop UI.
+The package test suite uses SQLite and injected network outcomes; it never
+performs a real payment. The repository's separate `test-age-evm.mjs` executes
+the actual proof and gate on a local chain with explicitly synthetic credentials.
+Revocation is not checked. Private inputs do not belong in D1, Worker logs or UI.
+# Age verification RPC trust
+
+The Worker calls the pinned `MateAgeGate` bytecode through two separately
+operated Base Sepolia providers: Base (`sepolia.base.org`) and Allnodes/PublicNode
+(`base-sepolia-rpc.publicnode.com`). Both must agree on the same recent block
+hash, timestamp, chain, bytecode hash and contract result before age acceptance,
+and the check repeats immediately before settlement. Disagreement or failure
+keeps checkout locked. A single fabricated approval is insufficient.
+
+This is a 2-of-2 RPC trust assumption, **not** a light-client proof of execution.
+Collusion/compromise of both providers can fabricate the result. Both receive
+only the public order-bound proof and inputs. The x402 USDC authorization does
+not itself execute the age gate; merchant fulfillment depends on this Worker
+boundary. Do not describe this as trustless or an on-chain age transaction.

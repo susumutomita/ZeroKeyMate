@@ -2,13 +2,50 @@ name: Cryptographic acceptance
 on:
   push:
     branches: [main]
-    paths: ['circuits/**', 'contracts/**', 'services/**', 'scripts/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
+    paths: ['circuits/**', 'contracts/**', 'services/**', 'scripts/**', 'patches/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
   pull_request:
-    paths: ['circuits/**', 'contracts/**', 'services/**', 'scripts/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
+    paths: ['circuits/**', 'contracts/**', 'services/**', 'scripts/**', 'patches/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
+  age-evm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install cryptography==49.0.0
+      - run: npm ci --ignore-scripts
+      - run: rustup toolchain install nightly-2026-03-04 --profile minimal
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .build/age-proof-engine/cargo
+            .build/age-proof-engine/target
+          key: age-groth16-linux-${{ hashFiles('config/age-proof-sources.json', 'patches/provekit-groth16-*.patch') }}
+          restore-keys: age-groth16-linux-
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.3.1
+      - run: python scripts/build-age-evm.py
+      - run: python scripts/test-age-invalid.py
+      - run: node scripts/test-age-evm.mjs .build/age-proof-engine/artifacts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-age-evm-evidence
+          path: |
+            .build/age-proof-engine/artifacts/provenance.json
+            .build/age-proof-engine/artifacts/local-acceptance.json
+            .build/age-proof-engine/artifacts/invalid-acceptance.json
+            .build/age-proof-engine/*.log
+          include-hidden-files: true
   proofs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -25,6 +62,11 @@ jobs:
           key: provekit-1.0.1-linux-${{ hashFiles('services/verifier/Cargo.lock') }}
       - run: npm ci --ignore-scripts
       - run: make proofs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install cryptography==49.0.0
+      - run: python scripts/test-jpki-age.py
       - run: cargo +nightly-2026-03-04 build --release --locked --manifest-path services/verifier/Cargo.toml
       - run: npm run test:proofs
       - uses: foundry-rs/foundry-toolchain@v1
