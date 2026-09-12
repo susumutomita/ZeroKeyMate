@@ -80,6 +80,22 @@
           }
         }
       }
+    },
+    "NFCReaderUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read your My Number card only when you choose to. The card PIN and personal information stay on this iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作したときだけマイナンバーカードを読み取ります。暗証番号や個人情報を端末の外へ送りません。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

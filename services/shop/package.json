@@ -1,0 +1,19 @@
+{
+  "name": "zerokeymate-shop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8791",
+    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run --outdir ../../.build/shop-worker",
+    "types": "wrangler types",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@x402/core": "2.25.0",
+    "viem": "2.56.3"
+  },
+  "devDependencies": {
+    "wrangler": "4.131.1"
+  }
+}

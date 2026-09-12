@@ -73,6 +73,29 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Configure connection"].waitForExistence(timeout:10))
         capture("resumed-setup-connection")
     }
+    func testCardReadScreenRequiresExplicitStartAndDoesNotRetainPIN() {
+        let app=launch()
+        app.buttons["open-settings"].tap()
+        XCTAssertTrue(app.buttons["open-age-verification"].waitForExistence(timeout:5))
+        capture("card-entry-settings")
+        app.buttons["open-age-verification"].tap()
+        capture("card-entry-after-tap")
+        let pin=app.secureTextFields["card-pin"]
+        XCTAssertTrue(pin.waitForExistence(timeout:5))
+        XCTAssertFalse(app.buttons["read-card"].isEnabled)
+        XCTAssertFalse(app.staticTexts["card-read-status"].exists)
+        pin.tap();pin.typeText("1234") // Synthetic digits, never a user's card PIN.
+        XCTAssertFalse(app.staticTexts["card-read-status"].exists)
+        capture("card-read-explicit-start")
+        closeSheet(app)
+        app.buttons["open-settings"].tap()
+        XCTAssertTrue(app.buttons["open-age-verification"].waitForExistence(timeout:5))
+        app.buttons["open-age-verification"].tap()
+        XCTAssertTrue(app.secureTextFields["card-pin"].waitForExistence(timeout:5))
+        XCTAssertFalse(app.buttons["read-card"].isEnabled)
+        XCTAssertEqual(app.secureTextFields["card-pin"].value as? String,"Four-digit card PIN")
+        XCTAssertFalse(app.staticTexts["card-read-status"].exists)
+    }
     func testTaskExampleIsEditableAndDoesNotAutomaticallySend() {
         let app=launch()
         app.buttons["open-settings"].tap()
