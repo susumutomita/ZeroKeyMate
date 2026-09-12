@@ -3,6 +3,7 @@
 Run build-age-evm.py first. --ios builds unsigned device/Simulator libraries, not
 an installation. Never reads .env, wallet keys or signing identities.
 """
+from age_sources import CONFIG, materialize
 from hashlib import sha256
 from pathlib import Path
 import argparse
@@ -24,7 +25,20 @@ assert platform.system() == "Darwin" and platform.machine() == "arm64", "Apple S
 record = json.loads((BASE / "artifacts/provenance.json").read_text())
 assert record["sameWitnessCommitmentsDiffer"] is True
 assert record["hidingPatchSHA256"] == sha256((ROOT / "patches/provekit-groth16-hiding.patch").read_bytes()).hexdigest()
-assert (SOURCE / ".mate-hiding-patch").read_text() == record["hidingPatchSHA256"]
+assert record["sourceArchives"]["provekit"] == CONFIG["provekit"]
+# A marker/provenance file does not authenticate cached source. Re-extract the
+# checked upstream archive and apply both checked patches on every native build.
+materialize("provekit", BASE, SOURCE)
+for name, field in [("provekit-groth16-noir-directory.patch", "compilerPatchSHA256"),
+                    ("provekit-groth16-hiding.patch", "hidingPatchSHA256")]:
+    patch = ROOT / "patches" / name
+    assert sha256(patch.read_bytes()).hexdigest() == record[field]
+    applied = subprocess.run(["patch", "--batch", "-p1", "-i", str(patch)], cwd=SOURCE,
+                             capture_output=True, text=True)
+    assert applied.returncode == 0, "Public backend patch did not apply cleanly"
+patched_source = {str(p.relative_to(SOURCE)): sha256(p.read_bytes()).hexdigest()
+                  for p in sorted(SOURCE.rglob("*")) if p.is_file()}
+
 shutil.copytree(NATIVE, SOURCE / "tooling/mate-age-ffi", dirs_exist_ok=True,
                 ignore=shutil.ignore_patterns("Runtime", ".build"))
 manifest = SOURCE / "Cargo.toml"
@@ -47,12 +61,20 @@ dependencies = [
  "provekit-groth16",
  "provekit-prover",
  "provekit-verifier",
+ "rayon",
+ "sha3",
 ]
 '''
 lock = SOURCE / "Cargo.lock"
 text = lock.read_text()
 if 'name = "mate-age-ffi"' not in text:
     lock.write_text(text.rstrip() + "\n\n" + package)
+else:
+    start = text.index('[[package]]\nname = "mate-age-ffi"')
+    end = text.find('[[package]]', start + 1)
+    if end == -1:
+        end = len(text)
+    lock.write_text(text[:start] + package + "\n" + text[end:])
 toolchain = ROOT / ".tools/rustup/toolchains/nightly-2026-03-04-aarch64-apple-darwin/bin"
 cargo = str(toolchain / "cargo") if (toolchain / "cargo").exists() else "cargo"
 env = {**os.environ, "CARGO_HOME": str(BASE / "cargo"), "CARGO_TARGET_DIR": str(BASE / "target"),
@@ -105,6 +127,7 @@ if options.ios:
     link.symlink_to(framework, target_is_directory=True)
 record = {"backend": "experimental masked Groth16", "deviceAcceptance": False,
           "hidingPatchSHA256": record["hidingPatchSHA256"],
+          "patchedSourceSHA256": patched_source,
           "ffiSHA256": {str(p.relative_to(ROOT)): sha256(p.read_bytes()).hexdigest()
                         for p in sorted(NATIVE.rglob("*")) if p.is_file() and "Runtime" not in p.parts and ".build" not in p.relative_to(NATIVE).parts},
           "libraries": {str(p.relative_to(ROOT)): sha256(p.read_bytes()).hexdigest() for p in libraries}}

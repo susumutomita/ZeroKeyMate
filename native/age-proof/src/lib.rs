@@ -18,6 +18,19 @@ struct PrivateCall;
 impl Drop for PrivateCall { fn drop(&mut self) { ACTIVE.store(false, Ordering::SeqCst); } }
 
 /// # Safety
+/// Input/output buffers must be valid and disjoint. A null input is allowed
+/// only for length zero. No path, key, network, allocation or logging occurs.
+#[no_mangle]
+pub unsafe extern "C" fn mate_age_keccak256(input: *const u8, input_len: usize, out: *mut u8, out_len: usize) -> i32 {
+    if out.is_null() || out_len != 32 { return 1; }
+    let output = slice::from_raw_parts_mut(out, 32); output.fill(0);
+    if input_len > 65536 || (input.is_null() && input_len > 0) { return 1; }
+    let bytes = if input_len == 0 { &[] } else { slice::from_raw_parts(input, input_len) };
+    use sha3::{Digest, Keccak256};
+    output.copy_from_slice(&Keccak256::digest(bytes)); 0
+}
+
+/// # Safety
 /// Paths must be readable NUL-terminated UTF-8 strings. Input and output must
 /// reference disjoint valid buffers of the declared lengths for the whole call.
 /// The caller pins setup hashes before calling and must not mutate them during
@@ -48,6 +61,10 @@ pub unsafe extern "C" fn mate_age_prove(
         let pkv = CStr::from_ptr(verifier_path).to_str().map_err(|_| 1)?;
         if pkp.len() > 4096 || pkv.len() > 4096 { return Err(1); }
         let json = std::str::from_utf8(slice::from_raw_parts(input, input_len)).map_err(|_| 1)?;
+        // Keep mobile proving bounded without changing the host's global pool.
+        // Thread exhaustion is an explicit failure, never a fallback to all cores.
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().map_err(|_| 4)?;
+        pool.install(|| {
         let prover = read_pkp(Path::new(pkp)).map_err(|_| 2)?;
         match &prover {
             Prover::Groth16(p) if p.commitment_info.len() == 1
@@ -59,6 +76,7 @@ pub unsafe extern "C" fn mate_age_prove(
         let mut verifier: Verifier = file::read(Path::new(pkv)).map_err(|_| 2)?;
         verifier.verify(&proof).map_err(|_| 5)?;
         encode(proof)
+        })
     }));
     match result {
         Ok(Ok(bytes)) if bytes.len() == 640 => { output.copy_from_slice(&bytes); 0 },

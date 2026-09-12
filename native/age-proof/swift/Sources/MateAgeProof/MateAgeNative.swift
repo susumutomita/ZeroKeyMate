@@ -13,6 +13,18 @@ public struct MateAgeNativeResult: Sendable {
 /// This adapter has no card, network, model or wallet access. Call from a
 /// background actor, with setup-file hashes checked by the application first.
 public enum MateAgeNative {
+    public static func keccak256(_ input: Data) throws -> Data {
+        #if canImport(MateAgeRuntime)
+        var output = [UInt8](repeating: 0, count: 32)
+        let code = input.withUnsafeBytes { bytes in output.withUnsafeMutableBufferPointer { result in
+            mate_age_keccak256(bytes.bindMemory(to: UInt8.self).baseAddress, input.count, result.baseAddress, result.count)
+        } }
+        guard code == 0 else { throw MateAgeNativeError.rejected(code) }
+        return Data(output)
+        #else
+        throw MateAgeNativeError.unavailable
+        #endif
+    }
     public static var available: Bool {
         #if canImport(MateAgeRuntime)
         return true

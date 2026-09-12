@@ -12,4 +12,6 @@
 // 6 encoding; 7 internal panic; 8 busy. Messages never contain private values.
 int32_t mate_age_prove(const char *prover_path, const char *verifier_path,
     const uint8_t *input, size_t input_len, uint8_t *out, size_t out_len);
+// Ethereum Keccak-256 for local order-material verification. Not SHA3-256.
+int32_t mate_age_keccak256(const uint8_t *input, size_t input_len, uint8_t *out, size_t out_len);
 #endif
