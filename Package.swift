@@ -7,6 +7,6 @@ let package = Package(
     products: [.library(name: "MateCore", targets: ["MateCore"])],
     targets: [
         .target(name: "MateCore", resources: [.copy("Resources/JPKI")]),
-        .testTarget(name: "MateCoreTests", dependencies: ["MateCore"], resources: [.copy("Fixtures/JPKI")])
+        .testTarget(name: "MateCoreTests", dependencies: ["MateCore"], resources: [.copy("Fixtures/JPKI"), .copy("Fixtures/Shop")])
     ]
 )

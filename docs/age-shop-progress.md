@@ -3,6 +3,12 @@
 Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
 project finished from unit tests, a simulator, a catalog page or a configured URL.
 
+Current integration: signed-card circuit/contract PR #39 and native mobile prover
+PR #40 are merged into main. Purchase integration PR #41 contains the phone flow,
+local shopping proposal, receipt recovery and the review fixes documented below.
+Earlier dated experiment notes are historical; the latest sections supersede
+their lists of remaining implementation work.
+
 ## Working increment
 
 - An explicit iPhone NFC session reads the input-assistance application's birth
@@ -12,7 +18,7 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
 - The separate `MyNumberNFCService.authenticate(pin:challenge:)` path reads the
   JPKI signing certificate and asks the card to sign a domain-separated order
   hash and nonce. It requires the **6–16 uppercase alphanumeric signing PIN**,
-  not the four-digit input-assistance PIN. It is not yet called by a purchase UI.
+  not the four-digit input-assistance PIN. The Mate beer purchase screen now calls this path after explicit PIN entry and a tap.
 - Local Security.framework verification uses only fingerprint-pinned official
   2019/2023 J-LIS roots, disables network fetching, verifies the certificate chain
   and card signature, and reads DOB only from the signed SAN otherName field.
@@ -46,8 +52,7 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
 1. The actual signed-card age circuit is implemented and checked with synthetic
    certificates. Validate its deliberately narrow physical-card certificate
    profile on a real card; no physical identity acceptance has been performed.
-2. Connect the implemented native age prover to the purchase/card UI and measure
-   it on a physical phone. The separate native library, private Swift witness
+2. Measure the now-connected native age prover and purchase/card UI on a physical phone. The separate native library, private Swift witness
    preparation, fixed setup hashes and actual Simulator proving now work.
    Cancellation discards a completed result; it cannot yet interrupt the backend
    halfway through. Desktop Groth16 and actual EVM verification pass, but
@@ -57,15 +62,17 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
    flow is ready and the specific deployment credentials are authorized. `/age`
    now accepts a proof and directly verifies it with the contract via `eth_call`;
    no public contract, Worker or age transaction has been deployed by this work.
-4. Implement the Mate beer-shopping tool and review/card/proof/payment/result
-   sequence, persist the non-sensitive order context, and connect wallet signing
-   under an explicit shop/purpose/amount delegation. The local model does not
-   get signing keys, card data, arbitrary URLs or final payment authority.
+4. Validate the implemented local-model beer tool and complete purchase sequence
+   against the deployed shop. Creation capability and exact limited authorization
+   persist in the device-only Keychain before their network request. The model
+   proposes only the supported item; it gets no card data, URL, wallet or signing
+   access. Face ID/passcode approval signs one exact 0.10 test-USDC transfer.
 5. Define credential revocation handling without disclosing a person's certificate
    or serial number to an unapproved endpoint. Do not claim revocation is checked.
-6. Complete terminal settlement recovery after authorization expiry. Pre-broadcast
-   failures can now retry the exact original authorization, but an expired
-   authorization with no observed outcome remains pending. Preserve its nonce.
+6. Exercise the implemented terminal expiry recovery on the deployed testnet.
+   The Worker and phone require two-provider agreement that the exact signed
+   nonce is unused at a common finalized block past its saved deadline. Otherwise
+   the original order stays pending. Absence of a receipt is never enough.
 7. Validate the readiness probe and resource limits on deployed Workers, and
    confirm the configured limiter namespace IDs are unused in that account.
 8. Publish Workers/D1 and the real testnet contracts, install on a physical iPhone,
@@ -274,3 +281,118 @@ reviewing/updating those pins and its matching shop verifier. A new setup can be
 tested separately with `--artifacts .build/age-source-validation/artifacts`.
 No real card, existing private key, device signing identity, public deployment,
 or payment was used. The beer tool, purchase UI and payment connection are next.
+
+
+## Native checkout checkpoint — 2026-09-13
+
+- On-device Foundation Models proposes a beer order. Unsupported goods and
+  quantities are explained without fabricating a purchase. Controls and Settings
+  also expose the same purchase screen. Opening it pauses microphone input before
+  PIN entry; closing/backgrounding cancels work and never resumes a card PIN or
+  payment signature automatically.
+- The phone recomputes the capability ID, payment nonce and complete ABI order
+  commitment using RustCrypto Keccak. It rejects a changed chain, token, amount,
+  product, quantity, payer, recipient, gate, nonce or lifetime. Only a public proof
+  and pinned root hash go to the age endpoint.
+- Same-order creation recovery survives a lost response. A signed x402 v2
+  EIP-3009 authorization is saved before submission and can only be retried
+  unchanged. The Worker and phone each require matching canonical transfer and
+  nonce evidence from Base and PublicNode before reporting completion.
+- Store configuration is deliberately absent pending authorized deployment.
+  `scripts/stage-shop-connection.mjs` accepts only public deployment coordinates,
+  checks the gate's reviewed code hash through both providers and writes one
+  ignored app resource without overwriting an existing connection. It never
+  reads `.env`, a wallet or a deployment credential.
+- Every native build now recreates the checksum-verified upstream source and
+  reapplies both checked patches, rather than trusting an old marker. Both WHIR
+  and EVM paths recreate all six pinned Noir dependencies with local paths.
+  Native proving uses a dedicated two-worker pool.
+- Validation: 80 Swift, 58 Node and 16 Python unit tests passed; shop 35 tests
+  passed. The unsigned iOS build passed. Updated real Simulator acceptance had
+  3 passes, 0 failures and 0 skips: two real masked proofs with changed commitment,
+  underage/changed-order rejection, native Keccak/order commitment and the honest
+  unconfigured-shop retry/background/reopen/close UI. This does not prove physical
+  NFC, wallet signing, the local model's actual classification or live settlement.
+- The reviewed screenshots show a visible beer-order entry, clear fixed price,
+  unavailable status, large retry/close controls and testnet/no-delivery wording.
+  Card, proving, approval, pending and completed screens still need a connected
+  flow or explicitly isolated UI harness review; no end-to-end UX claim is made.
+
+
+### Payment expiry recovery
+
+Migration `0002_payment_expiry.sql` preserves existing order capabilities and
+revisions while allowing `payment_expired`. The Worker stores the verified
+signature's `validBefore` before settlement. On expiry, it checks ERC-3009
+`authorizationState` at the common finalized block of both fixed providers;
+block hash/time must agree and both must report unused. No receipt/log absence
+or wall-clock timeout alone can close a payment. The phone repeats that check
+and compares the deadline with its own saved pre-submission authorization before
+allowing a new order. API failures retain the old order. Older pending orders
+without a stored deadline remain pending on the server rather than guessing.
+The phone can also retire a POST lost before server reservation using its own
+saved signed deadline, but only after the same finalized unused-nonce checks.
+
+Validation: 39 shop tests passed, including schema preservation, independent RPC
+failures and terminal expiry without an extra settlement. The iOS RPC failure
+suite passed in Simulator (1 test, 0 skips), rejecting used nonces, noncanonical
+boolean responses, premature blocks, changed signed deadlines and wrong chains.
+This is controlled failure injection, not live-chain acceptance. The native
+proof/Keccak/UI suite separately passed 3 tests with 0 skips.
+
+
+### Host resource measurement
+
+The freshly rebuilt two-worker native backend produced a synthetic valid proof
+in 8.3 seconds on this Mac. The complete repeated-proof/rejection test process
+reported about 2.00 GB maximum resident size and 1.30 GB peak memory footprint
+with macOS time resource accounting. This is host evidence, not an iPhone memory
+or timing result. Measure the physical app with its local model and camera before
+calling the mobile experience accepted.
+
+### Purchase review and real local-model acceptance
+
+The actual Foundation Models service on this Mac initially opened shopping for
+translation, past-tense and hypothetical statements. Production `ShopPlanner`
+now checks the speech act before product extraction, routes language tasks away
+from checkout and limits proposals to current purchase-request forms. Fourteen
+canned English/Japanese cases passed through this production pipeline with the
+real host model available: supported one-beer requests, quantity two, unsupported
+Amazon goods, negation, translation, past events and hypotheticals. Some cases
+are rejected by the request guard before model invocation. This is a bounded
+host acceptance corpus, not proof of every natural-language phrasing or physical
+voice recognition. No order, wallet, card data or payment was accessed.
+
+Reproduce on a Mac with Foundation Models available:
+
+```sh
+CLANG_MODULE_CACHE_PATH="$PWD/.build/ModuleCache" xcrun swiftc -parse-as-library \
+  -module-cache-path "$PWD/.build/ModuleCache" apps/ios/ZeroKeyMate/ShopPlanner.swift \
+  scripts/test-shop-planner.swift -o .build/shop-planner-acceptance
+.build/shop-planner-acceptance
+```
+
+The local prover now establishes an order-hash marker in device-only storage
+before sending its public proof. A server-supplied `age_verified` state cannot
+create that marker or skip card authentication. Signing and confirmed completion
+both require locally established proof evidence for the same order. Successful
+card reading/proving stops at the approval screen; only the separate payment
+button can initiate Face ID/passcode approval. Archived completed purchases are
+accessible in Activity, which projects only the product/date/transaction receipt
+and does not expose order capabilities or signed payment headers.
+
+Purchase headings, status messages, controls, privacy text and PIN errors have
+English/Japanese resources; display still defaults to English and follows the
+explicit language setting. Simulator review acceptance passed four tests with
+zero skips: request boundaries, server age-state spoofing, finalized payment
+expiry/RPC failures and unavailable-shop retry/background/close UI. The two
+inspected screenshots cover entry and unavailable handling, not the full card
+and payment journey.
+
+After localization, focused Simulator acceptance passed another four tests with
+zero skips, including the actual wallet SDK's encoding of a complete USDC v2
+EIP-712 domain and unchanged six-field authorization. It initializes no wallet
+and requests no signature. The focused result is
+`.build/native-evidence/shop-signing-encoding-20260913`. `make test` again passed
+(80 Swift, 58 Node, 16 Python); the unsigned build skips only the `.env`-reading
+project configuration target.

@@ -46,6 +46,7 @@ struct MateView:View {
                         case .localProof:LocalProofSheet(proofs:model.proofs) { model.makeDraft(service:.translation) }
                         case .connection:ConnectionSheet(model:model)
                         case .cardAge:CardAgeSheet()
+                        case .shop:ShopPurchaseSheet(model:model,wallet:model.wallet)
                         }
                     }
                     .toolbar{
@@ -187,6 +188,7 @@ private struct ControlsSheet:View {
                 }.disabled(model.financialBusy || voice.requestingPermission || model.preparingCompanion)
                     .accessibilityIdentifier("speak-now")
                 Button("Read or type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
+                Button("Mate's beer order"){model.openShop()}.accessibilityIdentifier("open-shop")
                 Button("Rest and stop camera and microphone"){model.rest();model.sheet=nil}
                     .accessibilityIdentifier("rest-button")
             }
@@ -393,6 +395,7 @@ private struct SettingsSheet:View {
                 SectionNote(text:"Changing language rests Mate. Tap the resting face to resume.")
             }
             Section("Requests and evidence") {
+                Button("Mate's beer order"){model.openShop()}.accessibilityIdentifier("open-shop")
                 Button(L10n.text(UserDefaults.standard.string(forKey:model.setupCheckpointKey) == nil ? "Set up external requests":"Resume external request setup")){model.sheet = .setup}.accessibilityIdentifier("open-setup")
                 Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
                 Button { model.sheet = .cardAge } label: {
@@ -744,10 +747,25 @@ private struct DisclosureSheet:View {
 
 private struct ActivitySheet:View {
     @ObservedObject var model:CompanionModel
+    @State private var purchases:[ShopPurchaseRecord]=[]
+    @State private var purchaseHistoryError:String?
     @Environment(\.locale) private var locale
     var body:some View {
         let _ = locale.identifier
         List{
+            if let purchaseHistoryError { Section { Text(L10n.text(purchaseHistoryError)) } }
+            if !purchases.isEmpty {
+                Section("Beer purchases") {
+                    ForEach(purchases) { purchase in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Mate Lager · 0.10 test USDC").font(.headline)
+                            Text(purchase.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale))).font(.subheadline).foregroundStyle(.secondary)
+                            Text("Recorded on Base Sepolia · No physical delivery").font(.footnote).foregroundStyle(.secondary)
+                            if let url=URL(string:"https://sepolia.basescan.org/tx/"+purchase.transaction) { Link("View payment receipt", destination:url) }
+                        }.padding(.vertical,8)
+                    }
+                }
+            }
             if let pending=model.pendingExecution {
                 Section("Awaiting confirmation"){
                     SectionNote(text:"The result is not confirmed yet. If the service has not received the request, retry with the same saved signature and request ID. New payments are paused.")
@@ -756,7 +774,7 @@ private struct ActivitySheet:View {
                     Button("Cancel if no payment was sent",role:.destructive){Task{await model.cancelPendingExecution()}}.disabled(model.financialBusy)
                 }
             }
-            if model.receipts.isEmpty {
+            if model.receipts.isEmpty && purchases.isEmpty && purchaseHistoryError == nil {
                 Section{
                     VStack(alignment:.leading,spacing:14){
                         Text("No executions yet.").font(.system(size:25)).tracking(-0.6)
@@ -777,5 +795,9 @@ private struct ActivitySheet:View {
                 }
             }
         }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Activity").navigationBarTitleDisplayMode(.inline)
+            .task {
+                do { purchases=try ShopCheckout.completedPurchases() }
+                catch { purchaseHistoryError="Purchase history could not be read. Unlock this iPhone and reopen Activity." }
+            }
     }
 }
