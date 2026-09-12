@@ -4,8 +4,8 @@ import {HTTPFacilitatorClient} from '@x402/core/server';
 import {encodePaymentRequiredHeader, encodePaymentResponseHeader} from '@x402/core/http';
 import {CHAIN_ID, NETWORK, USDC, PRODUCTS, configuration, hex32, hashKey, newOrder, nowSeconds, requirements, paymentPayload} from './protocol.mjs';
 import {checkoutReady, supportedNetworks, MAX_ORDERS} from './readiness.mjs';
+import {AGE_ABI, ageArguments, ageSubmission} from './age.mjs';
 
-const AGE_ABI = parseAbi(['function isOrderAgeVerified(bytes32 orderHash, address payer, uint256 minimumAge, uint256 expiresAt) view returns (bool)']);
 const TRANSFER_ABI = parseAbi(['event Transfer(address indexed from, address indexed to, uint256 value)', 'event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)']);
 const security = {'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 const json = (value,status=200,headers={}) => Response.json(value,{status,headers:{...security,...headers}});
@@ -38,11 +38,13 @@ async function save(env,record,next) {
 }
 
 async function verifiedAge(env,order) {
+  const args=ageArguments(order);
+  if(!args || order.minimumAge!==20)return false;
   const rpc=client();
+  if(await rpc.getChainId()!==CHAIN_ID)return false;
   const code=await rpc.getCode({address:order.ageGate});
   if (!code || code==='0x' || keccak256(code).toLowerCase()!==env.AGE_GATE_CODE_HASH.toLowerCase()) return false;
-  return await rpc.readContract({address:order.ageGate,abi:AGE_ABI,functionName:'isOrderAgeVerified',
-    args:[order.orderHash,order.payer,BigInt(order.minimumAge),BigInt(order.expiresAt)]}) === true;
+  return await rpc.readContract({address:order.ageGate,abi:AGE_ABI,functionName:'verifyOrderAge',args,gas:1000000n}) === true;
 }
 
 async function confirmedPayment(order,transaction) {
@@ -155,10 +157,11 @@ async function route(request,env) {
   if(order.ageGate!==env.AGE_GATE_ADDRESS.toLowerCase() || order.recipient!==env.PAYMENT_RECIPIENT.toLowerCase())return json({error:'shop_configuration_changed'},409);
   if(clock()>=order.expiresAt)return json({error:'order_expired'},410);
   if(match[2]==='age') {
-    // Only the proof-verifying on-chain gate can grant this status. Client
-    // booleans, birth dates and raw card data are never accepted by this route.
-    if(!await verifiedAge(env,order))return json({error:'age_not_verified'},403);
-    const next={...order,state:'age_verified'};
+    // The actual EVM verifier sees only an order-bound proof and public values.
+    // No raw card field, date, certificate, signature or client boolean is used.
+    const submission=ageSubmission(await body(request));
+    const next={...order,...submission,state:'age_verified'};
+    if(!await verifiedAge(env,next))return json({error:'age_not_verified'},403);
     await save(env,record,next);
     return json({order:(await load(env,id)).order});
   }
@@ -190,7 +193,7 @@ return {
       if(!(await env.API_LIMIT.limit({key:'shop-api'})).success)return json({error:'try_later'},429,{'Retry-After':'60'});
       return await route(request,env);
     }catch(error){
-      const expected=['invalid_order','invalid_request','request_too_large','invalid_payment','payment_mismatch'];
+      const expected=['invalid_order','invalid_request','request_too_large','invalid_payment','payment_mismatch','invalid_age_proof'];
       const known=expected.includes(error?.message);
       return json({error:known?error.message:'temporarily_unavailable',message:known?'Check this request before trying again.':'The shop could not confirm this step. Keep the same order and check again.'},known?400:503);
     }

@@ -6,6 +6,7 @@ import {keccak256,encodeEventTopics,encodeAbiParameters,parseAbi} from 'viem';
 import {encodePaymentSignatureHeader,decodePaymentRequiredHeader} from '@x402/core/http';
 import {createShop} from '../src/worker.mjs';
 import {requirements,USDC,NETWORK} from '../src/protocol.mjs';
+import {ageArguments} from '../src/age.mjs';
 
 // Failure-injection tests: real SQLite schema and worker routes, synthetic RPC
 // and facilitator responses. These do not prove ZK, valid payment signatures,
@@ -22,7 +23,7 @@ function harness(t) {
       async run(){if(sql.startsWith('UPDATE') && ++state.updateCount===state.failUpdate)throw new Error('injected_write_failure');return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}
     };}};}
   },API_LIMIT:{async limit(){return {success:true};}},ORDER_CREATION_LIMIT:{async limit(){return {success:true};}}};
-  const rpc={async getChainId(){return 84532;},async getCode(){return '0x6000';},async readContract({args}){return args[3]===0n?false:state.age;},async getBlockNumber(){return 102n;},
+  const rpc={async getChainId(){return 84532;},async getCode(){return '0x6000';},async readContract({args}){return args[2]===0n?false:state.age;},async getBlockNumber(){return 102n;},
     async getBlock(){return {hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
     async getLogs(){return state.logs;}};
   const facilitator={async verify(){return {isValid:true,payer:'0x'+'33'.repeat(20)};},async settle(){state.settles++;if(state.timeout)throw new Error('timeout');return {success:true,payer:'0x'+'33'.repeat(20),network:NETWORK,transaction};}};
@@ -31,7 +32,7 @@ function harness(t) {
   const key='ab'.repeat(32);
   const request=(path,method='GET',body,headers={})=>worker.fetch(new Request('https://shop.example/api'+path,{method,headers:{'X-Order-Key':key,...(body===undefined?{}:{'content-type':'application/json'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})}),env);
   async function order(){const res=await request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)});assert.equal(res.status,201);return (await res.json()).order;}
-  async function approve(order){assert.equal((await request(`/orders/${order.id}/age`,'POST')).status,200);}
+  async function approve(order){assert.equal((await request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)})).status,200);}
   function header(order){const now=Math.floor(Date.now()/1000);return encodePaymentSignatureHeader({x402Version:2,accepted:requirements(order),payload:{signature:'0x'+'44'.repeat(65),authorization:{from:order.payer,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+200),nonce:order.paymentNonce}}});}
   const pay=order=>request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header(order)});
   function settleReceipt(order,nonce=order.paymentNonce){state.receipt={status:'success',blockNumber:100n,blockHash,logs:[
@@ -50,8 +51,37 @@ test('SQLite persists one order and one nonce under concurrent creation/restart'
 });
 test('raw age claims cannot unlock a shop order or reach the facilitator',async t=>{
   const h=harness(t),order=await h.order();h.state.age=false;
-  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',{over20:true,proofVerified:true})).status,403);
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',{over20:true,proofVerified:true})).status,400);
   assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
+});
+test('age submission sends only the proof and server-bound inputs to the EVM contract',async t=>{
+  const h=harness(t),order=await h.order();let call;
+  h.rpc.readContract=async value=>{call=value;return true;};
+  await h.approve(order);
+  const saved=(await (await h.request(`/orders/${order.id}`)).json()).order;
+  assert.equal(saved.state,'age_verified');assert.equal(call.functionName,'verifyOrderAge');
+  assert.deepEqual(call.args,ageArguments(saved));assert.equal(call.gas,1000000n);
+  assert.equal(call.args[0],order.orderHash);assert.equal(call.args[1],order.paymentNonce);
+  assert.equal(call.args[4][6],BigInt(order.createdAt));assert.equal(call.args[4][7],BigInt(order.expiresAt));
+  for(const field of ['birthDate','certificate','signature','pin'])assert.equal(saved[field],undefined);
+});
+test('unexpected private fields, malformed proofs and caller-supplied inputs are rejected before RPC',async t=>{
+  const h=harness(t),order=await h.order();let calls=0;h.rpc.readContract=async()=>{calls++;return true;};
+  const valid={proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)};
+  for(const input of [{...valid,birthDate:'synthetic'},{...valid,inputs:[]},{...valid,proof:'0x'},{...valid,rootKeyHash:'bad'}]){
+    assert.equal((await h.request(`/orders/${order.id}/age`,'POST',input)).status,400);
+  }
+  assert.equal(calls,0);assert.equal(h.state.settles,0);
+  assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'awaiting_age');
+});
+test('a proof rejected by the contract or a wrong chain cannot grant age status',async t=>{
+  const h=harness(t),order=await h.order();
+  const input={proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)};
+  h.state.age=false;
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',input)).status,403);
+  h.state.age=true;h.rpc.getChainId=async()=>8453;
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',input)).status,403);
+  assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'awaiting_age');
 });
 test('the 402 challenge carries official x402 v2 requirements and this order nonce',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);
@@ -147,7 +177,7 @@ test('invalid JSON and non-object orders are client errors without database writ
   }
   assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,0);
 });
-test('revoked on-chain age approval or a changed bytecode pin blocks payment',async t=>{
+test('an invalid proof or a changed bytecode pin blocks payment',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);h.state.age=false;
   assert.equal((await h.pay(order)).status,403);h.state.age=true;h.env.AGE_GATE_CODE_HASH='0x'+'aa'.repeat(32);
   assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);

@@ -1,8 +1,6 @@
-import {keccak256, parseAbi} from 'viem';
+import {keccak256} from 'viem';
 import {CHAIN_ID, NETWORK, configuration, nowSeconds} from './protocol.mjs';
-
-const ageABI=parseAbi(['function isOrderAgeVerified(bytes32 orderHash,address payer,uint256 minimumAge,uint256 expiresAt) view returns (bool)']);
-const zeroHash='0x'+'00'.repeat(32), zeroAddress='0x'+'00'.repeat(20);
+import {AGE_ABI, EMPTY_AGE_ARGUMENTS} from './age.mjs';
 export const MAX_ORDERS=1000;
 
 // Read-only discovery has its own short deadline and response-size bound. It
@@ -26,7 +24,7 @@ export async function checkoutReady(env,rpc,supported= supportedNetworks) {
   try {
     const results=await Promise.allSettled([
       rpc.getChainId(),rpc.getBlock({blockTag:'latest'}),rpc.getCode({address:env.AGE_GATE_ADDRESS}),
-      rpc.readContract({address:env.AGE_GATE_ADDRESS,abi:ageABI,functionName:'isOrderAgeVerified',args:[zeroHash,zeroAddress,20n,0n]}),
+      rpc.readContract({address:env.AGE_GATE_ADDRESS,abi:AGE_ABI,functionName:'verifyOrderAge',args:EMPTY_AGE_ARGUMENTS}),
       env.ORDERS.prepare('SELECT count(*) AS count FROM orders').first(),supported()
     ]);
     if(results.some(result=>result.status!=='fulfilled'))return false;
