@@ -1,0 +1,1 @@
+These are synthetic test certificates and signatures from Tests/MateCoreTests/Fixtures/JPKI. They contain no real identity or private key. They are copied only into the test bundle, never the application.

@@ -13,6 +13,8 @@ packages:
     exactVersion: 2.15.0
   Verity:
     path: ../../.tools/verity
+  MateAgeProof:
+    path: ../../native/age-proof/swift
 settings:
   base:
     SWIFT_VERSION: '5.0'
@@ -37,6 +39,7 @@ targets:
       - package: MateCore
       - package: Privy
       - package: Verity
+      - package: MateAgeProof
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -69,6 +72,7 @@ targets:
       - target: ZeroKeyMate
       - package: MateCore
       - package: Verity
+      - package: MateAgeProof
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zerokeymate.native-acceptance

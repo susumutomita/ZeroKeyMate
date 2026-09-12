@@ -1,0 +1,19 @@
+[package]
+name = "mate-age-ffi"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+provekit-common.workspace = true
+provekit-prover = { workspace = true, features = ["witness-generation", "parallel"] }
+provekit-verifier.workspace = true
+provekit-groth16.workspace = true
+noirc_abi.workspace = true
+ark-bn254.workspace = true
+ark-ec.workspace = true
+ark-ff.workspace = true
+ark-serialize.workspace = true

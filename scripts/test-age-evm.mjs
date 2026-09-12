@@ -95,6 +95,16 @@ try {
   const second=readFileSync(path.join(base,'second-evm/proof.hex'),'utf8').trim();
   assert.notEqual(second.slice(2+256*2,2+320*2),proof.slice(2+256*2,2+320*2));
   await verify(second,inputs);assert.equal(await gate(testGate,second),true);
+  const native=process.argv.includes('--native');
+  if(native){
+    let previous;
+    for(const folder of ['native-evm','native-second-evm']){
+      const p=readFileSync(path.join(base,folder,'proof.hex'),'utf8').trim();
+      const values=readFileSync(path.join(base,folder,'inputs.txt'),'utf8').trim().split(/\s+/).map(BigInt);
+      assert.deepEqual(values,inputs);await verify(p,values);assert.equal(await gate(testGate,p,values),true);
+      if(previous)assert.notEqual(previous.slice(514,642),p.slice(514,642));previous=p;
+    }
+  }
   assert.equal(await gate(officialGate),false,'Synthetic credentials must never pass official trust');
   assert.equal(await gate(testGate),true,'Actual proof under explicitly synthetic test-only trust');
   const damaged='0x'+(parseInt(proof.slice(2,4),16)^1).toString(16).padStart(2,'0')+proof.slice(4);
@@ -112,6 +122,6 @@ try {
   const result={syntheticOnly:true,chainId:31337,validProofAccepted:true,officialGateRejectedSyntheticRoot:true,
     tamperedProofRejected:true,tamperedPublicInputsRejected:8,orderNonceExpiryBound:true,memoryCanaryIntact:true,sameWitnessCommitmentsDiffer:true,
     proofBytes:(proof.length-2)/2,publicInputs:8,runtimeBytes:verifierArtifact.evm.deployedBytecode.object.length/2,
-    estimatedVerifierGas:gas.toString(),verificationUses:'eth_call; no payment or age transaction',setup:'local single-party prototype, not a production ceremony'};
+    estimatedVerifierGas:gas.toString(),nativeFFIAccepted:native,verificationUses:'eth_call; no payment or age transaction',setup:'local single-party prototype, not a production ceremony'};
   writeFileSync(path.join(base,'local-acceptance.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
 } finally {chain.kill('SIGTERM');}
