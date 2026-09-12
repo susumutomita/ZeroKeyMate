@@ -444,3 +444,28 @@ Re-exporting/recompiling reproduced the pinned package byte for byte. The fixed
 loader then passed the native/EVM/persisted-payment integration again, while the
 forged-package regression failed closed. Final local validation: 80 Swift,
 59 Node and 21 Python tests, plus the unsigned Simulator build, passed.
+
+## Stop expired orders before card operations — 2026-09-13
+
+PR #42 is merged at `1c7d930`. Review found that an order left open past its
+15-minute window could still open NFC and submit the signing PIN; the existing
+witness preparation rejected it only afterward. The validated order deadline
+now travels into the NFC service and JPKI reader. The service rejects expiry
+before opening a session, and every card exchange checks the deadline before
+sending and after receiving. Expiry stops further certificate pages and signing;
+an actual rejected/locked PIN response remains visible even if it arrives at the
+deadline. No retry, replacement order or payment is triggered. The existing
+recovery screen explains expiry in English/Japanese and offers a new order.
+
+Six deterministic transport regressions cover already-expired orders, expiry
+during selection/PIN/certificate reads, preservation of the rejected-PIN result,
+and invalid clocks. They use synthetic responses and count commands; no physical
+card, private key or credential is needed. Card/witness/proof message bytes and
+public setup pins are unchanged. The witness layer already checked expiry
+before proving and continues to do so.
+
+The planned interactive purchase-screen audit could not start because the Mac
+was locked. No alternate UI-control path or unlock attempt was used. Visual
+acceptance and physical NFC remain for the user-present session.
+Local validation passed: 86 Swift, 59 Node and 21 Python tests, and the unsigned
+Simulator build with the `.env`-reading project-generation target excluded.

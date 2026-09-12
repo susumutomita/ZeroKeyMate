@@ -14,13 +14,25 @@ public enum JPKICardReader {
             && bytes.contains { (48...57).contains($0) } && bytes.contains { (65...90).contains($0) }
     }
 
+    /// The checkout supplies the deadline from its validated, bound order.
+    /// Check before opening NFC and again around every asynchronous APDU.
+    public static func requireUnexpired(expiresAt: Date, now: Date = Date()) throws {
+        let current = now.timeIntervalSince1970, deadline = expiresAt.timeIntervalSince1970
+        guard current.isFinite, deadline.isFinite, current >= 0, current < deadline else {
+            throw MyNumberCardError.requestExpired
+        }
+    }
+
     /// A caller must present the order and obtain explicit card/PIN interaction.
     /// The result is untrusted until certificate AND challenge verification pass.
     @MainActor public static func authenticate(pin: String, challenge: JPKIChallenge,
+        expiresAt: Date, now: () -> Date = Date.init,
         send: (MyNumberCardCommand) async throws -> MyNumberCardResponse) async throws -> UnverifiedJPKIAuthentication {
         guard validSigningPIN(pin) else { throw MyNumberCardError.invalidPIN }
+        try requireUnexpired(expiresAt: expiresAt, now: now())
         func exchange(_ command: MyNumberCardCommand) async throws -> Data {
             try Task.checkCancellation()
+            try requireUnexpired(expiresAt: expiresAt, now: now())
             let response = try await send(command)
             try Task.checkCancellation()
             guard response.sw1 == 0x90 && response.sw2 == 0 else {
@@ -34,6 +46,9 @@ public enum JPKICardReader {
                 }
                 throw MyNumberCardError.commandRejected
             }
+            // Preserve an actual rejected/locked PIN response above, even if
+            // the deadline crossed in flight. Never send another command.
+            try requireUnexpired(expiresAt: expiresAt, now: now())
             return response.data
         }
         func select(_ id: UInt8) async throws {

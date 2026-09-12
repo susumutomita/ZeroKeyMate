@@ -7723,6 +7723,23 @@
           }
         }
       }
+    },
+    "This order expired. Mate stopped the card step. Start a new order.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This order expired. Mate stopped the card step. Start a new order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文の期限が切れたため、カードの処理を停止しました。新しい注文を開始してください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

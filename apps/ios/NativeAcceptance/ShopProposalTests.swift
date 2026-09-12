@@ -34,6 +34,11 @@ final class ShopProposalTests: XCTestCase {
         let template=L10n.text("The signature PIN was rejected. %lld attempts remain. Mate did not retry.", language:.japanese)
         XCTAssertEqual(String(format:template,Int64(2)), "署名用暗証番号が違います。残り2回です。Mateは再試行していません。")
     }
+    @MainActor func testExpiredCardStepExplainsHowToRecoverInBothLanguages() {
+        let message = ShopCheckout.explanation(MyNumberCardError.requestExpired)
+        XCTAssertEqual(message, "This order expired. Mate stopped the card step. Start a new order.")
+        XCTAssertEqual(L10n.text(message, language: .japanese), "注文の期限が切れたため、カードの処理を停止しました。新しい注文を開始してください。")
+    }
     @MainActor func testWalletSDKEncodesTheCompleteLimitedUSDCSigningDomain() throws {
         // Public synthetic message only: no wallet is initialized or accessed.
         let message=["from":"0x"+String(repeating:"11",count:20), "to":"0x"+String(repeating:"22",count:20),

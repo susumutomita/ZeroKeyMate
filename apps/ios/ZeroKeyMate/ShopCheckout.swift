@@ -123,7 +123,8 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             let order = saved.order
             let challenge = try JPKIChallenge(orderHash: CanonicalBytes.hex(order.orderHash, count: 32),
                                                nonce: CanonicalBytes.hex(order.paymentNonce, count: 32))
-            let credential = try await self.reader.authenticate(pin: pin, challenge: challenge)
+            let credential = try await self.reader.authenticate(pin: pin, challenge: challenge,
+                expiresAt: Date(timeIntervalSince1970: Double(order.expiresAt)))
             try self.check(ticket); self.phase = .proving
             let proof = try await self.prover.prove(authentication: credential.authentication,
                 orderHash: CanonicalBytes.hex(order.orderHash, count: 32), nonce: CanonicalBytes.hex(order.paymentNonce, count: 32),
@@ -295,6 +296,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             switch card {
             case .pinRejected(let attempts): return L10n.format("The signature PIN was rejected. %lld attempts remain. Mate did not retry.", Int64(attempts))
             case .pinBlocked: return "The card PIN is locked. Mate made no further attempt."
+            case .requestExpired: return "This order expired. Mate stopped the card step. Start a new order."
             default: return "The card could not be read. No personal information was sent."
             }
         }

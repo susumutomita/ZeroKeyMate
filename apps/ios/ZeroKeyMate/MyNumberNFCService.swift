@@ -9,7 +9,7 @@ enum CardScanError: Error, Equatable { case unavailable, busy, cancelled, multip
 /// automatic retries; invalidation resolves the caller rather than hanging it.
 @MainActor
 final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCTagReaderSessionDelegate {
-    private enum ReadKind { case birthDate, authentication(JPKIChallenge) }
+    private enum ReadKind { case birthDate, authentication(JPKIChallenge, expiresAt: Date) }
     private enum ReadResult { case birthDate(UnverifiedCardBirthDate), authentication(JPKILocalCredential) }
     @Published private(set) var scanning = false
     private var session: NFCTagReaderSession?
@@ -32,8 +32,9 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
 
     /// Called only after reviewing an order and explicitly entering the signing
     /// PIN. The government credential and card signature stay on this phone.
-    func authenticate(pin: String, challenge: JPKIChallenge) async throws -> JPKILocalCredential {
-        guard case .authentication(let credential) = try await begin(pin: pin, kind: .authentication(challenge)) else { throw CardScanError.wrongCard }
+    func authenticate(pin: String, challenge: JPKIChallenge, expiresAt: Date) async throws -> JPKILocalCredential {
+        try JPKICardReader.requireUnexpired(expiresAt: expiresAt)
+        guard case .authentication(let credential) = try await begin(pin: pin, kind: .authentication(challenge, expiresAt: expiresAt)) else { throw CardScanError.wrongCard }
         return credential
     }
 
@@ -43,8 +44,9 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
         switch kind {
         case .birthDate:
             guard pin.utf8.count == 4, pin.utf8.allSatisfy({ (48...57).contains($0) }) else { throw MyNumberCardError.invalidPIN }
-        case .authentication:
+        case .authentication(_, let expiresAt):
             guard JPKICardReader.validSigningPIN(pin) else { throw MyNumberCardError.invalidPIN }
+            try JPKICardReader.requireUnexpired(expiresAt: expiresAt)
         }
         try Task.checkCancellation()
         let readID = UUID()
@@ -128,8 +130,8 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
                     output = .birthDate(try await MyNumberCardReader.read(pin: oneReadPIN) { command in
                         try await self.send(command, operationID: operationID)
                     })
-                case .authentication(let challenge):
-                    let authentication = try await JPKICardReader.authenticate(pin: oneReadPIN, challenge: challenge) { command in
+                case .authentication(let challenge, let expiresAt):
+                    let authentication = try await JPKICardReader.authenticate(pin: oneReadPIN, challenge: challenge, expiresAt: expiresAt) { command in
                         try await self.send(command, operationID: operationID)
                     }
                     output = .authentication(try JPKICredentialVerifier.verify(authentication, challenge: challenge))
