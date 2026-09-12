@@ -396,3 +396,38 @@ and requests no signature. The focused result is
 `.build/native-evidence/shop-signing-encoding-20260913`. `make test` again passed
 (80 Swift, 58 Node, 16 Python); the unsigned build skips only the `.env`-reading
 project configuration target.
+
+
+## Unsigned deployment preparation and reproducible integration — 2026-09-13
+
+PR #41 is merged at `2c2c531`. The public contract package can now be prepared
+without credentials using `prepare-age-deployment.py`. Solidity is exported
+fresh from the iPhone's pinned public verifier key. The connection staging tool
+requires this package and the deployed verifier address, and checks the complete
+verifier and correctly instantiated government-root gate runtimes through both
+fixed providers at a common recent block before writing the phone configuration.
+It cannot accept an unrelated verifier merely because the operator supplied its
+code hash. No deployment, existing key or wallet use is performed by preparation.
+
+A compatibility failure in `stage-age-resources.py` was reproduced: an older
+reviewed provenance record also contained documentation/generated-output hashes.
+All current circuit/manifest hashes and parameter bytes matched, but whole-map
+comparison prevented re-staging. The shared validator first authenticates the
+entire original record against the unchanged reviewed pin, then ignores only the
+three known historical non-statement entries when comparing current sources.
+Changed, added or missing circuit files, unreviewed records and unknown extra
+entries still fail. The public setup, circuit and app pins were not changed.
+
+The previously local-only synthetic Worker/native/EVM/payment integration is now
+reproducible as `scripts/test-shop-native-e2e.mjs`, with its synthetic-only Python
+card helper. The prepared verifier and gate deployed successfully on the isolated
+chain and matched the computed runtimes. Wrong addresses, an altered RPC response
+and a duplicated RPC client were rejected. Fresh synthetic card proof, EIP-712
+signature, local transfer, persisted completion and no second settlement after
+restart/retry all passed. This is not a public-chain, physical-card, actual USDC,
+public-facilitator or independently operated RPC acceptance result.
+
+Validation: five new provenance regression tests passed; `make test` passed with
+80 Swift, 58 Node and 21 Python tests. Re-staging the unchanged public parameters
+and the unsigned iOS build passed. The explicit existing-key, account, card and
+physical-install permission boundaries above remain in effect.
