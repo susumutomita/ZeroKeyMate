@@ -6416,6 +6416,326 @@
           }
         }
       }
+    },
+    "Age verification": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age verification"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢確認"
+          }
+        }
+      }
+    },
+    "Your card stays with you": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your card stays with you"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードは手元に置いたまま"
+          }
+        }
+      }
+    },
+    "Enter the four-digit card input-assistance PIN, then hold your card against the top of this iPhone. The PIN is used only for this read.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the four-digit card input-assistance PIN, then hold your card against the top of this iPhone. The PIN is used only for this read."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "券面事項入力補助用の4桁の暗証番号を入力し、iPhoneの上部にカードをかざしてください。暗証番号は今回の読み取りにだけ使います。"
+          }
+        }
+      }
+    },
+    "Four-digit card PIN": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Four-digit card PIN"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの4桁の暗証番号"
+          }
+        }
+      }
+    },
+    "Reading card…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading card…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み取り中…"
+          }
+        }
+      }
+    },
+    "Read my card": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read my card"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み取る"
+          }
+        }
+      }
+    },
+    "Keep the card still": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep the card still"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを動かさずお待ちください"
+          }
+        }
+      }
+    },
+    "Cancel card reading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel card reading"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み取りを中止"
+          }
+        }
+      }
+    },
+    "Card reading requires an NFC-capable iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card reading requires an NFC-capable iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの読み取りにはNFC対応のiPhoneが必要です。"
+          }
+        }
+      }
+    },
+    "What leaves this phone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What leaves this phone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末の外へ送る情報"
+          }
+        }
+      }
+    },
+    "Nothing from this card read. The PIN, card data and birth date are not saved or sent to a server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing from this card read. The PIN, card data and birth date are not saved or sent to a server."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今回の読み取りでは何も送りません。暗証番号、カード情報、生年月日を保存したりサーバーへ送ったりしません。"
+          }
+        }
+      }
+    },
+    "Reading a birth date alone does not prove identity or age to a shop. Checkout must wait for the signed credential and the age proof to be verified.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading a birth date alone does not prove identity or age to a shop. Checkout must wait for the signed credential and the age proof to be verified."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生年月日を読み取るだけでは、店舗に本人性や年齢を証明できません。署名付きの証明書と年齢証明の検証が完了するまで購入には進みません。"
+          }
+        }
+      }
+    },
+    "Card read. No personal information was sent. Government signature verification is not connected yet, so checkout remains locked.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card read. No personal information was sent. Government signature verification is not connected yet, so checkout remains locked."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み取りました。個人情報は送っていません。公的な署名の検証がまだ接続されていないため、購入には進めません。"
+          }
+        }
+      }
+    },
+    "Enter exactly four digits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter exactly four digits."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "4桁の数字を入力してください。"
+          }
+        }
+      }
+    },
+    "The PIN was rejected. Mate will not try it again automatically. Check your PIN before another attempt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The PIN was rejected. Mate will not try it again automatically. Check your PIN before another attempt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暗証番号が一致しませんでした。Mateは自動で再試行しません。暗証番号を確認してから操作してください。"
+          }
+        }
+      }
+    },
+    "The card PIN is locked. No further attempt was made.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The card PIN is locked. No further attempt was made."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの暗証番号がロックされています。追加の試行はしていません。"
+          }
+        }
+      }
+    },
+    "The card could not be read. No personal information was sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The card could not be read. No personal information was sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み取れませんでした。個人情報は送っていません。"
+          }
+        }
+      }
+    },
+    "Card reading stopped. Nothing was sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card reading stopped. Nothing was sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み取りを中止しました。何も送っていません。"
+          }
+        }
+      }
+    },
+    "Hold your My Number card against the top of your iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold your My Number card against the top of your iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneの上部にマイナンバーカードをかざしてください。"
+          }
+        }
+      }
+    },
+    "Card read. No personal information was sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card read. No personal information was sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み取りました。個人情報は送っていません。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

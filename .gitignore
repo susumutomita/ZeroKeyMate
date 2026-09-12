@@ -20,3 +20,7 @@ apps/ios/ZeroKeyMate/Resources/Selectors.json
 *.p12
 *.mobileprovision
 __pycache__/
+.wrangler/
+.dev.vars
+.dev.vars.*
+services/shop/worker-configuration.d.ts

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light"><meta name="referrer" content="no-referrer">
+  <title>Mate Atelier — A little more private.</title>
+  <link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="masthead"><a href="/" aria-label="Mate Atelier home"><span class="mark" aria-hidden="true">m.</span> mate atelier</a><span class="network">TESTNET STOREFRONT</span></header>
+  <main>
+    <section class="product" aria-labelledby="product-name">
+      <div class="art" aria-label="An illustrated can of Mate Lager"><span class="art-caption">GOOD COMPANY. GOOD TASTE.</span><div class="can" aria-hidden="true"><div class="can-top"></div><div class="can-label"><span>MATE ATELIER</span><b>Meet your<br>new usual.</b><div class="eyes"><i></i><i></i></div><strong>LAGER</strong><span>CRISP · BRIGHT · EASYGOING</span></div><div class="can-bottom"></div></div><span class="art-bottom">A small order. A different kind of checkout.</span></div>
+      <div class="details"><p class="eyebrow">THE FIRST ROUND</p><h1 id="product-name">Mate Lager</h1><p class="description">A crisp, bright lager.<br>Chosen by you. Ordered by your companion.</p><p class="spec">330 ml <span>·</span> 5% ABV <span>·</span> Ages 20+</p><div class="price"><strong id="price">0.10</strong><span>test USDC</span></div>
+        <div class="request"><label for="mate-request">Ask your Mate</label><div><input id="mate-request" value="Buy me one Mate Lager." readonly><button id="copy-request" type="button" disabled aria-label="Copy the request for Mate">Copy</button></div><p id="copy-status" role="status">You can start with Mate when this shop is ready.</p></div>
+        <div id="availability" class="availability" role="status"><span class="dot" aria-hidden="true"></span><div><strong id="availability-title">Checking the shop…</strong><p id="availability-message">Checking age verification and testnet checkout.</p></div></div>
+        <button id="check-again" class="text-button" type="button">Check availability again</button>
+        <p class="test-note">Testnet USDC only. No real funds are charged and no physical product is shipped.</p>
+      </div>
+    </section>
+    <section class="privacy" aria-labelledby="privacy-title"><div><p class="eyebrow">JUST ENOUGH TO SAY YES</p><h2 id="privacy-title">Your age qualifies.<br>Your birthday stays yours.</h2><p>Mate will ask you to tap your My Number card on your iPhone. The shop needs a valid proof that you are at least 20 — not your identity document.</p></div><ol><li><span>01</span><div><h3>Choose with Mate</h3><p>Review the beer, shop and exact testnet price.</p></div></li><li><span>02</span><div><h3>Prove it on your phone</h3><p>The card stays in your hand. Personal information stays on your iPhone.</p></div></li><li><span>03</span><div><h3>Verify, then pay</h3><p>Checkout opens only after the contract verifies the age proof. The receipt follows confirmed x402 payment.</p></div></li></ol></section>
+    <section class="disclosure"><div><h3>The shop receives</h3><p>Your order, an age proof, your payment address and testnet payment.</p></div><div><h3>The shop never asks for</h3><p>Your card PIN, birth date, name, address or My Number.</p></div><p class="fine">This describes the required checkout flow. When age verification or payment is unavailable, the shop stays locked and shows that above. It does not accept a self-declared age.</p></section>
+  </main>
+  <footer><span>mate atelier <span aria-hidden="true">/</span> good company, less disclosure.</span><span>Base Sepolia · x402 testnet checkout</span></footer>
+</body>
+</html>

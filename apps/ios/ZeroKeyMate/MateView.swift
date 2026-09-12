@@ -25,8 +25,12 @@ struct MateView:View {
                 if value == .background{model.setForeground(false)}
                 else if value == .active{model.setForeground(true)}
             }
-            .sheet(item:$model.sheet){sheet in
+            // Keep one presentation while changing request/settings content.
+            // Replacing identifiable sheets dismisses/re-presents them, leaving
+            // a visible but temporarily unresponsive form during quick taps.
+            .sheet(isPresented:Binding(get:{model.sheet != nil},set:{if !$0{model.sheet=nil}})){
                 NavigationStack{
+                    if let sheet = model.sheet {
                     Group {
                         switch sheet {
                         case .welcome:CompanionWelcomeSheet(model:model)
@@ -41,6 +45,7 @@ struct MateView:View {
                         case .disclosure:DisclosureSheet(model:model)
                         case .localProof:LocalProofSheet(proofs:model.proofs) { model.makeDraft(service:.translation) }
                         case .connection:ConnectionSheet(model:model)
+                        case .cardAge:CardAgeSheet()
                         }
                     }
                     .toolbar{
@@ -50,6 +55,8 @@ struct MateView:View {
                         ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}
                     }
                     .toolbarBackground(Finish.paper,for:.navigationBar)
+                    .id(sheet.id)
+                    }
                 }
                 .tint(Finish.ink).presentationBackground(Finish.paper)
             }
@@ -388,6 +395,9 @@ private struct SettingsSheet:View {
             Section("Requests and evidence") {
                 Button(L10n.text(UserDefaults.standard.string(forKey:model.setupCheckpointKey) == nil ? "Set up external requests":"Resume external request setup")){model.sheet = .setup}.accessibilityIdentifier("open-setup")
                 Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
+                Button { model.sheet = .cardAge } label: {
+                    Text("Age verification").frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityIdentifier("open-age-verification")
                 Button("Activity"){model.sheet = .activity}.accessibilityIdentifier("open-activity")
             }
             Section("Senses"){

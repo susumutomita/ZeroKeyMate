@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.iOS("18.0"), .macOS(.v14)],
     products: [.library(name: "MateCore", targets: ["MateCore"])],
     targets: [
-        .target(name: "MateCore"),
-        .testTarget(name: "MateCoreTests", dependencies: ["MateCore"])
+        .target(name: "MateCore", resources: [.copy("Resources/JPKI")]),
+        .testTarget(name: "MateCoreTests", dependencies: ["MateCore"], resources: [.copy("Fixtures/JPKI")])
     ]
 )

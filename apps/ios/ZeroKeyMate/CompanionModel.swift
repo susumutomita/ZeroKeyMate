@@ -45,7 +45,7 @@ private struct PendingRevoke {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection;var id:String{rawValue}}
+    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection,cardAge;var id:String{rawValue}}
     @Published var sheet:Sheet? {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
