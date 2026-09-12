@@ -32,6 +32,12 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
   and looks for the original `AuthorizationUsed` event. Completion requires a
   successful canonical receipt, two confirmations, the exact nonce and matching
   USDC transfer. A pending payment is never replaced with another nonce.
+- After a one-minute attempt lease, the client may resubmit only the exact
+  original signed header while still valid. Concurrent retries reserve one
+  attempt. Transaction hashes are stored before receipt polling; GET never pays.
+- New orders require live chain/clock/code/gate/D1/facilitator readiness. Fixed
+  resource-key Workers rate limits bound API/creation traffic without sending IP
+  addresses to the limiter, and D1 caps the test shop at 1,000 stored orders.
 - Settings/request screens now reuse one presentation. This fixes quick switches
   that previously left an old form visible while a replacement sheet opened.
 
@@ -55,12 +61,11 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
    get signing keys, card data, arbitrary URLs or final payment authority.
 5. Define credential revocation handling without disclosing a person's certificate
    or serial number to an unapproved endpoint. Do not claim revocation is checked.
-6. Improve unresolved settlement recovery: a definitive facilitator failure or
-   a crash before broadcast currently remains pending. Preserve its nonce and
-   establish a safe terminal/retry protocol without introducing a second charge.
-7. `checkoutAvailable` currently means required bindings are present, not that
-   RPC/facilitator/gate are live. Implement a bounded readiness probe before
-   enabling public checkout. Use rate/resource limits before public exposure.
+6. Complete terminal settlement recovery after authorization expiry. Pre-broadcast
+   failures can now retry the exact original authorization, but an expired
+   authorization with no observed outcome remains pending. Preserve its nonce.
+7. Validate the readiness probe and resource limits on deployed Workers, and
+   confirm the configured limiter namespace IDs are unused in that account.
 8. Publish Workers/D1 and the real testnet contracts, install on a physical iPhone,
    then run card tap + local proof + contract verification + x402 receipt together
    with the user. Recheck stand launch/wake limitations using Apple documentation;
@@ -73,7 +78,7 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
   passed after the NFC authentication/cancellation changes.
 - Three real Simulator UI tests passed: card screen explicit start/PIN cleared on
   reopening, setup deferred/resumed without sensors, and editable unsent request.
-- Shop: 20 tests passed. Protocol/schema tests use the actual x402 SDK; SQLite
+- Shop: 28 tests passed. Protocol/schema tests use the actual x402 SDK; SQLite
   checkout tests inject RPC/facilitator failures. They are **not** a live payment
   or ZK verification. Wrangler dry-run build passed without deploying.
 - Browser: desktop 1200px and mobile 393px inspected; no horizontal overflow at
@@ -120,3 +125,33 @@ revisions, licenses, J-LIS profile/root fingerprints and x402 docs are in SOURCE
 An ACTIVE thread heartbeat named `ZeroKeyMateの実機購入体験を完成させる` was registered
 with ID `zerokeymate` at the user's explicit approval. It should resume from the
 latest branch/PR and this checkpoint, not discard work or repeat initial research.
+
+## Recursive verifier experiment (not a working age proof)
+
+PR #38 contains the card/shop foundation. Its independent review caught a missing
+zero in the JPKI AID; commit c751d0d fixes it and tests the full public APDU bytes.
+`make test`, the unsigned iOS build, and 21 shop tests passed at that commit;
+subsequent shop readiness/retry tests bring the shop count to 28.
+
+The local ProveKit 1.0.1 export for the synthetic spending-policy proof succeeds,
+but its pinned Rust exporter emits `narg_string` and `hints`; the Go recursive
+verifier in the same source revision still expects `io_pattern`, `transcript`,
+and a different blinding layout. An isolated CPU-only Go build succeeded, but
+execution immediately failed with `deferred array too short: expected at least
+8 elements, got 0`. No recursive proof, Solidity verifier, or setup artifacts
+were produced. Do not patch in empty fields or claim this route works.
+
+Artifacts are in ignored `.build/age-evm-probe/` (synthetic data only); logs are in
+`/private/tmp/zerokeymate-recursive-probe.log`. The public Go 1.27.1 toolchain was
+downloaded from go.dev and SHA-256 checked before extracting there. The shared
+`.tools/provekit-source` and existing mobile runtime were not modified.
+
+Separate ChatGPT research led to public ProveKit PR #470, which explicitly warns
+that its later proof format 2.0 is incompatible with the Go verifier and that
+witness openings are not hiding. The pinned 1.0.1 source still uses `WhirZkConfig`;
+do not conflate it with #470 or upgrade to a non-hiding witness path for DOB.
+PR #447 (`dd237e542403302186c8de4bd10df6e5c9b6725a`, still open) provides direct
+Groth16+BSB22 Solidity export. Its public source is isolated under
+`.build/age-groth16-source/` for examination; no mobile proof, resource budget or
+trusted setup has been verified for it. This is a candidate to investigate,
+not a completed replacement or an excuse to disclose private witnesses.

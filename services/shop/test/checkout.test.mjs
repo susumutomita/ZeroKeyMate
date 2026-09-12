@@ -15,18 +15,19 @@ const transaction='0x'+'77'.repeat(32), blockHash='0x'+'88'.repeat(32);
 function harness(t) {
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
   db.exec(readFileSync(new URL('../migrations/0001_orders.sql',import.meta.url),'utf8'));
-  const state={age:true,settles:0,receipt:null,logs:[],updateCount:0,failUpdate:0};
+  const state={age:true,settles:0,receipt:null,logs:[],updateCount:0,failUpdate:0,now:Math.floor(Date.now()/1000)};
   const env={SHOP_CHAIN_ID:'84532',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:keccak256('0x6000'),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{
-    prepare(sql){return {bind(...values){return {
+    prepare(sql){return {async first(){return db.prepare(sql).get()??null;},bind(...values){return {
       async first(){return db.prepare(sql).get(...values)??null;},
       async run(){if(sql.startsWith('UPDATE') && ++state.updateCount===state.failUpdate)throw new Error('injected_write_failure');return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}
     };}};}
-  }};
-  const rpc={async getCode(){return '0x6000';},async readContract(){return state.age;},async getBlockNumber(){return 102n;},
-    async getBlock(){return {hash:blockHash};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
+  },API_LIMIT:{async limit(){return {success:true};}},ORDER_CREATION_LIMIT:{async limit(){return {success:true};}}};
+  const rpc={async getChainId(){return 84532;},async getCode(){return '0x6000';},async readContract({args}){return args[3]===0n?false:state.age;},async getBlockNumber(){return 102n;},
+    async getBlock(){return {hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
     async getLogs(){return state.logs;}};
   const facilitator={async verify(){return {isValid:true,payer:'0x'+'33'.repeat(20)};},async settle(){state.settles++;if(state.timeout)throw new Error('timeout');return {success:true,payer:'0x'+'33'.repeat(20),network:NETWORK,transaction};}};
-  const worker=createShop({client:()=>rpc,facilitatorClient:()=>facilitator});
+  const supported=async()=>({kinds:[{x402Version:2,network:NETWORK,scheme:'exact'}]});
+  const worker=createShop({client:()=>rpc,facilitatorClient:()=>facilitator,supported,clock:()=>state.now});
   const key='ab'.repeat(32);
   const request=(path,method='GET',body,headers={})=>worker.fetch(new Request('https://shop.example/api'+path,{method,headers:{'X-Order-Key':key,...(body===undefined?{}:{'content-type':'application/json'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})}),env);
   async function order(){const res=await request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)});assert.equal(res.status,201);return (await res.json()).order;}
@@ -37,7 +38,7 @@ function harness(t) {
     {address:USDC,topics:encodeEventTopics({abi:events,eventName:'Transfer',args:{from:order.payer,to:order.recipient}}),data:encodeAbiParameters([{type:'uint256'}],[BigInt(order.amount)])},
     {address:USDC,topics:encodeEventTopics({abi:events,eventName:'AuthorizationUsed',args:{authorizer:order.payer,nonce}}),data:'0x'}
   ]};state.logs=[{transactionHash:transaction}];}
-  return {db,env,state,rpc,facilitator,worker,key,request,order,approve,header,pay,settleReceipt};
+  return {db,env,state,rpc,facilitator,worker,key,request,order,approve,header,pay,settleReceipt,supported};
 }
 
 test('SQLite persists one order and one nonce under concurrent creation/restart',async t=>{
@@ -99,6 +100,37 @@ test('unknown settlement remains pending on repeat POST without a new signature 
   const h=harness(t),order=await h.order();await h.approve(order);h.state.timeout=true;
   await h.pay(order);assert.equal((await h.pay(order)).status,202);assert.equal(h.state.settles,1);
 });
+test('a pre-broadcast timeout can retry only the original authorization after its lease',async t=>{
+  const h=harness(t),order=await h.order();await h.approve(order);h.state.timeout=true;
+  const original=h.header(order),retry=()=>h.request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':original});
+  assert.equal((await retry()).status,202);assert.equal(h.state.settles,1);
+  await retry();assert.equal(h.state.settles,1);
+  h.state.now+=61;h.state.timeout=false;h.settleReceipt(order);
+  const results=await Promise.all([retry(),retry(),retry()]);
+  assert.ok(results.some(response=>response.status===200));assert.equal(h.state.settles,2);
+  const saved=(await (await h.request(`/orders/${order.id}`)).json()).order;
+  assert.equal(saved.state,'complete');assert.equal(saved.paymentNonce,order.paymentNonce);
+});
+test('retry cannot replace the signature, extend authorization, or act without age approval',async t=>{
+  const h=harness(t),order=await h.order();await h.approve(order);h.state.timeout=true;
+  const original=h.header(order);
+  await h.request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':original});
+  h.state.now+=61;
+  const replacement=encodePaymentSignatureHeader({x402Version:2,accepted:requirements(order),payload:{signature:'0x'+'55'.repeat(65),authorization:{from:order.payer,to:order.recipient,value:order.amount,validAfter:String(h.state.now-1),validBefore:String(h.state.now+200),nonce:order.paymentNonce}}});
+  assert.equal((await h.request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':replacement})).status,400);
+  h.state.age=false;
+  assert.equal((await h.request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':original})).status,403);
+  assert.equal(h.state.settles,1);
+});
+test('recovery stores the transaction hash even when receipt polling fails',async t=>{
+  const h=harness(t),order=await h.order();await h.approve(order);
+  assert.equal((await h.pay(order)).status,503);
+  const saved=JSON.parse(h.db.prepare('SELECT value FROM orders WHERE id=?').get(order.id).value);
+  assert.equal(saved.state,'payment_pending');assert.equal(saved.paymentTransaction,transaction);
+  h.settleReceipt(order);h.state.now+=61;
+  assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'complete');
+  assert.equal(h.state.settles,1);
+});
 test('a malformed payment header is a client error and never reaches settlement',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);
   const response=await h.request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':'not-json'});
@@ -119,4 +151,50 @@ test('revoked on-chain age approval or a changed bytecode pin blocks payment',as
   const h=harness(t),order=await h.order();await h.approve(order);h.state.age=false;
   assert.equal((await h.pay(order)).status,403);h.state.age=true;h.env.AGE_GATE_CODE_HASH='0x'+'aa'.repeat(32);
   assert.equal((await h.pay(order)).status,403);assert.equal(h.state.settles,0);
+});
+test('catalog stays unavailable when RPC, code, clock, storage or facilitator are not ready',async t=>{
+  const h=harness(t);
+  assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,true);
+  const base={...h.rpc};
+  for(const override of [
+    {getChainId:async()=>1}, {getCode:async()=>'0x'},
+    {getCode:async()=>'0x6001'}, {readContract:async()=>true},
+    {getBlock:async()=>({timestamp:1n})}, {getBlock:async()=>{throw new Error('offline');}}
+  ]) {
+    Object.assign(h.rpc,base,override);
+    assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,false);
+  }
+  Object.assign(h.rpc,base);
+  for(const kinds of [[],[{x402Version:1,network:NETWORK,scheme:'exact'}],[{x402Version:2,network:'eip155:1',scheme:'exact'}]]) {
+    const worker=createShop({client:()=>h.rpc,supported:async()=>({kinds})});
+    const response=await worker.fetch(new Request('https://shop.example/api/catalog'),h.env);
+    assert.equal((await response.json()).checkoutAvailable,false);
+  }
+  h.db.exec('DROP TABLE orders');
+  assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,false);
+});
+test('an outage prevents new orders but leaves existing order recovery available',async t=>{
+  const h=harness(t),order=await h.order();h.rpc.getChainId=async()=>{throw new Error('offline');};
+  assert.equal((await h.order()).orderHash,order.orderHash);
+  assert.equal((await h.request(`/orders/${order.id}`)).status,200);
+  const response=await h.request('/orders','POST',{productId:'mate-lager',quantity:1,payer:order.payer},{'X-Order-Key':'cd'.repeat(32)});
+  assert.equal(response.status,503);
+  assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,1);
+});
+test('rate limits stop external work and new order creation',async t=>{
+  const h=harness(t);let rpcCalls=0;h.rpc.getChainId=async()=>{rpcCalls++;return 84532;};
+  h.env.API_LIMIT.limit=async()=>({success:false});
+  const response=await h.request('/catalog');assert.equal(response.status,429);assert.equal(response.headers.get('Retry-After'),'60');assert.equal(rpcCalls,0);
+  h.env.API_LIMIT.limit=async()=>({success:true});h.env.ORDER_CREATION_LIMIT.limit=async()=>({success:false});
+  assert.equal((await h.request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)})).status,429);
+  assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,0);
+});
+test('the test-shop order capacity survives concurrent requests',async t=>{
+  const h=harness(t);const insert=h.db.prepare('INSERT INTO orders(id,state,value,created_at) VALUES(?,?,?,?)');
+  for(let i=0;i<999;i++)insert.run(String(i),'awaiting_age','{}',1);
+  const create=key=>h.request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)},{'X-Order-Key':key.repeat(32)});
+  const results=await Promise.all([create('ac'),create('ad'),create('ae')]);
+  assert.equal(results.filter(r=>r.status===201).length,1);
+  assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,1000);
+  assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,false);
 });
