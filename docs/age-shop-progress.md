@@ -63,9 +63,10 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
    access. Face ID/passcode approval signs one exact 0.10 test-USDC transfer.
 5. Define credential revocation handling without disclosing a person's certificate
    or serial number to an unapproved endpoint. Do not claim revocation is checked.
-6. Complete terminal settlement recovery after authorization expiry. Pre-broadcast
-   failures can now retry the exact original authorization, but an expired
-   authorization with no observed outcome remains pending. Preserve its nonce.
+6. Exercise the implemented terminal expiry recovery on the deployed testnet.
+   The Worker and phone require two-provider agreement that the exact signed
+   nonce is unused at a common finalized block past its saved deadline. Otherwise
+   the original order stays pending. Absence of a receipt is never enough.
 7. Validate the readiness probe and resource limits on deployed Workers, and
    confirm the configured limiter namespace IDs are unused in that account.
 8. Publish Workers/D1 and the real testnet contracts, install on a physical iPhone,
@@ -310,3 +311,23 @@ or payment was used. The beer tool, purchase UI and payment connection are next.
   unavailable status, large retry/close controls and testnet/no-delivery wording.
   Card, proving, approval, pending and completed screens still need a connected
   flow or explicitly isolated UI harness review; no end-to-end UX claim is made.
+
+
+### Payment expiry recovery
+
+Migration `0002_payment_expiry.sql` preserves existing order capabilities and
+revisions while allowing `payment_expired`. The Worker stores the verified
+signature's `validBefore` before settlement. On expiry, it checks ERC-3009
+`authorizationState` at the common finalized block of both fixed providers;
+block hash/time must agree and both must report unused. No receipt/log absence
+or wall-clock timeout alone can close a payment. The phone repeats that check
+and compares the deadline with its own saved pre-submission authorization before
+allowing a new order. API failures retain the old order. Older pending orders
+without a stored deadline remain pending rather than guessing.
+
+Validation: 39 shop tests passed, including schema preservation, independent RPC
+failures and terminal expiry without an extra settlement. The iOS RPC failure
+suite passed in Simulator (1 test, 0 skips), rejecting used nonces, noncanonical
+boolean responses, premature blocks, changed signed deadlines and wrong chains.
+This is controlled failure injection, not live-chain acceptance. The native
+proof/Keccak/UI suite separately passed 3 tests with 0 skips.

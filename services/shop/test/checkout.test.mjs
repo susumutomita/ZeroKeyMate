@@ -16,6 +16,7 @@ const transaction='0x'+'77'.repeat(32), blockHash='0x'+'88'.repeat(32);
 function harness(t) {
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
   db.exec(readFileSync(new URL('../migrations/0001_orders.sql',import.meta.url),'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0002_payment_expiry.sql',import.meta.url),'utf8'));
   const state={age:true,settles:0,receipt:null,logs:[],updateCount:0,failUpdate:0,now:Math.floor(Date.now()/1000)};
   const env={SHOP_CHAIN_ID:'84532',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:keccak256('0x6000'),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{
     prepare(sql){return {async first(){return db.prepare(sql).get()??null;},bind(...values){return {
@@ -181,7 +182,7 @@ test('retry cannot replace the signature, extend authorization, or act without a
 });
 test('recovery stores the transaction hash even when receipt polling fails',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);
-  assert.equal((await h.pay(order)).status,503);
+  assert.equal((await h.pay(order)).status,202);
   const saved=JSON.parse(h.db.prepare('SELECT value FROM orders WHERE id=?').get(order.id).value);
   assert.equal(saved.state,'payment_pending');assert.equal(saved.paymentTransaction,transaction);
   h.settleReceipt(order);h.state.now+=61;
@@ -265,4 +266,20 @@ test('payment success requires both providers to agree on receipt evidence',asyn
   h.secondary.getTransactionReceipt=receipt;
   assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'complete');
   assert.equal(h.state.settles,1);
+});
+
+test('expired unused payment reaches a terminal state without a new settlement',async t=>{
+  const h=harness(t),order=await h.order();await h.approve(order);h.state.timeout=true;
+  const response=await h.pay(order),pending=(await response.json()).order;
+  assert.equal(pending.state,'payment_pending');assert.ok(pending.paymentValidBefore>h.state.now);
+  h.state.now=pending.paymentValidBefore+1;
+  for(const rpc of [h.rpc,h.secondary]) {
+    rpc.getBlockNumber=async()=>104n;
+    rpc.getBlock=async({blockNumber}={})=>({number:blockNumber??103n,hash:blockHash,timestamp:BigInt(h.state.now)});
+    rpc.readContract=async()=>false;
+  }
+  const closed=(await (await h.request(`/orders/${order.id}`)).json()).order;
+  assert.equal(closed.state,'payment_expired');assert.equal(closed.paymentNonce,order.paymentNonce);
+  assert.equal(h.state.settles,1);
+  assert.equal((await h.pay(order)).status,409);assert.equal(h.state.settles,1);
 });

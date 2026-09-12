@@ -6,6 +6,7 @@ import {CHAIN_ID, NETWORK, USDC, PRODUCTS, configuration, hex32, hashKey, newOrd
 import {checkoutReady, supportedNetworks, MAX_ORDERS} from './readiness.mjs';
 import {ageArguments, ageSubmission} from './age.mjs';
 import {checkedAgeCall} from './age-rpc.mjs';
+import {expiredUnusedPayment} from './expiry.mjs';
 
 const TRANSFER_ABI = parseAbi(['event Transfer(address indexed from, address indexed to, uint256 value)', 'event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)']);
 const security = {'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
@@ -62,7 +63,7 @@ async function confirmedPaymentAt(rpc,order,transaction) {
 }
 
 async function confirmedPayment(order,transaction) {
-  const results=await Promise.all([client(),secondaryClient()].map(rpc=>confirmedPaymentAt(rpc,order,transaction)));
+  const results=await Promise.all([client(),secondaryClient()].map(rpc=>confirmedPaymentAt(rpc,order,transaction).catch(()=>false)));
   return results[0]!==false && results[0]===results[1];
 }
 
@@ -80,6 +81,10 @@ async function reconcile(env,record) {
     else next.scanBlock=(to+1n).toString();
   }
   if(next.paymentTransaction && await confirmedPayment(order,next.paymentTransaction))next.state='complete';
+  if(next.state==='payment_pending' && clock()>=next.paymentValidBefore) {
+    const evidence=await expiredUnusedPayment(next,[client(),secondaryClient()]);
+    if(evidence){next.state='payment_expired';next.paymentExpiryEvidence=evidence;}
+  }
   await save(env,record,next);
   return (await load(env,order.id)).order;
 }
@@ -138,6 +143,7 @@ async function route(request,env) {
   if(request.method==='GET' && !match[2])return json({order:await reconcile(env,record)});
   if(request.method!=='POST')return json({error:'method_not_allowed'},405);
   if(order.state==='complete')return json({order});
+  if(order.state==='payment_expired')return json({order,error:'payment_window_closed'},409);
   // Pending settlement must be reconciled with its original signed payment;
   // never create a replacement nonce, even after order expiry.
   if(order.state==='payment_pending') {
@@ -181,7 +187,7 @@ async function route(request,env) {
   const verification=await facilitator.verify(payload,required);
   if(!verification.isValid || verification.payer?.toLowerCase()!==order.payer)return json({error:'payment_rejected'},402);
   const paymentStartBlock=(await client().getBlockNumber()).toString();
-  const pending={...order,state:'payment_pending',paymentStartBlock,paymentDigest:keccak256(new TextEncoder().encode(header)),paymentAttemptAt:clock(),paymentAttemptId:crypto.randomUUID()};
+  const pending={...order,state:'payment_pending',paymentStartBlock,paymentValidBefore:Number(payload.payload.authorization.validBefore),paymentDigest:keccak256(new TextEncoder().encode(header)),paymentAttemptAt:clock(),paymentAttemptId:crypto.randomUUID()};
   if(!await save(env,record,pending))return json({order:(await load(env,id)).order},202);
   // Reserve the order durably before the external effect. A timeout stays
   // pending for reconciliation, never returns to a button that signs anew.

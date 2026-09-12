@@ -160,12 +160,15 @@ actor NetworkService {
 
 actor EthereumRPC {
     private let url:URL?
-    private let session=URLSession(configuration:.ephemeral,delegate:NoRedirects(),delegateQueue:nil)
+    private let session:URLSession
     private let chainID:UInt64
-    init(url:String,chainID:UInt64=11_155_111){self.url=URL(string:url);self.chainID=chainID}
+    init(url:String,chainID:UInt64=11_155_111,sessionConfiguration:URLSessionConfiguration = .ephemeral){
+        self.url=URL(string:url);self.chainID=chainID
+        session=URLSession(configuration:sessionConfiguration,delegate:NoRedirects(),delegateQueue:nil)
+    }
     struct Log:Decodable,Sendable {let address:String;let topics:[String];let data:String}
     struct Receipt:Decodable,Sendable {let status:String;let transactionHash:String;let blockHash:String;let blockNumber:String;let logs:[Log]}
-    private struct Block:Decodable {let hash:String;let number:String}
+    private struct Block:Decodable {let hash:String;let number:String;let timestamp:String?}
     private struct RPCError:Decodable {let code:Int;let message:String}
     private struct Response<T:Decodable>:Decodable {let jsonrpc:String;let id:Int;let result:T?;let error:RPCError?}
     private func call<T:Decodable>(method:String,params:[Any]) async throws -> T? {
@@ -173,8 +176,15 @@ actor EthereumRPC {
         var request=URLRequest(url:url);request.httpMethod="POST";request.timeoutInterval=20
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.httpBody=try JSONSerialization.data(withJSONObject:["jsonrpc":"2.0","id":1,"method":method,"params":params])
-        let (data,response)=try await session.data(for:request)
-        guard let http=response as? HTTPURLResponse,http.statusCode == 200,data.count < 1_000_000 else {throw ProductError.invalidResponse}
+        let (bytes,response)=try await session.bytes(for:request)
+        defer { bytes.task.cancel() }
+        guard let http=response as? HTTPURLResponse,http.statusCode == 200,response.expectedContentLength < 1_000_000 else {throw ProductError.invalidResponse}
+        var data=Data()
+        for try await byte in bytes {
+            try Task.checkCancellation()
+            guard data.count < 1_000_000 else { throw ProductError.invalidResponse }
+            data.append(byte)
+        }
         let decoded=try JSONDecoder().decode(Response<T>.self,from:data)
         guard decoded.jsonrpc=="2.0",decoded.id==1 else{throw ProductError.invalidResponse}
         guard decoded.error == nil else {throw ProductError.unavailable("Could not verify the operation through Settlement RPC.")}
@@ -223,5 +233,31 @@ actor EthereumRPC {
         let receipt = try await confirm(hash: transaction)
         try AgeShopReceipt.validate(order: order, logs: receipt.logs.map { .init(address: $0.address, topics: $0.topics, data: $0.data) })
         return receipt.blockHash.lowercased()
+    }
+    func finalizedShopHeight() async throws -> UInt64 {
+        guard chainID == AgeShopProtocol.chainID else { throw AgeShopError.invalidPayment }
+        try await ensureNetwork()
+        let block: Block? = try await call(method: "eth_getBlockByNumber", params: ["finalized", false])
+        guard let block, block.number.hasPrefix("0x"), let height = UInt64(block.number.dropFirst(2), radix: 16) else { throw ProductError.invalidResponse }
+        return height
+    }
+    func confirmUnusedShop(_ order: AgeShopOrder, validBefore: UInt64, blockNumber: UInt64) async throws -> String {
+        guard chainID == AgeShopProtocol.chainID, order.chainId == chainID,
+              order.token.lowercased() == AgeShopProtocol.token,
+              validBefore == order.paymentValidBefore, validBefore > order.createdAt,
+              validBefore <= order.expiresAt else { throw AgeShopError.invalidPayment }
+        let height = "0x" + String(blockNumber, radix: 16)
+        let block: Block? = try await call(method: "eth_getBlockByNumber", params: [height, false])
+        guard let block, block.number.lowercased() == height, let time = block.timestamp,
+              time.hasPrefix("0x"), let timestamp = UInt64(time.dropFirst(2), radix: 16), timestamp >= validBefore else { throw ProductError.invalidResponse }
+        _ = try CanonicalBytes.hex(block.hash, count: 32)
+        let payer = try CanonicalBytes.hexString(CanonicalBytes.hex(order.payer, count: 20)).dropFirst(2)
+        let nonce = try CanonicalBytes.hexString(CanonicalBytes.hex(order.paymentNonce, count: 32)).dropFirst(2)
+        // ERC-3009 authorizationState(address,bytes32); selector independently
+        // checked against viem and the public ERC-3009 specification.
+        let data = "0xe94a0102" + String(repeating: "0", count: 24) + payer + nonce
+        let state: String? = try await call(method: "eth_call", params: [["to": AgeShopProtocol.token, "data": data], height])
+        guard state == "0x" + String(repeating: "0", count: 64) else { throw AgeShopError.invalidPayment }
+        return block.hash.lowercased()
     }
 }

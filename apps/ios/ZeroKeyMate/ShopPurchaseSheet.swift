@@ -20,6 +20,7 @@ struct ShopPurchaseSheet: View {
         case .paying: return "Mate is paying the store"
         case .pending: return "Checking your payment"
         case .complete: return "Your test purchase is complete"
+        case .expired: return "The payment window closed"
         case .unavailable: return "The store is not ready yet"
         }
     }
@@ -87,6 +88,8 @@ struct ShopPurchaseSheet: View {
                 case .unavailable:
                     Text("You can close this screen. Mate hasn't completed a purchase.").foregroundStyle(.secondary)
                     Button("Check again") { checkout.retryAvailability() }.buttonStyle(.borderedProminent).disabled(checkout.busy)
+                case .expired:
+                    Text("The original authorization expired without being used. Mate checked the finalized network record; this order was not paid.")
                 }
                 if checkout.canStartNew {
                     Button("Start a new order") { pin = ""; checkout.startNew() }.disabled(checkout.busy)

@@ -40,9 +40,10 @@ public struct AgeShopOrder: Codable, Equatable, Sendable {
     public let minimumAge: Int
     public let state: State
     public let paymentTransaction: String?
+    public let paymentValidBefore: UInt64?
     public let paymentNonce: String
     public let orderHash: String
-    public enum State: String, Codable, Sendable { case awaitingAge = "awaiting_age", ageVerified = "age_verified", paymentPending = "payment_pending", complete }
+    public enum State: String, Codable, Sendable { case awaitingAge = "awaiting_age", ageVerified = "age_verified", paymentPending = "payment_pending", paymentExpired = "payment_expired", complete }
 }
 
 public enum AgeShopProtocol {
@@ -74,6 +75,10 @@ public enum AgeShopProtocol {
               try CanonicalBytes.hex(order.orderHash, count: 32) == keccak(orderMaterial(order)) else { throw AgeShopError.invalidOrder }
         if let transaction = order.paymentTransaction { _ = try CanonicalBytes.hex(transaction, count: 32) }
         if order.state == .complete && order.paymentTransaction == nil { throw AgeShopError.invalidOrder }
+        if let end = order.paymentValidBefore {
+            guard end > order.createdAt, end <= order.expiresAt else { throw AgeShopError.invalidPayment }
+        }
+        if order.state == .paymentExpired && order.paymentValidBefore == nil { throw AgeShopError.invalidPayment }
     }
 
     public static func orderMaterial(_ order: AgeShopOrder) throws -> Data {

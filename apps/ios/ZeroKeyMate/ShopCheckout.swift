@@ -20,7 +20,7 @@ private struct PendingShopCreation: Codable {
 }
 
 @MainActor final class ShopCheckout: ObservableObject {
-    enum Phase: Equatable { case initial, checking, review, card, readingCard, proving, verifying, paymentApproval, paying, pending, complete, unavailable }
+    enum Phase: Equatable { case initial, checking, review, card, readingCard, proving, verifying, paymentApproval, paying, pending, complete, expired, unavailable }
     @Published private(set) var phase = Phase.initial
     @Published private(set) var order: AgeShopOrder?
     @Published private(set) var message: String?
@@ -162,6 +162,24 @@ private struct PendingShopCreation: Codable {
             var complete = self.saved!; complete.paymentHeader = nil; complete.paymentExpiresAt = nil; complete.completed = true
             try LocalSecrets.write(complete, key: storageKey); self.saved = complete
             phase = .complete; message = nil
+        } else if current.state == .paymentExpired {
+            phase = .pending
+            // Compare against the expiration we saved BEFORE sending the actual
+            // signature. A shop must not invent an earlier deadline to close it.
+            guard let end = saved.paymentExpiresAt, end == current.paymentValidBefore else { throw AgeShopError.invalidPayment }
+            let base = EthereumRPC(url: "https://sepolia.base.org", chainID: AgeShopProtocol.chainID)
+            let independent = EthereumRPC(url: "https://base-sepolia-rpc.publicnode.com", chainID: AgeShopProtocol.chainID)
+            async let firstHeight = base.finalizedShopHeight()
+            async let secondHeight = independent.finalizedShopHeight()
+            let heights = try await (firstHeight, secondHeight)
+            let height = min(heights.0, heights.1)
+            async let first = base.confirmUnusedShop(current, validBefore: end, blockNumber: height)
+            async let second = independent.confirmUnusedShop(current, validBefore: end, blockNumber: height)
+            let hashes = try await (first, second)
+            try check(ticket); guard hashes.0 == hashes.1 else { throw ProductError.invalidResponse }
+            var closed = self.saved!; closed.paymentHeader = nil
+            try LocalSecrets.write(closed, key: storageKey); self.saved = closed
+            phase = .expired; message = nil
         } else if saved.paymentHeader != nil || current.state == .paymentPending {
             phase = .pending
             message = "Checking the original payment. Its order and nonce are preserved."
@@ -214,7 +232,7 @@ private struct PendingShopCreation: Codable {
     }
     private var recoverablePhase: Phase {
         guard let saved else { return .unavailable }
-        if saved.paymentHeader != nil || [.paymentPending, .complete].contains(saved.order.state) { return .pending }
+        if saved.paymentHeader != nil || [.paymentPending, .paymentExpired, .complete].contains(saved.order.state) { return .pending }
         if saved.order.expiresAt <= UInt64(Date().timeIntervalSince1970) { return .unavailable }
         return saved.order.state == .ageVerified ? .paymentApproval : .card
     }
@@ -223,7 +241,7 @@ private struct PendingShopCreation: Codable {
         message = nil; phase = .initial; load()
     }
     var canStartNew: Bool {
-        phase == .complete || (phase == .unavailable && saved?.paymentHeader == nil && (saved?.order.expiresAt ?? .max) <= UInt64(Date().timeIntervalSince1970))
+        phase == .complete || phase == .expired || (phase == .unavailable && saved?.paymentHeader == nil && (saved?.order.expiresAt ?? .max) <= UInt64(Date().timeIntervalSince1970))
     }
     func startNew() {
         guard canStartNew else { return }
