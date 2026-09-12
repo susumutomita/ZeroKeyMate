@@ -431,3 +431,16 @@ Validation: five new provenance regression tests passed; `make test` passed with
 80 Swift, 58 Node and 21 Python tests. Re-staging the unchanged public parameters
 and the unsigned iOS build passed. The explicit existing-key, account, card and
 physical-install permission boundaries above remain in effect.
+
+PR review identified that package-local hashes alone could authorize a substituted
+always-success verifier. The full deterministic public deployment package is now
+pinned independently in `config/age-deployment-pins.json`; preparation and loading
+both require that reviewed digest. It includes code, ABI and immutable locations,
+not just setup labels. A regression test supplies an always-success EVM runtime,
+copies the real public setup and recomputes its hashes; it must be rejected before
+any RPC check. The pin was derived from the freshly exported reviewed verifier
+and actual gate already exercised in the isolated native/EVM checkout.
+Re-exporting/recompiling reproduced the pinned package byte for byte. The fixed
+loader then passed the native/EVM/persisted-payment integration again, while the
+forged-package regression failed closed. Final local validation: 80 Swift,
+59 Node and 21 Python tests, plus the unsigned Simulator build, passed.

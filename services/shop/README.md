@@ -105,6 +105,14 @@ compiler settings, immutable locations and source/setup hashes. The gate runtime
 hash depends on its verifier address; the zero-filled template hash is **not**
 the deployed gate hash. No synthetic root or test token is included.
 
+`config/age-deployment-pins.json` independently pins the **entire** deterministic
+package, including both creation/runtime bytecodes, ABI and immutable positions.
+Both preparation and loading refuse a different digest; copied setup pins and
+self-consistent bytecode hashes cannot authorize substitute contracts. Changing
+the compiler, sources or public setup requires reviewing the regenerated
+contracts and this repository pin. Never accept a digest supplied alongside an
+untrusted deployment package, or update the pin merely to silence a mismatch.
+
 After explicitly authorized testnet deployment, stage the phone connection with
 public coordinates and that exact package:
 

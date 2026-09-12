@@ -1,5 +1,6 @@
 // PUBLIC deployment artifacts and read-only code checks. No wallet or credentials.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {keccak256,isAddress} from 'viem';
@@ -7,6 +8,13 @@ const root=path.resolve(import.meta.dirname,'..');
 export async function loadAgeDeployment(directory) {
  const file=await readFile(path.join(directory,'deployment.json'));
  assert.ok(file.length<1000000,'Unexpected deployment package size');
+ // This digest belongs to the reviewed repository, never to the supplied package.
+ // It authenticates creation/runtime code, ABI, compiler settings and immutable
+ // positions together; a deployer cannot authorize new code by hashing it again.
+ const artifactPins=JSON.parse(await readFile(path.join(root,'config/age-deployment-pins.json')));
+ assert.equal(artifactPins.format,1);
+ assert.equal(createHash('sha256').update(file).digest('hex'),artifactPins.deploymentSHA256,
+  'Deployment package is not the independently reviewed build');
  const pkg=JSON.parse(file);
  const pins=JSON.parse(await readFile(path.join(root,'config/age-runtime-pins.json')));
  assert.equal(pkg.format,1);assert.equal(pkg.chainId,84532);assert.equal(pkg.testnetOnly,true);
