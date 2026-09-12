@@ -465,7 +465,7 @@ public setup pins are unchanged. The witness layer already checked expiry
 before proving and continues to do so.
 
 The planned interactive purchase-screen audit could not start because the Mac
-was locked. No alternate UI-control path or unlock attempt was used. Visual
+was locked. No alternate UI-control path or manual unlock was used. Visual
 acceptance and physical NFC remain for the user-present session.
 Local validation passed: 86 Swift, 59 Node and 21 Python tests, and the unsigned
 Simulator build with the `.env`-reading project-generation target excluded.
