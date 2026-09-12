@@ -151,6 +151,9 @@ struct JPKICertificateFields {
 struct DERNode {
     let tag: UInt8
     let value: Data
+    // Preserve the exact signed TLV. Re-encoding the value is not an acceptable
+    // substitute for the bytes covered by the issuer's certificate signature.
+    let encoded: Data
     static func single(_ data: Data, tag: UInt8) throws -> DERNode {
         let nodes = try parse(data)
         guard nodes.count == 1, nodes[0].tag == tag else { throw JPKIVerificationError.malformedCertificate }
@@ -162,6 +165,7 @@ struct DERNode {
         guard bytes.count <= 8192 else { throw JPKIVerificationError.malformedCertificate }
         var result: [DERNode] = [], offset = 0
         while offset < bytes.count {
+            let start = offset
             guard offset + 2 <= bytes.count, result.count < 64 else { throw JPKIVerificationError.malformedCertificate }
             let tag = bytes[offset], firstLength = bytes[offset + 1]
             guard tag & 0x1F != 0x1F else { throw JPKIVerificationError.malformedCertificate }
@@ -177,7 +181,8 @@ struct DERNode {
                 guard length >= 128, count == 1 || length >= 256 else { throw JPKIVerificationError.malformedCertificate }
             }
             guard length <= bytes.count - offset else { throw JPKIVerificationError.malformedCertificate }
-            result.append(DERNode(tag: tag, value: Data(bytes[offset..<(offset + length)])))
+            result.append(DERNode(tag: tag, value: Data(bytes[offset..<(offset + length)]),
+                                  encoded: Data(bytes[start..<(offset + length)])))
             offset += length
         }
         return result

@@ -46,10 +46,11 @@ project finished from unit tests, a simulator, a catalog page or a configured UR
 1. The actual signed-card age circuit is implemented and checked with synthetic
    certificates. Validate its deliberately narrow physical-card certificate
    profile on a real card; no physical identity acceptance has been performed.
-2. Integrate the EVM-compatible age prover into the iPhone, including private
-   witness preparation, cancellation, native runtime/artifact pins and measured
-   memory/time. The current shipping native runtime still proves spending policy.
-   Desktop Groth16 proof generation and actual EVM verification now pass, but
+2. Connect the implemented native age prover to the purchase/card UI and measure
+   it on a physical phone. The separate native library, private Swift witness
+   preparation, fixed setup hashes and actual Simulator proving now work.
+   Cancellation discards a completed result; it cannot yet interrupt the backend
+   halfway through. Desktop Groth16 and actual EVM verification pass, but
    this is an unaudited upstream branch with single-party test setup. Production
    setup/security review remains required; no mainnet use is authorized.
 3. Publish matching verifier/gate and configure the Worker only after the native
@@ -234,3 +235,42 @@ the proof result. This prevents one fabricated RPC response from unlocking an
 order. It remains a 2-of-2 provider trust boundary, not light-client verification;
 both-provider collusion is outside that guarantee. x402 USDC settlement does
 not independently invoke the age gate. See the shop README for this assumption.
+
+## Native age increment — 2026-09-13
+
+Branch `codex/native-age-proof` starts at PR #39's review-fix commit `6d85e76`.
+`JPKIAgeWitness` rechecks the government credential and exact card challenge,
+retains the original signed TBS bytes, computes RSA reduction hints in Swift,
+and exposes private inputs only through an in-memory local-prover callback.
+Its synthetic result matches independently computed Python cryptography hashes.
+The public entry cannot inject a root; private input diagnostics are redacted.
+
+`native/age-proof` provides a separate Rust C ABI and Swift package around the
+masked Groth16 backend. It does not clone a cached full prover or write witness
+files. It returns only a verified 384-byte proof and eight public field elements;
+errors return fixed codes and zeroed output. During proving, panic payloads are
+suppressed, including worker threads. Swift/Data copies are not guaranteed to be
+securely erased. No existing Verity/policy runtime source was modified.
+
+Both unsigned iOS libraries build. A named static framework fixes Xcode's shared
+module-map collision with Verity. The application has a separate `AgeProofService`
+actor, fixed public parameter hashes and bounded-memory file hashing. Missing
+runtime/resources remain unavailable. The setup is about 628.7 MiB plus a 12.5 MiB
+verifier; physical phone peak memory and latency are still unmeasured.
+
+Validation: `make test` passed with 76 Swift, 58 Node and 13 Python tests. Unsigned
+application build with both native libraries passed. Host FFI generated two
+different commitments, matched all public inputs, rejected six invalid witnesses,
+and both actual proofs passed the EVM verifier/gate. The focused iPhone 17 Pro
+iOS 26.5 Simulator test **ran and passed, zero skips**: two native age proofs,
+different commitments, underage and changed-order rejection. Result bundle:
+`.build/native-evidence/age-acceptance-20260913`. This is not a physical card test.
+
+Reproduce with `build-age-evm.py`, `build-age-native.py --ios`,
+`stage-age-resources.py`, and the focused `NativeAcceptance/AgeProofTests` target.
+The reviewed public setup hashes are in `config/age-runtime-pins.json` and the
+application's `AgeProofPins.swift`; regenerating the random test setup requires
+reviewing/updating those pins and its matching shop verifier. A new setup can be
+tested separately with `--artifacts .build/age-source-validation/artifacts`.
+No real card, existing private key, device signing identity, public deployment,
+or payment was used. The beer tool, purchase UI and payment connection are next.
