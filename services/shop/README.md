@@ -114,6 +114,34 @@ the compiler, sources or public setup requires reviewing the regenerated
 contracts and this repository pin. Never accept a digest supplied alongside an
 untrusted deployment package, or update the pin merely to silence a mismatch.
 
+Before authorizing deployment, prepare an unsigned transaction plan using only
+the dedicated deployer's **public address**:
+
+```sh
+node scripts/plan-age-deployment.mjs \
+  --deployment-package .build/age-deployment \
+  --deployer 0xYOUR_PUBLIC_DEPLOYER_ADDRESS \
+  --out .build/age-deployment-plan.json
+```
+
+The command reads the independently pinned package and queries the two fixed
+Arc Testnet RPC providers. They must agree on a recent common block, deployer
+nonce and balance. It rejects a pending transaction, a delegated sender,
+occupied predicted contract addresses, a fee spike or a changed nonce during
+estimation. The plan binds each CREATE address, consecutive nonce, exact
+creation bytecode, gate constructor and zero transfer value to chain 5042002.
+It uses the larger provider gas estimate plus 20%, with a 25 gwei fee cap and a
+combined maximum of **0.10 native test USDC** (18 decimals). `fundingRequired`
+reports the shortfall; generating a plan does not establish that it is funded.
+
+Estimation temporarily overrides the sender balance and verifier code inside
+each RPC simulation. It does not fund a wallet or deploy code. The output is a
+new file, refuses overwrite, expires after two minutes and is explicitly **not
+authorization**. Re-run the checks immediately before any separately authorized
+signing. This command has no signing or broadcasting path, reads no credentials
+or environment files, and does not configure the shop from predicted addresses.
+Only confirmed deployments may be staged below.
+
 After explicitly authorized testnet deployment, stage the phone connection with
 public coordinates and that exact package:
 
@@ -150,7 +178,9 @@ card certificate bound to a real shop-created order, runs the actual native ZK
 prover and Solidity verifier, then exercises x402 headers, a real EIP-712
 signature, local EVM transfer, SQLite persistence and restart/retry recovery, including a lost first
 submission resumed from saved transaction bytes by the production queue alarm.
-It also checks the prepared deployed runtimes and rejects mismatched addresses,
+It deploys the pinned contracts using the unsigned plan's exact nonce, bytecode
+and gas limits, checks both predicted addresses and the actual combined fee,
+then checks the prepared deployed runtimes and rejects mismatched addresses,
 a changed RPC bytecode response and use of the same client twice. Each run writes
 an ignored `.build/shop-integration-*/acceptance.json` report.
 

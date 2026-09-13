@@ -3,14 +3,27 @@
 Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
 project finished from unit tests, a simulator, a catalog page or a configured URL.
 
-Current integration: PRs #39–#43 are merged, including signed-card proving,
-purchase integration, pinned deployment artifacts and the order deadline guard.
+Current integration: PRs #39–#44 are merged, including signed-card proving,
+purchase integration, pinned deployment artifacts, the order deadline guard
+and the Arc migration.
 The purchase target is now **Arc Testnet (5042002)** at the user's request.
 The phone, shop and age gate have been migrated; the shop self-facilitates exact
 x402 USDC transfers with a separately approved testnet gas wallet. No public key
 setup, deployment or payment has been performed. See [Arc acceptance, sources
 and remaining work](arc-checkout.md). Earlier dated experiment notes are
 historical and must not be treated as the current deployment plan.
+
+The [unsigned deployment preflight](../services/shop/README.md#prepare-the-matching-public-contracts-without-credentials)
+now prepares both transactions with predicted addresses, exact constructor data
+and a combined 0.10 test USDC fee limit before any signing. The standard checks
+passed (86 Swift, 64 Node and 21 Python tests), along with an unsigned simulator
+build. The synthetic native integration used this plan on an isolated Anvil
+chain and checked actual deployed addresses and total fees before exercising
+proof, purchase and restart recovery. A read-only run against both public Arc
+RPCs also passed using the public diagnostic address `0x1111…1111`; its balance
+is not a project wallet or project funding. Neither run signed or submitted a
+public transaction. Public deployment, hosted readiness and physical acceptance
+remain outstanding.
 
 ## Working increment
 
