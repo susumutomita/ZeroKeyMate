@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {parseArgs} from 'node:util';
 import {loadAgeDeployment,checkAgeDeployment,expectedGateRuntime} from './age-deployment.mjs';
+import {prepareAgeDeploymentPlan} from './plan-age-deployment.mjs';
 import {readFileSync,writeFileSync,mkdtempSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {spawn} from 'node:child_process';
@@ -91,11 +92,24 @@ try {
   const hash=await wallet.deployContract({abi:a.abi,bytecode:'0x'+a.evm.bytecode.object,args});
   const receipt=await client.waitForTransactionReceipt({hash});assert.equal(receipt.status,'success');return receipt.contractAddress;
  };
- const asArtifact=c=>({abi:c.abi,evm:{bytecode:{object:c.bytecode.slice(2)}}});
- const verifier=await deploy(pkg?asArtifact(pkg.verifier):artifact('Verifier.sol','ProvekitGroth16Verifier'));
+ const deploymentPlan=pkg?await prepareAgeDeploymentPlan(pkg,account.address,[client,secondary],{freshlyProvisioned:true}):null;
+ let deploymentFee=0n;
+ const deployPlanned=async index=>{
+  const tx=deploymentPlan.transactions[index];
+  const hash=await wallet.sendTransaction({data:tx.data,nonce:tx.nonce,value:BigInt(tx.value),
+   gas:BigInt(tx.gas),maxFeePerGas:BigInt(tx.maxFeePerGas),maxPriorityFeePerGas:BigInt(tx.maxPriorityFeePerGas)});
+  const receipt=await client.waitForTransactionReceipt({hash});assert.equal(receipt.status,'success');
+  assert.equal(receipt.contractAddress.toLowerCase(),index?deploymentPlan.gate:deploymentPlan.verifier);
+  deploymentFee+=receipt.gasUsed*receipt.effectiveGasPrice;
+  return receipt.contractAddress;
+ };
+ const verifier=pkg?await deployPlanned(0):await deploy(artifact('Verifier.sol','ProvekitGroth16Verifier'));
  const verifierHash=keccak256(await client.getCode({address:verifier}));
- const official=await deploy(pkg?asArtifact(pkg.gate):artifact('MateAgeGate.sol','MateAgeGate'),[verifier,verifierHash]);
+ const official=pkg?await deployPlanned(1):await deploy(artifact('MateAgeGate.sol','MateAgeGate'),[verifier,verifierHash]);
  if(pkg){
+  assert.ok(deploymentFee<=BigInt(deploymentPlan.maximumFee));
+  assert.ok(BigInt(deploymentPlan.maximumFee)<=BigInt(deploymentPlan.budget));
+  writeFileSync(path.join(evidence,'unsigned-deployment-plan.json'),JSON.stringify(deploymentPlan,null,2)+'\n');
   const checked=await checkAgeDeployment(pkg,{verifier,gate:official},[client,secondary]);
   assert.equal(checked.gateCodeHash,keccak256(expectedGateRuntime(pkg,verifier)));
   await assert.rejects(()=>checkAgeDeployment(pkg,{verifier:official,gate:verifier},[client,secondary]));
@@ -191,7 +205,7 @@ try {
  assert.equal((await request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header})).status,200);assert.equal(settles,1);
  const saved=db.prepare('SELECT value FROM orders').get().value;
  for(const secret of ['card_signature','certificate_signature','root_modulus','419900102',signature])assert.equal(saved.includes(secret),false);
- const report={syntheticOnly:true,localChainOnly:true,physicalCard:false,publicFacilitator:false,realUSDC:false,independentRPCOperators:false,workerRoutes:true,realNativeAgeProof:true,realGroth16EVMVerification:true,officialGateRejectedSyntheticRoot:true,damagedProofRejected:true,realEIP712Signature:true,productionSettlementAdapter:true,productionDurableQueueLogic:true,queueSQLiteRestartAfterLostSubmission:true,signedTransactions:signs,localEVMTransfer:true,persistedCompletedOrder:true,restartAndRetryNoSecondSettlement:true,settlements:settles,unsignedPackageContractsVerified:Boolean(pkg)};
+ const report={syntheticOnly:true,localChainOnly:true,physicalCard:false,publicFacilitator:false,realUSDC:false,independentRPCOperators:false,workerRoutes:true,realNativeAgeProof:true,realGroth16EVMVerification:true,officialGateRejectedSyntheticRoot:true,damagedProofRejected:true,realEIP712Signature:true,productionSettlementAdapter:true,productionDurableQueueLogic:true,queueSQLiteRestartAfterLostSubmission:true,signedTransactions:signs,localEVMTransfer:true,persistedCompletedOrder:true,restartAndRetryNoSecondSettlement:true,settlements:settles,unsignedPackageContractsVerified:Boolean(pkg),unsignedPlanAddressesAndGasVerified:Boolean(pkg),deploymentFee:deploymentFee.toString()};
  const reportPath=path.join(evidence,'acceptance.json');
  writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));console.log('Acceptance report: '+path.relative(root,reportPath));
 } finally {db.close();chain.kill('SIGTERM');bridge.kill('SIGTERM');}
