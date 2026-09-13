@@ -1,0 +1,27 @@
+specVersion: 1.3.0
+description: Arc test USDC outflows for an explicitly started Mate spending period.
+repository: https://github.com/susumutomita/ZeroKeyMate
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: ArcUSDC
+    network: arc-testnet
+    source:
+      address: '0x3600000000000000000000000000000000000000'
+      abi: USDC
+      # Public ZeroKeyMate verifier deployment. This is a coverage boundary,
+      # not a claim that a buyer's full lifetime/weekly history is indexed.
+      startBlock: 61850901
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities: [Account, Spend]
+      abis:
+        - name: USDC
+          file: ./abis/USDC.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/mapping.ts
