@@ -13,6 +13,7 @@ private struct SavedShopOrder: Codable {
     var paymentExpiresAt: UInt64?
     var paymentRetiredAtBlockHash: String?
     var locallyProvenOrderHash: String?
+    var proofTiming: AgeProofTiming?
     var completed = false
 }
 private struct PendingShopCreation: Codable {
@@ -27,12 +28,18 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
 }
 
 @MainActor final class ShopCheckout: ObservableObject {
-    enum Phase: Equatable { case initial, checking, review, card, readingCard, proving, verifying, paymentApproval, paying, pending, complete, expired, unavailable }
+    enum Phase: Equatable { case initial, checking, review, funding, card, readingCard, proving, verifying, paymentApproval, paying, pending, complete, expired, unavailable }
     @Published private(set) var phase = Phase.initial
     @Published private(set) var order: AgeShopOrder?
     @Published private(set) var message: String?
     @Published private(set) var storeURL: URL?
     @Published private(set) var canStart = false
+    @Published private(set) var fundingAddress: String?
+    @Published private(set) var proofStartedAt: ContinuousClock.Instant?
+    var proofTiming: AgeProofTiming? {
+        guard let saved, Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash) else { return nil }
+        return saved.proofTiming
+    }
     let reader = MyNumberNFCService()
     private let prover = AgeProofService()
     private let storageKey = "arc-testnet-age-shop-order-v1"
@@ -94,10 +101,25 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     }
 
     func startOrder(wallet: WalletService) {
-        guard !busy, phase == .review, order == nil, canStart, client != nil, let connection else { return }
+        guard !busy, [.review, .funding].contains(phase), order == nil, canStart, client != nil, let connection else { return }
         guard let payer = wallet.ownerAddress else { message = "Connect your wallet first. No order has been sent."; return }
         phase = .checking; message = nil
         run { ticket in
+            let primary = EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID)
+            let independent = EthereumRPC(url: "https://rpc.drpc.testnet.arc.io", chainID: AgeShopProtocol.chainID)
+            async let firstHeight = primary.finalizedShopHeight()
+            async let secondHeight = independent.finalizedShopHeight()
+            let heights = try await (firstHeight, secondHeight)
+            let height = min(heights.0, heights.1)
+            async let firstFunds = primary.shopFunds(payer: payer, blockNumber: height)
+            async let secondFunds = independent.shopFunds(payer: payer, blockNumber: height)
+            let funds = try await (firstFunds, secondFunds)
+            try self.check(ticket)
+            guard wallet.ownerAddress?.lowercased() == payer.lowercased(), funds.0 == funds.1 else { throw ProductError.invalidResponse }
+            guard funds.0.sufficient else {
+                self.fundingAddress = payer; self.phase = .funding; return
+            }
+            self.fundingAddress = nil
             let key = String(CanonicalBytes.hexString(try LocalSecrets.random32()).dropFirst(2))
             let pending = PendingShopCreation(connection: connection, key: key, payer: payer)
             // Even a lost creation response must resume the same capability.
@@ -127,17 +149,20 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             let credential = try await self.reader.authenticate(pin: pin, challenge: challenge,
                 expiresAt: Date(timeIntervalSince1970: Double(order.expiresAt)))
             try self.check(ticket); self.phase = .proving
+            self.proofStartedAt = .now
             let proof = try await self.prover.prove(authentication: credential.authentication,
                 orderHash: CanonicalBytes.hex(order.orderHash, count: 32), nonce: CanonicalBytes.hex(order.paymentNonce, count: 32),
                 referenceTime: order.createdAt, expiresAt: order.expiresAt)
             try self.check(ticket)
+            self.proofStartedAt = nil
             // Only the local authenticated-card prover can establish this
             // marker. No server field is copied into local proof evidence.
             guard var local = self.saved, local.order.orderHash == order.orderHash else { throw AgeShopError.invalidOrder }
             local.locallyProvenOrderHash = order.orderHash
+            local.proofTiming = proof.timing
             try LocalSecrets.write(local, key: self.storageKey); self.saved = local
             self.phase = .verifying
-            let verified = try await client.verifyAge(order: order, key: saved.key, proof: proof)
+            let verified = try await client.verifyAge(order: order, key: saved.key, proof: proof.proof)
             try self.check(ticket); try self.store(verified)
             self.phase = .paymentApproval
         }
@@ -263,7 +288,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         let ticket = UUID(); generation = ticket
         operation = Task { [weak self] in
             guard let self else { return }
-            defer { if self.generation == ticket { self.operation = nil } }
+            defer { if self.generation == ticket { self.operation = nil; self.proofStartedAt = nil } }
             do { try await body(ticket) }
             catch is CancellationError { }
             catch {
@@ -282,6 +307,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     }
     func cancel() {
         generation = UUID(); operation?.cancel(); operation = nil; reader.cancel()
+        proofStartedAt = nil
         // Saved payment state intentionally survives closing/backgrounding.
         // Foregrounding may check status, but must never resume PIN use or sign.
         phase = .initial; canStart = false

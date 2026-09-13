@@ -126,7 +126,7 @@ final class ProductUITests: XCTestCase {
         let example=app.buttons["try-agent-request"]
         XCTAssertTrue(example.waitForExistence(timeout:5));example.tap()
         let input=app.textFields["message-input"].exists ? app.textFields["message-input"] : app.textViews["message-input"]
-        XCTAssertEqual(input.value as? String,"Translate this into Japanese: The meeting starts at ten.")
+        XCTAssertEqual(input.value as? String,"Buy me one beer.")
         XCTAssertTrue(app.buttons["send-message"].isEnabled)
         XCTAssertFalse(app.buttons["continue-request"].exists)
         capture("editable-agent-request")

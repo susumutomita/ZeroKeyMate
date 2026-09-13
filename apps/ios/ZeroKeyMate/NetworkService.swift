@@ -241,6 +241,29 @@ actor EthereumRPC {
         guard let block, block.number.hasPrefix("0x"), let height = UInt64(block.number.dropFirst(2), radix: 16) else { throw ProductError.invalidResponse }
         return height
     }
+    struct ShopFunds: Sendable, Equatable {
+        let blockHash: String
+        let balance: Data
+        let sufficient: Bool
+    }
+    func shopFunds(payer: String, blockNumber: UInt64) async throws -> ShopFunds {
+        guard chainID == AgeShopProtocol.chainID else { throw AgeShopError.invalidPayment }
+        let address = try CanonicalBytes.hexString(CanonicalBytes.hex(payer, count: 20)).dropFirst(2)
+        try await ensureNetwork()
+        let height = "0x" + String(blockNumber, radix: 16)
+        let block: Block? = try await call(method: "eth_getBlockByNumber", params: [height, false])
+        guard let block, block.number.lowercased() == height else { throw ProductError.invalidResponse }
+        _ = try CanonicalBytes.hex(block.hash, count: 32)
+        // ERC-20 balanceOf, six-decimal USDC. Never use native 18-decimal units
+        // or the unrelated policy-vault balance to decide purchase readiness.
+        let data = "0x70a08231" + String(repeating: "0", count: 24) + address
+        let encoded: String? = try await call(method: "eth_call", params: [["to": AgeShopProtocol.token, "data": data], height])
+        guard let encoded else { throw ProductError.invalidResponse }
+        let balance = try CanonicalBytes.hex(encoded, count: 32)
+        guard let required = UInt64(AgeShopProtocol.amount) else { throw AgeShopError.invalidPayment }
+        let threshold = Data(repeating: 0, count: 24) + CanonicalBytes.u64(required)
+        return ShopFunds(blockHash: block.hash.lowercased(), balance: balance, sufficient: !balance.lexicographicallyPrecedes(threshold))
+    }
     func confirmUnusedShop(_ order: AgeShopOrder, validBefore: UInt64, blockNumber: UInt64) async throws -> String {
         guard chainID == AgeShopProtocol.chainID, order.chainId == chainID,
               order.token.lowercased() == AgeShopProtocol.token,

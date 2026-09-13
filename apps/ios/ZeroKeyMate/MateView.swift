@@ -142,7 +142,7 @@ private struct CompanionWelcomeSheet:View {
         Form {
             Section {
                 Text("Your iPhone. Your companion.").font(.title2)
-                Text("Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone.")
+                Text("Ask Mate to buy a beer. Your iPhone proves you're 20 or older, while your name and birth date stay private.")
                 Text("While we spend time together, Mate uses the camera to follow your face and the microphone to listen. Everyday conversation is processed on this iPhone.")
                 Text("Quiet moments do not end our time together. Say おやすみ to rest and stop the camera and microphone. Removing the stand or leaving the app also stops the session.")
                 Text("Tap once to wake Mate. Say おやすみ to rest, then tap to wake again. Touch and hold the face for controls and settings. You can also swipe up for controls.")
@@ -327,10 +327,10 @@ private struct ConversationSheet:View {
                             VStack(alignment:.leading,spacing:12){
                                 Text("Where shall we start?").font(.system(size:28,weight:.regular)).tracking(-0.7)
                                 SectionNote(text:"This conversation stays on your iPhone. Before asking an external service, review the text and price.")
-                                Button("Try a translation request") {
-                                    input=L10n.text("Translate this into Japanese: The meeting starts at ten.")
+                                Button("Try a beer purchase") {
+                                    input=L10n.text("Buy me one beer.")
                                 }.accessibilityIdentifier("try-agent-request")
-                                SectionNote(text:"Edit the example, then send it. External requests need a connected shop and approved spending rules.")
+                                SectionNote(text:"Send the request to open Mate's store. You'll tap your My Number card and approve 0.10 test USDC before payment. No physical delivery.")
                             }.padding(.top,36)
                         }
                         ForEach(model.messages){message in

@@ -43,10 +43,12 @@ The x402 token transfer does not itself invoke the age gate: the Worker enforces
 the verification-before-fulfillment boundary. Both-provider agreement is an RPC
 trust assumption. See [the shop protocol](../services/shop/README.md).
 
-The signed device build currently requires an Apple Account in Xcode and an
-app-specific provisioning profile with NFC Tag Reading. The existing wildcard
-profile lacks that entitlement. Do not remove NFC or install a nonfunctional
-card flow to call this acceptance complete.
+The native app was built, installed and launched on the physical iPhone on
+2026-09-13. Its signed entitlements include NFC Tag Reading (`TAG`), and the
+installed bundle contains the live shop origin, merchant, age gate and pinned
+runtime hash shown above. This resolves the earlier Apple Account/provisioning
+blocker; actual card authentication, proving and purchase acceptance still
+require the user's interaction on that phone.
 
 ## Proving and prize claims
 
@@ -57,6 +59,26 @@ of standard ProveKit age-proof performance. Its setup is about 629 MiB plus a
 12.5 MiB verifier. Do not claim fast physical-phone proving until measured.
 The experimental backend and single-party test setup are not for mainnet.
 World ID, AgentKit and Selfie Check are not integrated into this checkout.
+
+The purchase screen now shows elapsed local-processing time while proving and
+the measured successful duration afterward, retained with that order on the
+phone. The monotonic timer covers `AgeProofService.prove`: resource preparation
+if not already cached, witness preparation, native proving/local verification
+and output validation. It excludes card/PIN interaction, earlier store-readiness
+checks and network verification/payment. A separate native-call duration is
+kept locally; neither timing value is submitted to the shop. Failure or
+cancellation cannot create a successful timing record. This instrumentation is
+not itself a physical measurement, a peak-memory measurement or a speed claim.
+
+Purchase onboarding now stays in the purchase screen: Privy email sign-in and
+buyer-wallet preparation do not require the separate specialist vault or an
+extra execution wallet. Before creating an order or asking for a card, Mate
+reads the buyer's six-decimal USDC token balance at the same finalized height
+through both fixed Arc RPC providers and requires matching block hashes and
+balances. Less than 0.10 test USDC shows the buyer address and Circle faucet
+instructions; the user completes the faucet request and returns to recheck.
+The merchant sponsors settlement gas. This preflight is not a balance
+reservation; settlement still checks the actual authorization and receipt.
 
 The earlier three proposed targets were Arc/Circle Agent Stack, Privy financial
 flow and The Graph AI use case. Their completion remains outstanding:

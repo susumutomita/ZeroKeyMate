@@ -64,6 +64,14 @@ final class WalletService: ObservableObject {
         try await restore()
     }
     func prepareWallets() async throws {
+        try await prepareWallets(includeAgent: true)
+    }
+    /// The direct x402 purchase needs only the buyer wallet. Do not create an
+    /// extra execution key or require the older policy-vault setup here.
+    func prepareShopWallet() async throws {
+        try await prepareWallets(includeAgent: false)
+    }
+    private func prepareWallets(includeAgent: Bool) async throws {
         guard !busy else { throw ProductError.busy }
         busy = true; defer { busy = false }
         let sdk = try await client()
@@ -83,6 +91,7 @@ final class WalletService: ObservableObject {
             roles = WalletRoles(userID: user.id, owner: ownerWallet.address, agent: nil)
             try LocalSecrets.write(roles, key: "wallet-roles")
         }
+        if !includeAgent { ownerAddress = ownerWallet?.address; return }
         if let address = roles?.agent {
             guard let wallet = user.embeddedEthereumWallets.first(where: { $0.address.lowercased() == address.lowercased() }) else {
                 throw ProductError.unavailable("The registered execution key could not be found. Revoke the mandate before setting it up again.")
