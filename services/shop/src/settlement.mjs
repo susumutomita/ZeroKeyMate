@@ -2,7 +2,7 @@
 // not an HTTP endpoint. Only the age-verified, reserved order path calls settle.
 // ARC_SETTLER_KEY is a separately authorized, testnet-only Worker secret; never
 // use a buyer key, model output, .env fallback, or general transaction payload.
-import {createPublicClient,createWalletClient,http,parseAbi,parseSignature,verifyTypedData} from 'viem';
+import {createPublicClient,createWalletClient,http,encodeFunctionData,keccak256,parseAbi,parseSignature,verifyTypedData} from 'viem';
 import {privateKeyToAccount} from 'viem/accounts';
 import {arcTestnet} from 'viem/chains';
 import {CHAIN_ID,NETWORK,USDC,PRODUCTS,address,hex32} from './protocol.mjs';
@@ -25,17 +25,18 @@ export function settlementConfigured(env) {
 // Readiness advertises only the locally configured settlement implementation.
 // No third-party endpoint is presumed to support Arc from its marketing page.
 export async function supportedSettlement(env,{client}={}) {
- if(!settlementConfigured(env))return {kinds:[]};
+ if(!settlementConfigured(env) || !env.ARC_SETTLEMENT?.getByName)return {kinds:[]};
  const rpc=client??createPublicClient({chain:arcTestnet,transport:http('https://rpc.testnet.arc.io',{timeout:4000,retryCount:0})});
  const [chain,balance,price]=await Promise.all([rpc.getChainId(),rpc.getBalance({address:env.ARC_SETTLER_ADDRESS}),rpc.getGasPrice()]);
  const ready=chain===CHAIN_ID && balance>=SETTLEMENT_GAS*SETTLEMENT_MAX_FEE && price<=SETTLEMENT_MAX_FEE;
  return {kinds:ready?[{x402Version:2,scheme:'exact',network:NETWORK}]:[]};
 }
 
-export function createArcSettlement(env,{client,wallet,clock=()=>Math.floor(Date.now()/1000)}={}) {
+export function createArcTransaction(env,{client,secondary,wallet,clock=()=>Math.floor(Date.now()/1000)}={}) {
  if(!settlementConfigured(env))throw new Error('settlement_unavailable');
  const account=privateKeyToAccount(env.ARC_SETTLER_KEY);
  const rpc=client??createPublicClient({chain:arcTestnet,transport:http('https://rpc.testnet.arc.io',{timeout:4000,retryCount:0})});
+ const other=secondary??createPublicClient({chain:arcTestnet,transport:http('https://rpc.drpc.testnet.arc.io',{timeout:4000,retryCount:0})});
  const signer=wallet??createWalletClient({chain:arcTestnet,account,transport:http('https://rpc.testnet.arc.io',{timeout:8000,retryCount:0})});
  async function validate(payload,required) {
   if(payload?.x402Version!==2 || !address(env.PAYMENT_RECIPIENT))throw new Error('invalid_payment');
@@ -63,17 +64,41 @@ export function createArcSettlement(env,{client,wallet,clock=()=>Math.floor(Date
    try {await validate(payload,required);return {isValid:true,payer:payload.payload.authorization.from};}
    catch {return {isValid:false,invalidReason:'invalid_exact_arc_payment'};}
   },
-  async settle(payload,required) {
+  sponsor:account.address.toLowerCase(),
+  async nonce(blockTag) {
+   const values=await Promise.all([rpc,other].map(async provider=>{
+    if(await provider.getChainId()!==CHAIN_ID)throw new Error('wrong_chain');
+    return provider.getTransactionCount({address:account.address,blockTag});
+   }));
+   if(values[0]!==values[1] || !Number.isSafeInteger(values[0]) || values[0]<0)throw new Error('settlement_nonce_unconfirmed');
+   return values[0];
+  },
+  async prepare(payload,required,nonce) {
    const args=await validate(payload,required);
    // Arc silently drops fees below 20 gwei. Never exceed the reviewed USDC cap
    // when congestion changes; the existing pending-order flow handles retries.
    if(await rpc.getGasPrice()>SETTLEMENT_MAX_FEE)throw new Error('settlement_fee_cap');
-   const transaction=await signer.writeContract({chain:arcTestnet,account,address:USDC,abi,
-    functionName:'transferWithAuthorization',args,gas:SETTLEMENT_GAS,
-    maxFeePerGas:SETTLEMENT_MAX_FEE,maxPriorityFeePerGas:1000000000n});
-   // This is submission, not purchase completion. The caller persists the hash
-   // and requires matching Transfer + AuthorizationUsed receipts from two RPCs.
-   return {success:true,network:NETWORK,payer:payload.payload.authorization.from,transaction};
+   if(!Number.isSafeInteger(nonce) || nonce<0)throw new Error('invalid_nonce');
+   const raw=await signer.signTransaction({chain:arcTestnet,account,to:USDC,
+    data:encodeFunctionData({abi,functionName:'transferWithAuthorization',args}),nonce,type:'eip1559',
+    gas:SETTLEMENT_GAS,maxFeePerGas:SETTLEMENT_MAX_FEE,maxPriorityFeePerGas:1000000000n});
+   return {raw,nonce,sponsor:account.address.toLowerCase(),result:{success:true,network:NETWORK,
+    payer:payload.payload.authorization.from,transaction:keccak256(raw)}};
+  },
+  async broadcast(record) {
+   if(record.sponsor!==account.address.toLowerCase())throw new Error('settlement_configuration_changed');
+   if(await rpc.getChainId()!==CHAIN_ID)throw new Error('wrong_chain');
+   const hash=await rpc.sendRawTransaction({serializedTransaction:record.raw});
+   if(hash.toLowerCase()!==record.result.transaction)throw new Error('settlement_hash_mismatch');
   }
  };
+}
+
+// Requests from all Worker instances use the same durable coordinator for this
+// sponsor. Only the already age-verified and durably reserved order reaches it.
+export function createArcSettlement(env,options={}) {
+ const transaction=createArcTransaction(env,options);
+ if(!env.ARC_SETTLEMENT?.getByName)throw new Error('settlement_unavailable');
+ return {verify:transaction.verify,settle:(payload,required)=>
+  env.ARC_SETTLEMENT.getByName(`${CHAIN_ID}:${transaction.sponsor}`).settle(payload,required)};
 }

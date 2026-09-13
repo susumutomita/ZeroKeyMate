@@ -1,6 +1,6 @@
 # Mate Atelier
 
-Workers static assets + D1 + x402 v2, testnet only. The storefront currently
+Workers static assets + D1 + a sponsor Durable Object + x402 v2, testnet only. The storefront currently
 reports checkout unavailable. The repository now contains the signed-card age
 circuit, a directly verifying EVM gate and the iPhone purchase integration. Public
 deployment and the physical card-to-payment acceptance are still pending. See
@@ -62,7 +62,8 @@ event. After one minute, a client can resubmit the **exact original**
 `PAYMENT-SIGNATURE` to `/pay`. The server rechecks age approval and reserves a new
 attempt atomically; it never issues a replacement payment challenge, nonce or
 longer validity. Keep that header securely on the phone while pending; the Worker
-stores only its hash. GET only reconciles and never submits a payment. If the
+stores only its hash in D1. The separate sponsor Durable Object journals the
+exact signed public USDC transaction before broadcast, as described below. GET only reconciles and never submits a payment. If the
 authorization expires, both fixed providers must agree at a common finalized
 block that the saved nonce is unused past its signed deadline before the order
 can enter `payment_expired`. Otherwise it stays pending. The phone repeats that
@@ -147,7 +148,8 @@ node scripts/test-shop-native-e2e.mjs --deployment-package .build/age-deployment
 The test creates fresh RSA and EVM keys in memory, uses a generated synthetic
 card certificate bound to a real shop-created order, runs the actual native ZK
 prover and Solidity verifier, then exercises x402 headers, a real EIP-712
-signature, local EVM transfer, SQLite persistence and restart/retry recovery.
+signature, local EVM transfer, SQLite persistence and restart/retry recovery, including a lost first
+submission resumed from saved transaction bytes by the production queue alarm.
 It also checks the prepared deployed runtimes and rejects mismatched addresses,
 a changed RPC bytecode response and use of the same client twice. Each run writes
 an ignored `.build/shop-integration-*/acceptance.json` report.
@@ -186,6 +188,23 @@ domain, expired authorization or fee above the cap. Native gas uses **18**
 decimals: 150,000 gas at 25 gwei caps each submitted attempt at **0.00375 test
 USDC**. Its funding balance bounds aggregate exposure. Never fund this key with
 real assets on any network. No unrestricted facilitator endpoint is exposed.
+
+`ARC_SETTLEMENT` routes all payments for one sponsor address to the same
+SQLite-backed Durable Object. It serializes nonce allocation across Worker
+instances, waits for both providers to confirm the previous sponsor nonce is
+finalized, and refuses an unknown pending transaction or nonce disagreement.
+Do not use the dedicated sponsor wallet outside this queue.
+
+Before broadcast it atomically saves the exact signed transaction and a retry
+alarm. A lost response, process restart or alarm can only rebroadcast those same
+bytes, never replace the nonce, extend the buyer's deadline, or raise the gas fee.
+The alarm checks again every minute until the sponsor nonce is finalized; an
+expired authorization can only revert, not transfer funds. The final record
+retains the transaction hash/payer/nonce and removes the raw signed bytes. Records
+are capped at 1,000, matching the shop's bounded order capacity. These are public
+payment data, not card inputs or private keys. No payment HTTP header is stored
+in D1. Purchase completion still requires the exact successful receipt evidence;
+sponsor nonce consumption alone can also mean a reverted transaction.
 
 A submitted transaction is not a completed order. The Worker and phone require
 matching receipt evidence from both fixed providers. Only ERC-20 logs emitted

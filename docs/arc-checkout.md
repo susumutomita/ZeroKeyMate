@@ -11,7 +11,7 @@ checkout. It does not enable mainnet or perform a public deployment.
 sequenceDiagram
     participant User
     participant Mate as iPhone / local AI and prover
-    participant Shop as Workers + D1
+    participant Shop as Workers + D1 + sponsor Durable Object
     participant Arc as Arc Testnet / two RPC providers
     User->>Mate: Ask for one beer
     Mate->>Shop: Create exact 0.10 USDC order
@@ -24,12 +24,18 @@ sequenceDiagram
     Shop-->>Mate: x402 PAYMENT-REQUIRED
     User->>Mate: Approve this purchase
     Mate->>Shop: Exact signed USDC authorization
-    Note over Shop: Reserve order; verify signature; simulate USDC
+    Note over Shop: Reserve order; verify signature; simulate USDC; persist signed transaction
     Shop->>Arc: Sponsor gas for transferWithAuthorization
     Shop->>Arc: Confirm Transfer and AuthorizationUsed
     Shop-->>Mate: Persisted completed order
     Mate->>Arc: Independently confirm receipt
 ```
+
+A Durable Object serializes all sends from the same sponsor. It persists the
+exact signed public transaction and retry alarm before broadcast; restarts and
+retries reuse that transaction. Two providers must confirm sponsor nonce
+finalization before it allocates the next one. Keys and card fields are never
+stored in that journal.
 
 The sponsor key belongs to a new testnet-only wallet, configured only after
 explicit approval as a Cloudflare Worker secret. The buyer signs through the iPhone's Privy embedded-wallet SDK; the merchant

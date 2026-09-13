@@ -115,8 +115,8 @@ specific credential and action, not to paste secrets into chat:
 | --- | --- | --- |
 | Publish test storefront | Cloudflare account authorization for this Worker/D1; no card data | Not used |
 | Install iOS app | Apple Development signing identity, used locally by Xcode | No device signing performed |
-| Deploy verifier | Explicitly approved testnet-only deployer and bounded Base Sepolia gas | No wallet key read or used |
-| Buy one test item | iPhone signs the exact 0.10 test-USDC order for Base Sepolia; facilitator receives that limited authorization | Not signed or submitted |
+| Deploy verifier | Explicitly approved testnet-only deployer and bounded Arc Testnet USDC gas | No wallet key read or used |
+| Buy one test item | iPhone signs the exact 0.10 test-USDC order for Arc Testnet; the shop receives that limited authorization | Not signed or submitted |
 | Authenticate physical card | User enters the relevant PIN on iPhone and touches card; private credential remains in memory on device | User will do this when awake |
 
 Do not claim anonymous payments: the payer, recipient and amount are public.
