@@ -31,8 +31,9 @@ final class MateModel:ObservableObject {
     var onInterruption:(()->Void)?
     private var observation:FrameObservation?
     private var gaze=CompanionGaze()
-    private let camera=CameraService()
-    private let dock=DockService()
+    private let camera:any CameraCapturing
+    private let dock:any DockControlling
+    private let cameraPermission:@Sendable () async -> Bool
     private var intent=CaptureIntent()
     private var cameraRunning=false
     private var lastTrackingRequest:Bool?
@@ -40,6 +41,7 @@ final class MateModel:ObservableObject {
     private var lastTrackingButtonEnabled=false
     private var revision:UInt64=0
     private var reconciliationTask:Task<Void,Never>?
+    private var dockReconciliationTask:Task<Void,Never>?
     private var notifications=Set<AnyCancellable>()
     var isTransitioning:Bool {cameraPhase == .starting || cameraPhase == .stopping}
     var currentObservation:String {
@@ -47,7 +49,10 @@ final class MateModel:ObservableObject {
               Date().timeIntervalSince(observation.capturedAt)<3 else {return "No current camera observations. Do not claim to see."}
         return observation.description
     }
-    init() {
+    init(camera:any CameraCapturing = CameraService(), dock:(any DockControlling)? = nil,
+         cameraPermission:@escaping @Sendable () async -> Bool = { await CameraService.requestPermission() },
+         observeSystem:Bool = true) {
+        self.camera=camera;self.dock=dock ?? DockService();self.cameraPermission=cameraPermission
         Task{[weak self] in
             guard let self else{return}
             await self.camera.setObserver{[weak self] value in
@@ -64,8 +69,8 @@ final class MateModel:ObservableObject {
                 }
             }
         }
-        dock.onTrackingSubjects={[weak self] count in self?.dockTrackingSubjects=count}
-        dock.observe{[weak self] error in
+        self.dock.onTrackingSubjects={[weak self] count in self?.dockTrackingSubjects=count}
+        self.dock.observe{[weak self] error in
             guard let self else{return}
             let wasConnected=self.dockConnected
             if wasConnected != self.dock.isConnected || self.lastTrackingButtonEnabled != self.dock.trackingButtonEnabled {
@@ -77,9 +82,10 @@ final class MateModel:ObservableObject {
             if wasConnected && !self.dockConnected{self.intent.requestStop();self.onDetach?()}
             self.scheduleReconciliation()
         }
+        guard observeSystem else{return}
         for name in [AVCaptureSession.wasInterruptedNotification,AVCaptureSession.runtimeErrorNotification] {
             NotificationCenter.default.publisher(for:name).receive(on:DispatchQueue.main).sink{[weak self] _ in
-                guard let self,self.cameraRunning || self.isTransitioning else{return}
+                guard let self,self.intent.shouldCapture,self.cameraRunning || self.isTransitioning else{return}
                 self.message="The camera was interrupted. Tap Start camera to resume."
                 self.intent.requestStop();self.scheduleReconciliation();self.onInterruption?()
             }.store(in:&notifications)
@@ -123,16 +129,24 @@ final class MateModel:ObservableObject {
         return cameraPhase == .on && captureRequested
     }
     func stopCapture(){intent.requestStop();scheduleReconciliation()}
-    func stopCaptureAndWait() async throws {
+    func stopCaptureAndWait(timeout:Duration = .seconds(5)) async throws {
         stopCapture()
-        if let reconciliationTask { await reconciliationTask.value }
+        let deadline=ContinuousClock.now.advanced(by:timeout)
+        // Only actual camera shutdown gates NFC. DockKit may never resolve an
+        // accessory command; waiting for that task also used to block NFC.
+        while cameraRunning || cameraPhase != .off {
+            try Task.checkCancellation()
+            guard ContinuousClock.now < deadline else { throw CameraError.stopTimedOut }
+            try await Task.sleep(for:.milliseconds(20))
+        }
         try Task.checkCancellation()
-        guard !captureRequested, !cameraRunning, cameraPhase == .off else { throw CameraError.unavailable }
+        guard !captureRequested else { throw CameraError.stopTimedOut }
     }
     private func scheduleReconciliation() {
         revision &+= 1;captureRequested=intent.shouldCapture
         reactionGate.update(allowed:reactionAllowed)
         if !intent.shouldCapture{observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0}
+        scheduleDockReconciliation()
         guard reconciliationTask == nil else{return}
         reconciliationTask=Task{[weak self] in
             guard let self else{return}
@@ -143,22 +157,9 @@ final class MateModel:ObservableObject {
         var processedRevision:UInt64
         repeat {
             processedRevision=revision
-            if !approvalPending || !dock.isConnected { inputStandStopped=false }
-            if approvalPending, dock.isConnected, !inputStandStopped {
-                do {
-                    // Disable tracking and stop residual motion before camera
-                    // shutdown so the stand holds its pose during card input.
-                    try await dock.setTrackingEnabled(false)
-                    try await dock.stopMotionForInput()
-                    lastTrackingRequest=false; trackingEnabled=false
-                    inputStandStopped=true
-                } catch {
-                    dockMessage="The stand could not stop for input. Lift the phone off the stand to continue."
-                }
-            }
             if intent.shouldCapture && !cameraRunning {
                 cameraPhase = .starting
-                let allowed=await CameraService.requestPermission()
+                let allowed=await cameraPermission()
                 guard intent.shouldCapture else{cameraPhase = .off;continue}
                 if !allowed {
                     message="Camera access is not allowed. You can change this in iPhone Settings."
@@ -179,6 +180,35 @@ final class MateModel:ObservableObject {
                 cameraPhase = .stopping
                 await camera.stop();cameraRunning=false;cameraPhase = .off
                 observation=nil;gaze.reset();horizontalFocus=0;verticalFocus=0;detectedFaces=0;dockTrackingSubjects=0
+            }
+            if processedRevision == revision { revision &+= 1; processedRevision=revision }
+            scheduleDockReconciliation()
+        }while processedRevision != revision
+    }
+    private func scheduleDockReconciliation() {
+        guard dockReconciliationTask == nil else{return}
+        dockReconciliationTask=Task{[weak self] in
+            guard let self else{return}
+            await self.reconcileDock();self.dockReconciliationTask=nil
+        }
+    }
+    // All motor writes remain serialized, independently of camera lifetime.
+    private func reconcileDock() async {
+        var processedRevision:UInt64
+        repeat {
+            processedRevision=revision
+            if !approvalPending || !dock.isConnected { inputStandStopped=false }
+            if approvalPending, dock.isConnected, !inputStandStopped {
+                do {
+                    // Disable tracking and stop residual motion independently of camera
+                    // shutdown so the stand holds its pose during card input.
+                    try await dock.setTrackingEnabled(false)
+                    try await dock.stopMotionForInput()
+                    lastTrackingRequest=false; trackingEnabled=false
+                    inputStandStopped=true
+                } catch {
+                    dockMessage="The stand could not stop for input. Lift the phone off the stand to continue."
+                }
             }
             // Configure system tracking after an explicit camera start. The physical
             // tracking button is telemetry, not a prerequisite for enabling the API:
@@ -202,7 +232,7 @@ final class MateModel:ObservableObject {
                     // stops its motion before returning; never enqueue it again.
                 }catch{
                     dockMessage="The stand reaction stopped. Rest Mate and start again."
-                    intent.requestStop();captureRequested=false;revision &+= 1;onInterruption?()
+                    intent.requestStop();scheduleReconciliation();onInterruption?()
                 }
                 reactionGate.finish(ticket);reactionRunning=false;lastTrackingRequest=nil
             }
@@ -222,4 +252,5 @@ final class MateModel:ObservableObject {
             }
         }while processedRevision != revision
     }
+
 }

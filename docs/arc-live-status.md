@@ -95,3 +95,29 @@ flow and The Graph AI use case. Their completion remains outstanding:
 
 Neither local ZK nor use of ProveKit alone establishes eligibility for a
 [World prize](https://ethglobal.com/events/ethonline2026/prizes/world).
+
+
+## Card-start and purchase interaction follow-up
+
+The 0.3.0 (4) app separates camera shutdown from the serialized DockKit motor
+commands. A nonresponsive stand can no longer hold the camera shutdown task.
+Checkout waits for actual camera OFF for at most five seconds; CoreNFC has an
+eight-second activation deadline and only shows the hold-card state after its
+activation callback. Timeout and cancellation clear the PIN without retrying.
+These changes address a reproducible software wait; they are not confirmation
+that the user's physical card now authenticates.
+
+A current request for one beer can start its order automatically after shop,
+wallet and matching two-RPC balance checks. This creates the order only; card
+interaction and the exact payment signature still require the user. Short
+spoken guidance follows checkout state in the conversation language, while
+display language remains separately selectable (English by default). The
+purchase screen keeps long explanations in Purchase details.
+
+Validation: `make test`, simulator build, 12 native regression/checkout tests
+and the language-switch UI test pass. The regression tests include an
+indefinitely blocked stand command, actual-camera-stop gating, stop during
+startup, foreground recovery and cancellation. They use injected hardware,
+not physical stand/card results. An opt-in physical NFC activation-only test
+opens and immediately closes the system reader without connecting to a card
+or sending an APDU; it does not authenticate a card or prove an age.

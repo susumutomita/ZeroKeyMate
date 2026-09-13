@@ -6,6 +6,7 @@ struct ShopPurchaseSheet: View {
     @ObservedObject var wallet: WalletService
     @StateObject private var checkout = ShopCheckout()
     @State private var pin = ""
+    @State private var automaticOrderStarted = false
     // Keep the destination across the temporary checking phase when the user
     // returns from Mail. The one-use code remains local to the child view.
     @State private var buyerEmail = ""
@@ -33,7 +34,7 @@ struct ShopPurchaseSheet: View {
     }
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .center, spacing: 20) {
                     Image(systemName: checkout.phase == .complete ? "checkmark.seal.fill" : "mug.fill")
                         .font(.system(size: 48)).foregroundStyle(checkout.phase == .complete ? Color.green : Color.orange)
@@ -45,16 +46,12 @@ struct ShopPurchaseSheet: View {
                     }
                 }
                 Text(L10n.text(heading)).font(.title2.bold()).accessibilityIdentifier("shop-phase")
-                if let url = checkout.storeURL {
-                    Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }.font(.subheadline)
-                }
                 if let message = checkout.message {
                     Text(L10n.text(message)).foregroundStyle(.secondary).accessibilityIdentifier("shop-message")
                 }
                 switch checkout.phase {
                 case .review:
-                    Text("Mate will place this order, ask you to tap your My Number card, and prove your age on this phone. You'll approve the exact test payment with Face ID or your device passcode.")
-                    privacy
+                    Text("I’ll get one beer. First, let’s confirm your age.")
                     if wallet.ownerAddress == nil {
                         ShopWalletConnection(wallet: wallet, email: $buyerEmail, sentTo: $buyerCodeSentTo)
                     } else {
@@ -72,7 +69,8 @@ struct ShopPurchaseSheet: View {
                     Button("Check funds and start this order") { checkout.startOrder(wallet: wallet) }
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .card:
-                    Text("Use the signature PIN: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
+                    Text("Signature PIN · 6–16 letters and numbers")
+                        .font(.subheadline).foregroundStyle(.secondary)
                     SecureField("Signature PIN", text: $pin)
                         // This card credential is entered for this operation;
                         // it is not a website password to save or fill.
@@ -82,10 +80,9 @@ struct ShopPurchaseSheet: View {
                         .onSubmit { startCardRead() }
                         .textFieldStyle(.roundedBorder).accessibilityIdentifier("shop-signature-pin")
                     if !pin.isEmpty && !JPKICardReader.validSigningPIN(pin) {
-                        Text("Use 6–16 characters: uppercase A–Z and 0–9. Then tap Start card scan.")
+                        Text("Use uppercase A–Z and 0–9, including both letters and numbers.")
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
-                    privacy
                 case .preparingCard,.readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
@@ -98,7 +95,7 @@ struct ShopPurchaseSheet: View {
                         }
                     }
                 case .paymentApproval:
-                    Text("The store has checked the age proof. This approves only this order, recipient and amount on Arc Testnet.")
+                    Text("Age verified. Approve this one purchase.")
                     Button("Approve 0.10 test USDC") { checkout.continuePayment(wallet: wallet) }
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .pending:
@@ -109,12 +106,12 @@ struct ShopPurchaseSheet: View {
                         Button("Retry the original payment") { checkout.retryOriginalPayment() }.disabled(checkout.busy)
                     }
                 case .complete:
-                    Text("The store recorded your order and the test USDC payment was confirmed. Your card details stayed on this phone.")
+                    Text("Paid. Your birth date stayed on your iPhone.")
                     if let hash = checkout.order?.paymentTransaction,
                        let url = URL(string: "https://testnet.arcscan.app/tx/" + hash) {
                         Link("View payment receipt", destination: url)
                     }
-                    Button("Back to Mate") { model.finishShopConversation(); model.sheet = nil }.buttonStyle(.borderedProminent)
+                    Button("Back to Mate") { model.sheet = nil }.buttonStyle(.borderedProminent)
                 case .unavailable:
                     Text("You can close this screen. Mate hasn't completed a purchase.").foregroundStyle(.secondary)
                     Button("Check again") { checkout.retryAvailability() }.buttonStyle(.borderedProminent).disabled(checkout.busy)
@@ -129,6 +126,16 @@ struct ShopPurchaseSheet: View {
                 if checkout.canStartNew {
                     Button("Start a new order") { pin = ""; checkout.startNew() }.disabled(checkout.busy)
                 }
+                DisclosureGroup("Purchase details") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let url = checkout.storeURL {
+                            Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }
+                        }
+                        privacy
+                        Text("Use the signature PIN: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
+                        Text("Only this order is authorized. The store pays the network fee.")
+                    }.font(.subheadline).padding(.top, 8)
+                }.font(.subheadline).foregroundStyle(.secondary)
                 Text("Arc Testnet · No real money · No physical delivery")
                     .font(.footnote).foregroundStyle(.secondary)
             }.frame(maxWidth: 520, alignment: .leading).padding(24)
@@ -155,11 +162,30 @@ struct ShopPurchaseSheet: View {
         .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
         .controlSize(.large)
         .task { checkout.load() }
-        .onDisappear { pin = ""; buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel() }
+        .onChange(of: checkout.phase) { _, phase in
+            model.guideShop(phase)
+            advanceVoiceOrder()
+        }
+        .onChange(of: checkout.busy) { _, _ in advanceVoiceOrder() }
+        .onChange(of: wallet.ownerAddress) { _, _ in advanceVoiceOrder() }
+        .onDisappear {
+            let completed = checkout.phase == .complete
+            pin = ""; buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel()
+            if !completed { model.voice.stop() }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { pin = ""; checkout.cancel() }
             else if phase == .active { checkout.load() }
         }
+    }
+    private func advanceVoiceOrder() {
+        // A current, explicit one-beer voice request may create its order after
+        // readiness/funds checks. It does not authorize a payment signature.
+        guard model.shopStartsFromVoice, !automaticOrderStarted,
+              checkout.phase == .review, checkout.canStart, !checkout.busy,
+              wallet.ownerAddress != nil else { return }
+        automaticOrderStarted = true
+        checkout.startOrder(wallet: wallet)
     }
     private func startCardRead() {
         guard JPKICardReader.validSigningPIN(pin), !checkout.busy, checkout.phase == .card else { return }
@@ -174,12 +200,12 @@ struct ShopPurchaseSheet: View {
     }
     private var progressDetail: String {
         switch checkout.phase {
-        case .preparingCard: return "Stopping the camera before opening the card scanner."
-        case .readingCard: return "Keep the card against the top of your iPhone. Mate won't retry a rejected PIN."
-        case .proving: return "The signed card data is being processed locally. Keep Mate open."
+        case .preparingCard: return "Keep Mate open. The scanner will appear shortly."
+        case .readingCard: return "Hold the card against the top of your iPhone."
+        case .proving: return "Keep Mate open. Your birth date stays here."
         case .verifying: return "Only the public proof is sent to the store."
-        case .paying: return "Sending the approved authorization once, then checking the receipt."
-        default: return "Checking the store and the on-device proof runtime."
+        case .paying: return "Waiting for the payment receipt."
+        default: return "One moment."
         }
     }
 }
@@ -199,7 +225,7 @@ private struct ShopWalletConnection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connect with Privy").font(.headline)
-            Text("Use your email to prepare a buyer wallet for this test purchase. Your card information is not shared with Privy.")
+            Text("First time only: sign in with your email.")
                 .font(.subheadline).foregroundStyle(.secondary)
             if wallet.isAuthenticated {
                 Button("Prepare buyer wallet") { run { try await wallet.prepareShopWallet() } }

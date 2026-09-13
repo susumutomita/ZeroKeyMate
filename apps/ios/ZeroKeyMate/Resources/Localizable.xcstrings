@@ -8148,6 +8148,414 @@
           }
         }
       }
+    },
+    "The camera has not stopped yet. Close Mate and reopen it before scanning your card.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera has not stopped yet. Close Mate and reopen it before scanning your card."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラの停止を確認できませんでした。Mateを終了して開き直してから、カードを読み取ってください。"
+          }
+        }
+      }
+    },
+    "The card scanner did not open. Close Mate and reopen it, then try again. Your PIN was cleared without retrying.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The card scanner did not open. Close Mate and reopen it, then try again. Your PIN was cleared without retrying."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み取り画面が開きませんでした。Mateを終了して開き直してください。暗証番号は消去し、自動で再試行していません。"
+          }
+        }
+      }
+    },
+    "I’ll get one beer. First, let’s confirm your age.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I’ll get one beer. First, let’s confirm your age."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ビールを1本注文します。まず年齢を確認しましょう。"
+          }
+        }
+      }
+    },
+    "Signature PIN · 6–16 letters and numbers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signature PIN · 6–16 letters and numbers"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "署名用暗証番号・英数字6〜16桁"
+          }
+        }
+      }
+    },
+    "Use uppercase A–Z and 0–9, including both letters and numbers.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use uppercase A–Z and 0–9, including both letters and numbers."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大文字の英字と数字の両方を含めて入力してください。"
+          }
+        }
+      }
+    },
+    "Age verified. Approve this one purchase.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age verified. Approve this one purchase."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢を確認できました。この1回の支払いを承認してください。"
+          }
+        }
+      }
+    },
+    "Paid. Your birth date stayed on your iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paid. Your birth date stayed on your iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いが完了しました。生年月日はiPhoneから送信していません。"
+          }
+        }
+      }
+    },
+    "Purchase details": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purchase details"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文の詳細"
+          }
+        }
+      }
+    },
+    "Only this order is authorized. The store pays the network fee.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only this order is authorized. The store pays the network fee."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認するのはこの注文だけです。ネットワーク手数料は店舗が負担します。"
+          }
+        }
+      }
+    },
+    "Keep Mate open. The scanner will appear shortly.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep Mate open. The scanner will appear shortly."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateを開いたままお待ちください。読み取り画面を準備しています。"
+          }
+        }
+      }
+    },
+    "Hold the card against the top of your iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold the card against the top of your iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneの上部にカードをかざしてください。"
+          }
+        }
+      }
+    },
+    "Keep Mate open. Your birth date stays here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep Mate open. Your birth date stays here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateを開いたままお待ちください。生年月日は送信しません。"
+          }
+        }
+      }
+    },
+    "Waiting for the payment receipt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for the payment receipt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いの完了を確認しています。"
+          }
+        }
+      }
+    },
+    "One moment.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One moment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "少しお待ちください。"
+          }
+        }
+      }
+    },
+    "First time only: sign in with your email.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First time only: sign in with your email."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初回だけ、メールアドレスでログインしてください。"
+          }
+        }
+      }
+    },
+    "Enter your card’s signature PIN, then tap Start card scan.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter your card’s signature PIN, then tap Start card scan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの署名用暗証番号を入力して、読み取り開始を押してください。"
+          }
+        }
+      }
+    },
+    "Your wallet needs free test USDC before I can order.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your wallet needs free test USDC before I can order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文するには、無料のテストUSDCを受け取ってください。"
+          }
+        }
+      }
+    },
+    "Card read. I’m making your age proof on this iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card read. I’m making your age proof on this iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み取れました。このiPhoneで年齢の証明を作っています。"
+          }
+        }
+      }
+    },
+    "Your proof is ready. The store is checking it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your proof is ready. The store is checking it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明ができました。お店で確認しています。"
+          }
+        }
+      }
+    },
+    "Age verified. Please approve this one payment on your iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age verified. Please approve this one payment on your iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢の確認ができました。iPhoneで今回の支払いを承認してください。"
+          }
+        }
+      }
+    },
+    "The payment is still being checked. I’ll keep this order.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The payment is still being checked. I’ll keep this order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いを確認中です。この注文のまま待ちます。"
+          }
+        }
+      }
+    },
+    "Your beer purchase is complete. Your birth date stayed on this iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your beer purchase is complete. Your birth date stayed on this iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ビールのテスト購入が完了しました。生年月日はiPhoneから送信していません。"
+          }
+        }
+      }
+    },
+    "This order expired. Please start a new order.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This order expired. Please start a new order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文の期限が切れました。新しい注文を開始してください。"
+          }
+        }
+      }
+    },
+    "I couldn’t continue the order. Please check the message on screen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn’t continue the order. Please check the message on screen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文を続けられませんでした。画面のメッセージを確認してください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

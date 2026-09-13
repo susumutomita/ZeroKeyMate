@@ -145,12 +145,14 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         run { ticket in
             try await sensors.stopCaptureAndWait()
             try self.check(ticket)
-            self.phase = .readingCard
             let order = saved.order
             let challenge = try JPKIChallenge(orderHash: CanonicalBytes.hex(order.orderHash, count: 32),
                                                nonce: CanonicalBytes.hex(order.paymentNonce, count: 32))
             let credential = try await self.reader.authenticate(pin: pin, challenge: challenge,
-                expiresAt: Date(timeIntervalSince1970: Double(order.expiresAt)))
+                expiresAt: Date(timeIntervalSince1970: Double(order.expiresAt))) {
+                    guard self.generation == ticket else { return }
+                    self.phase = .readingCard
+                }
             try self.check(ticket); self.phase = .proving
             self.proofStartedAt = .now
             let proof = try await self.prover.prove(authentication: credential.authentication,
@@ -360,11 +362,13 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         if error is JPKIVerificationError || error is JPKIAgeWitnessError {
             return "This card could not be authenticated for this order on the phone. No card information was sent."
         }
+        if let error = error as? CameraError { return error.localizedDescription }
         if let error = error as? CardScanError {
             switch error {
             case .unavailable: return "Physical card scanning is not available on this device."
             case .permissionMissing: return "This app's NFC permission is missing. The app must be reinstalled with card-reading support. No card PIN was checked."
             case .busy: return "The iPhone could not start NFC while another operation was using it. Mate stopped its camera. Enter the signature PIN and tap Start card scan to try again."
+            case .activationTimedOut: return "The card scanner did not open. Close Mate and reopen it, then try again. Your PIN was cleared without retrying."
             case .timedOut: return "The card scan timed out. Enter the signature PIN and tap Start card scan when your card is ready."
             case .cancelled: return "Card scanning stopped. Your PIN was cleared. Enter it again and tap Start card scan when you're ready."
             default: return "The card scan did not finish. Your PIN was cleared. Enter it again and tap Start card scan to retry."
@@ -373,5 +377,26 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         if error is AgeShopError { return "The order or payment details could not be verified. No new payment was authorized." }
         if let error = error as? ProductError { return error.localizedDescription }
         return "This step could not be completed. Your existing order was kept; no replacement payment was created."
+    }
+}
+
+
+extension ShopCheckout.Phase {
+    /// Brief speech follows verified state transitions; it never announces a
+    /// successful proof or payment merely because a spinner or timer finished.
+    var spokenGuide: String? {
+        switch self {
+        case .review: return "I’ll get one beer. First, let’s confirm your age."
+        case .card: return "Enter your card’s signature PIN, then tap Start card scan."
+        case .funding: return "Your wallet needs free test USDC before I can order."
+        case .proving: return "Card read. I’m making your age proof on this iPhone."
+        case .verifying: return "Your proof is ready. The store is checking it."
+        case .paymentApproval: return "Age verified. Please approve this one payment on your iPhone."
+        case .pending: return "The payment is still being checked. I’ll keep this order."
+        case .complete: return "Your beer purchase is complete. Your birth date stayed on this iPhone."
+        case .expired: return "This order expired. Please start a new order."
+        case .unavailable: return "I couldn’t continue the order. Please check the message on screen."
+        default: return nil
+        }
     }
 }

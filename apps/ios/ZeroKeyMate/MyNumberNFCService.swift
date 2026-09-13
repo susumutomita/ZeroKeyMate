@@ -3,7 +3,7 @@ import Combine
 @preconcurrency import CoreNFC
 import MateCore
 
-enum CardScanError: Error, Equatable { case unavailable, busy, cancelled, timedOut, permissionMissing, multipleCards, wrongCard, connectionFailed }
+enum CardScanError: Error, Equatable { case unavailable, busy, cancelled, timedOut, activationTimedOut, permissionMissing, multipleCards, wrongCard, connectionFailed }
 
 /// Owns one explicitly started NFC session. No persistence, network, logging or
 /// automatic retries; invalidation resolves the caller rather than hanging it.
@@ -18,6 +18,8 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
     private var exchangeID = UUID()
     private var exchangeResult: CheckedContinuation<MyNumberCardResponse, Error>?
     private var readTask: Task<Void, Never>?
+    private var activationTask: Task<Void, Never>?
+    private var onActive: (@MainActor () -> Void)?
     private var pin = ""
     private var connected = false
     private var operationID = UUID()
@@ -32,13 +34,13 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
 
     /// Called only after reviewing an order and explicitly entering the signing
     /// PIN. The government credential and card signature stay on this phone.
-    func authenticate(pin: String, challenge: JPKIChallenge, expiresAt: Date) async throws -> JPKILocalCredential {
+    func authenticate(pin: String, challenge: JPKIChallenge, expiresAt: Date, onActive: @escaping @MainActor () -> Void = {}) async throws -> JPKILocalCredential {
         try JPKICardReader.requireUnexpired(expiresAt: expiresAt)
-        guard case .authentication(let credential) = try await begin(pin: pin, kind: .authentication(challenge, expiresAt: expiresAt)) else { throw CardScanError.wrongCard }
+        guard case .authentication(let credential) = try await begin(pin: pin, kind: .authentication(challenge, expiresAt: expiresAt), onActive: onActive) else { throw CardScanError.wrongCard }
         return credential
     }
 
-    private func begin(pin: String, kind: ReadKind) async throws -> ReadResult {
+    private func begin(pin: String, kind: ReadKind, onActive: (@MainActor () -> Void)? = nil) async throws -> ReadResult {
         guard !scanning else { throw CardScanError.busy }
         guard available else { throw CardScanError.unavailable }
         switch kind {
@@ -58,10 +60,19 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
                 self.result = continuation
                 self.scanning = true
                 self.connected = false
+                self.onActive = onActive
                 let session = NFCTagReaderSession(pollingOption: .iso14443, delegate: self, queue: .main)
                 self.session = session
                 session?.alertMessage = L10n.text("Hold your My Number card against the top of your iPhone.")
                 guard let session else { finish(.failure(CardScanError.unavailable)); return }
+                // CoreNFC normally activates or invalidates promptly. If neither
+                // callback arrives, end this attempt and clear the PIN; never
+                // leave the checkout spinner waiting indefinitely or retry it.
+                self.activationTask = Task { @MainActor [weak self] in
+                    do { try await Task.sleep(for: .seconds(8)) } catch { return }
+                    guard let self, self.operationID == readID, self.scanning else { return }
+                    self.finish(.failure(CardScanError.activationTimedOut))
+                }
                 session.begin()
             }
         } onCancel: {
@@ -77,6 +88,7 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
     private func finish(_ outcome: Result<ReadResult, Error>) {
         guard let continuation = result else { return }
         result = nil
+        activationTask?.cancel(); activationTask = nil; onActive = nil
         let pendingExchange = exchangeResult
         exchangeResult = nil
         pendingExchange?.resume(throwing: CardScanError.cancelled)
@@ -92,7 +104,11 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
         continuation.resume(with: outcome)
     }
 
-    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {}
+    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
+        guard self.session === session else { return }
+        activationTask?.cancel(); activationTask = nil
+        let notify = onActive; onActive = nil; notify?()
+    }
 
     func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
         // CoreNFC delegates use the explicitly supplied .main queue. Keep the
