@@ -4,6 +4,7 @@ Writes only public proofs and non-sensitive acceptance metrics. No witness
 files are produced here; the fixed synthetic inputs came from the circuit test.
 """
 from pathlib import Path
+import argparse
 import ctypes
 import json
 import time
@@ -11,7 +12,10 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / ".build/age-proof-engine"
-OUT = BASE / "artifacts"
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--artifacts', default='.build/age-proof-engine/artifacts')
+OUT = (ROOT / parser.parse_args().artifacts).resolve()
+assert OUT.is_relative_to(ROOT / '.build'), 'Use an isolated local test artifact directory'
 runtime = ctypes.CDLL(str(BASE / "target/release/libmate_age_ffi.dylib"))
 prove = runtime.mate_age_prove
 prove.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
@@ -45,7 +49,8 @@ def run(name, expected=0, folder=None):
 first, elapsed = run("valid", folder="native-evm")
 second, _ = run("valid", folder="native-second-evm")
 assert first[256:320] != second[256:320], "Native commitment did not change"
-rejected = ["changed-order", "changed-nonce", "underage", "tampered-date", "bad-card-signature", "bad-certificate-signature"]
+rejected = ["changed-order", "changed-nonce", "underage", "tampered-date", "bad-card-signature", "bad-certificate-signature",
+            "missing-policy", "wrong-policy", "unknown-critical"]
 for name in rejected:
     run(name, expected=4)
     print("Native rejection: " + name, flush=True)

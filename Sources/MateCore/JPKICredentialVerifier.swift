@@ -105,7 +105,7 @@ struct JPKICertificateFields {
               tbs[3].tag == 0x30, tbs[4].tag == 0x30, tbs[5].tag == 0x30,
               tbs[6].tag == 0x30, tbs[7].tag == 0xA3 else { throw JPKIVerificationError.malformedCertificate }
         let extensions = try DERNode.single(tbs[7].value, tag: 0x30).children()
-        var seen = Set<Data>(), san: Data?, usage: Data?
+        var seen = Set<Data>(), san: Data?, usage: Data?, signingPolicy: Data?
         for item in extensions {
             guard item.tag == 0x30 else { throw JPKIVerificationError.malformedCertificate }
             let parts = try item.children()
@@ -121,8 +121,24 @@ struct JPKICertificateFields {
                 guard parts.count == 3 else { throw JPKIVerificationError.malformedCertificate }
                 usage = parts.last!.value
             }
+            if parts[0].value == Data([0x55,0x1D,0x20]) {
+                guard parts.count == 3 else { throw JPKIVerificationError.malformedCertificate }
+                signingPolicy = parts.last!.value
+            }
         }
-        guard let san, usage == Data([0x03,0x02,0x06,0xC0]) else { throw JPKIVerificationError.malformedCertificate }
+        guard let san, let signingPolicy, usage == Data([0x03,0x02,0x06,0xC0]) else { throw JPKIVerificationError.malformedCertificate }
+        // Match the circuit's physical signing policy. The critical extension
+        // is mandatory in the official J-LIS profile (3.2, printed page 10).
+        let policy = try DERNode.single(DERNode.single(signingPolicy, tag: 0x30).value, tag: 0x30).children()
+        guard policy.count == 2, policy[0].tag == 6,
+              policy[0].value == Data([42,131,8,140,155,85,8,5,1,1,20]), policy[1].tag == 0x30 else {
+            throw JPKIVerificationError.malformedCertificate
+        }
+        let qualifier = try DERNode.single(policy[1].value, tag: 0x30).children()
+        guard qualifier.count == 2, qualifier[0].tag == 6, qualifier[0].value == Data([43,6,1,5,5,7,2,1]),
+              qualifier[1].tag == 0x16, qualifier[1].value == Data("http://www.jpki.go.jp/cps.html".utf8) else {
+            throw JPKIVerificationError.malformedCertificate
+        }
         let names = try DERNode.single(san, tag: 0x30).children()
         // 1.2.392.200149.8.5.5.4: J-LIS profile 3.2, physical signing cert.
         let dobOID = Data([0x2A,0x83,0x08,0x8C,0x9B,0x55,0x08,0x05,0x05,0x04])

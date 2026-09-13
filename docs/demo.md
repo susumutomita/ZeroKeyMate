@@ -1,69 +1,155 @@
-# Three-minute demo guide
+# Submission film: human narration and editing notes
 
-One story: **an iPhone proves a paid translation follows a private policy, and another machine can check the proof without receiving that policy.** The **Settings → Try private rules on this device** entry exercises the production native circuit before any wallet setup. Actual phone performance, export and the complete mobile payment path still require acceptance; do not splice terminal results into an apparent live phone transaction.
+Final export: **3:27.38**, H.264/AAC, 1920×1080 at 30 fps, with the creator's recorded narration and 50 English captions. It uses the first **50 seconds** of the supplied **58.5-second edited demo** at its original speed. Use slides 1–2, the real clip in place of slide 3, then slides 4–9. Slides 10–11 are for questions and the downloadable deck. The main video gives about two minutes to **how it works and the technology stack**.
 
-Lead with the local proof, not the eyes or stand. Use an installed native build, show airplane mode, enter a private limit and public quote, and generate a proof. Keep the real elapsed time visible. Share the `.np` file explicitly, transfer it to the verification computer and run the README's verification command using the matching setup key. This is the proposed strongest demonstration; it is not yet recorded device evidence. If device acceptance is unavailable, present the terminal proof segment as a terminal segment.
+The recording combines successful takes. Introduce it as edited footage; do not imply that it is one continuous order. The submitted film and public walkthrough are committed; the untouched original file and private editing workspace stay outside version control. The 12.0-second figure is the first documented physical-card proof-processing observation, not a timing benchmark or a claim that every take took the same time.
 
-This is a recording plan, not a completed video. [Submission fields](submission.md#submission-fields-still-requiring-the-entrant).
+Open the [slides](presentation/index.html) and the [large-text reading guide](presentation/narration.html). The guide has no AI speech or audio upload. It shows one short paragraph at a time; read it in your own voice. Record a sentence or section at a time on the Mac, leave a short pause, and record a correction when needed. Keep the best original human take of each sentence. Ordinary cuts and level adjustment can preserve intelligibility without generating replacement speech. Do not accelerate narration or proving footage to fit the limit.
 
-## Prepare the demo
+## Read in your own voice
 
-Follow the [README](../README.md#run-the-app) first. For the proof/payment segment, install Rust/rustup and Foundry (`anvil` on PATH), then run:
+The English below is the recording script; timestamps are the original rehearsal plan. In the final edit, the creator's spoken headings were removed and pauses were aligned to the real device footage. Final chapters start at 0:00, 0:13.8, 0:24.4 (device footage), 1:14.4 (local agent), 1:36.45 (local ZK), 2:08.3 (privacy), 2:24.6 (payment), 2:50.75 (stack) and 3:08.85 (close). The final soundtrack uses only the creator's recorded narration; noisy device audio is omitted. Section titles, timestamps and Japanese hints are not part of the final voiceover.
 
-```sh
-make test-contracts
-make proofs
-cargo +nightly-2026-03-04 build --release --locked --manifest-path services/verifier/Cargo.toml
-npm run test:proofs
-npm run test:local
-```
+### 01 · Introduction · 0:00–0:15
 
-`test:local` starts and cleans up a disposable local chain, API and specialist. It uses Anvil's published test accounts and a test token. No public transaction is sent. Its default model output and discovery records are labeled fixtures; proof generation, signatures, HTTP, contract execution and recovery are real.
+Visual: Slide 1.
 
-For the strongest currently reproducible segment, start Ollama separately with an already installed model whose license permits your intended use. Then select it explicitly:
+This is ZeroKey Mate.
+It turns my iPhone into a companion.
+I can ask it for a beer, prove my age privately, and pay on Arc.
 
-```sh
-MATE_TEST_OLLAMA_MODEL=YOUR_INSTALLED_MODEL \
-MATE_TEST_OLLAMA_URL=http://127.0.0.1:11434 npm run test:local
-```
+Reading hint: 最初はゆっくり。Mate は「メイト」、Arc は「アーク」。
 
-Replace `YOUR_INSTALLED_MODEL` with the actual model name. This mode fails when the model is unavailable; it does not fall back to a canned response or download weights. Discovery remains a fixture and settlement remains Anvil simulation. The recorded local research evaluation used `qwen2.5:3b`; its license is not a blanket permission for deployment or redistribution. [Evaluation details](validation.md#push前のローカル実動確認) and [CPU setup (日本語)](setup.md#実モデルを使うローカル動作確認).
+### 02 · The problem · 0:15–0:28
 
-Before recording, verify the exact installed build opens on the target phone. Existing screenshots are CI Simulator attachments, not physical-device footage. Keep actual phone, Simulator and local-chain segments explicitly labeled. A successful device install does not establish voice, stand, offline or payment acceptance.
+Visual: Slide 2.
 
-## Recording sequence and narration
+The shop only needs to know that I am twenty or older.
+It does not need my name, address, or full date of birth.
 
-| Time | Show | Suggested human narration |
+Reading hint: twenty or older は「トゥエンティ・オア・オウルダー」。
+
+### 03 · Recorded demo · 0:28–1:27
+
+Visual: Actual edited demo · 58.5 seconds.
+
+Here is the real app.
+These are edited takes from the physical device.
+
+I ask Mate to buy a beer.
+I enter the card password privately, then tap my card.
+The phone creates the age proof here.
+
+After the store verifies it, I approve this exact payment.
+The purchase completes on Arc Testnet.
+I can open the receipt in the explorer.
+
+This uses test funds. No real beer is delivered.
+
+Reading hint: 映像に合わせて読む。Mate が話す場面は一息待つ。カードのパスワードは読まない。
+
+### 04 · How it works: local agent · 1:27–1:52
+
+Visual: Slide 4.
+
+How does it work?
+Speech recognition and the language model run on the iPhone.
+Apple Foundation Models turns my request into a small, structured plan.
+Mate checks the item, shop, and amount.
+The model cannot access my card data or sign a payment.
+
+Reading hint: structured plan は「ストラクチャード・プラン」。難しければ一文ずつ録音する。
+
+### 05 · How it works: local ZK · 1:52–2:28
+
+Visual: Slide 5.
+
+The proof is the key part.
+Our Noir circuit checks the government signature, the card signature for this order, and that I am at least twenty.
+It also checks the time limits.
+
+ProveKit, from World Foundation, runs the prover on the iPhone.
+The private card data becomes an age proof for this order.
+We use My Number card identity here. World ID login is not connected.
+
+Reading hint: Noir は「ノワール」、ProveKit は「プルーヴ・キット」、prover は「プルーヴァー」。ここは一文ずつ。
+
+### 06 · How it works: privacy · 2:28–2:46
+
+Visual: Slide 6.
+
+My birth date and card data stay on the phone.
+The shop receives the proof and public order inputs.
+Payment addresses are still public.
+The privacy boundary is specific and verifiable.
+
+Reading hint: birth date は「バース・デイト」。verifiable は「ヴェリファイアブル」。
+
+### 07 · How it works: payment · 2:46–3:15
+
+Visual: Slide 7.
+
+The store verifies the proof using our Age Gate contract on Arc.
+Then Privy signs the exact payment I approve.
+x402 carries that payment to the store, which pays the network fee.
+We check the actual receipt before showing success.
+Age verification and the token transfer are separate steps.
+
+Reading hint: Privy は「プリヴィ」、x402 は「エックス・フォー・オー・トゥー」。receipt は「リシート」。
+
+### 08 · Technology stack · 3:15–3:33
+
+Visual: Slide 8.
+
+Each layer has a clear job.
+Apple powers the companion.
+Noir and ProveKit handle the private proof.
+Cloudflare runs the store and order recovery.
+Privy, x402, and Arc complete the payment.
+
+Reading hint: 4つの担当を順番に読む。略語を急いで全部説明しなくてよい。
+
+### 09 · Result and close · 3:33–3:52
+
+Visual: Slide 9.
+
+One physical-card run showed twelve seconds of local proof processing.
+We completed real test payments on Arc.
+This is still an experimental testnet build.
+Your companion. Your rules.
+That is ZeroKey Mate.
+
+Reading hint: 最後の2行は少し間を置く。12秒は実測1回の値で一般的な速度保証ではない。
+
+## Pronunciation help
+
+| Term | Reading aid | Meaning in this demo |
 | --- | --- | --- |
-| 0:00–0:20 | Native app's Local ZK screen; actual device and airplane-mode state | “This iPhone can prove a request follows my private spending rules. The verifier does not need my total budget or full permission list.” |
-| 0:20–1:10 | Enter private limit and public price, then run real local proving | “This is our production ProveKit circuit. No wallet is connected for this offline exercise. Here are the actual proof size and time measured on this device.” |
-| 1:10–1:40 | Export the actual proof and verify it on another computer | “This file came from the phone. A separate verifier accepts it with the matching circuit key. The modified copy is rejected by the app's native verifier.” |
-| 1:40–2:00 | Change the permission to forbid translation, then request proof generation | “Mate refuses at preflight. That refusal is not itself a ZK proof. Cryptographic enforcement also requires the circuit and independent verifier.” |
-| 2:00–2:40 | Separately labeled `test:local` result and recovery assertions | “In this local payment simulation, a real proof binds the approved text, recipient and price. The vault prevents replay, and retry retrieves the same result without another payment. Discovery is a fixture.” |
-| 2:40–3:00 | Actual acceptance status and trust boundary | “Our goal is private permission for paid AI requests. Today settlement trusts the server verifier's attestation. Full phone-to-live-service payment and physical hardware acceptance remain open.” |
+| ZeroKey Mate | ゼロ・キー・メイト | The iPhone companion |
+| on-device | オン・ディヴァイス | Runs on the phone |
+| Noir | ノワール | Language of the age circuit |
+| ProveKit | プルーヴ・キット | World Foundation's proving toolkit |
+| zero-knowledge proof | ズィーロウ・ナリッジ・プルーフ | Proves the condition without revealing the private input |
+| JPKI | ジェイ・ピー・ケイ・アイ | Japanese public identity infrastructure; use “My Number card” in the spoken script |
+| Privy | プリヴィ | Embedded buyer wallet |
+| x402 | エックス・フォー・オー・トゥー | Payment protocol |
+| Arc | アーク | Settlement network |
+| USDC | ユー・エス・ディー・シー | Token used for the test purchase |
+| receipt | リシート | Confirmed payment record |
 
-If the real-model mode was not run, say “model fixture” in the narration and do not display the earlier translation as a new result. Do not imply the test output is a live phone transaction. The 9.9 balance is asserted by the test; it is not currently a dedicated UI or receipt display.
+These are reading aids, not a requirement to erase a Japanese accent. Short phrases, steady volume and subtitles matter more than a native accent. Hard pauses are marked by separate lines in the reading guide. Do not clone the speaker's voice or regenerate pronunciation with AI for the submitted narration.
 
-## Evidence to keep on screen
+## What the diagrams establish
 
-- The command and its actual successful exit, including whether the test says `actual Ollama` or `model fixture`.
-- The `LOCAL PAYMENT SIMULATION` context: Anvil, test token, published test accounts; no public Arc or Sepolia explorer link.
-- The [recovery assertions](../services/api/test/local.acceptance.mjs): reconstructed API/journal, identical receipt, owner balance `9_900_000` and model invocation count `1`.
-- The [proof-boundary tests](../services/api/test/crypto.acceptance.mjs), with actual verifier use and rejection results.
-- A source commit and [validation record](validation.md) matching the footage. Keep credentials, `.env`, pairing tokens and private keys out of the recording.
+1. **Local agent:** on-device Speech → Foundation Models structured proposal → deterministic Mate workflow. Card fields and signing interfaces are never exposed to the model. The supported flow is one configured store and item.
+2. **Local ZK:** authenticated JPKI certificate + card signature over the order and nonce are private witness inputs. The Noir circuit checks the trusted root, RSA signatures, age threshold, certificate validity and order expiry. ProveKit generates the proof on the physical iPhone. Self-entered age is not accepted as identity evidence.
+3. **Privacy boundary:** private card inputs stay local; the proof, public order inputs, wallet authentication and payment information use network services. Payments remain linkable.
+4. **Execution:** the Worker requires agreement from both Arc RPCs on the Age Gate contract call. After exact user approval, the Privy/x402 payment settles and receipt validation checks the actual transfer. Verification is not atomically part of the token transaction and this is not a permission validator.
 
-The screenshots in [assets](assets/README.md) are genuine test attachments. They can support an explanation but are not a substitute for the executable demonstration.
+See the [claim-to-code table](presentation/README.md) for precise evidence, trust assumptions and the status appendix. Use “ProveKit from World Foundation”; do not claim World ID authentication. The local prover uses a pinned experimental Groth16 branch with a single-party setup, and certificate revocation is not checked.
 
-For the UI segment: [home](assets/home-simulator.png), [Rest](assets/rest-simulator.png), [empty conversation](assets/conversation-simulator.png), and [settings](assets/settings-simulator.png). Label them “CI iOS Simulator — source-only build” when presenting them as still images.
+## Export and official format
 
-## Video format and judge questions
+The [official guide](https://ethglobal.com/events/ethonline2026/info/details), checked September 13, requires 2–4 minutes, at least 720p, human narration and no sped-up footage. It disallows AI/TTS voiceover and filming the submission with a mobile phone. Editing out waiting is allowed. The supplied physical-stand footage was filmed with another phone; no official hardware-shot exception has been confirmed. Keep that format question separate from the working purchase evidence. A Mac/webcam stand shot plus a direct screen capture follows the proposed replacement workflow; do not invent an organizer exemption.
 
-Target a three-minute, at least 720p desktop capture with the entrant's own narration. Remove idle waits with visible cuts; keep the actual execution order and result. Use screen capture for the iPhone/Simulator rather than filming a display with a phone. The consulted [ETHOnline 2026 guide](https://ethglobal.com/events/ethonline2026/info/details) requires 2–4 minutes and disallows sped-up footage and AI/TTS narration. ETHOnline 2026 is the confirmed event. Recheck the current organizer requirements before exporting.
-
-Be ready to answer:
-
-- **Who enforces the private budget?** The trusted ProveKit verifier/attestor checks it. The contract independently enforces grant/action signatures, expiry, revocation and replay. A colluding attestor and agent can exceed the private budget.
-- **What is private?** Budget, allowed-service mask, salt and local conversation are withheld. The approved text goes to the specialist; payment metadata is public. Server operators can decrypt their journals.
-- **What if the provider disappears after payment?** Stored requests/results support recovery, but this is not escrow and there is no automatic refund.
-- **Why Arc, Privy and The Graph?** Arc Testnet is the implemented settlement target (public acceptance pending), Privy supplies owner and execution wallets, and The Graph supplies provider candidates. Full live acceptance remains pending; provider discovery never gives spending authority. ENS is deferred.
-- **Did this run on DockKit hardware?** No physical acceptance has been recorded. Build, Simulator and local-chain evidence are listed separately.
+Export H.264/AAC at 1920×1080. Play the whole final file, check cuts and audio, and inspect for passwords, card details, login codes or unrelated personal information. Keep the real timer at normal speed. Put the final tested video URL into [submission.md](submission.md), verify playback without uploader credentials, then submit and reload the Hacker Dashboard receipt. Slides and an edited visual clip without human narration are not a completed submission.

@@ -4,7 +4,7 @@ import MateCore
 import MateAgeProof
 
 /// Only these two PUBLIC values may be submitted to the shop's /age route.
-struct VerifiedAgeProof: Sendable, Encodable {
+struct VerifiedAgeProof: Sendable, Codable {
     let proof: String
     let rootKeyHash: String
 }
@@ -33,15 +33,18 @@ actor AgeProofService {
     func prepare() throws {
         try Task.checkCancellation()
         guard MateAgeNative.available else {
-            throw ProductError.unavailable("On-device age verification is not installed yet.")
+            throw AgeProofFailure.resources
         }
         if verifiedResources != nil { return }
         guard let prover = Bundle.main.url(forResource: "age", withExtension: "pkp"),
               let verifier = Bundle.main.url(forResource: "age", withExtension: "pkv") else {
-            throw ProductError.unavailable("The age verification resources are not installed yet.")
+            throw AgeProofFailure.resources
         }
-        guard try hashFile(prover) == AgeProofPins.proverSHA256,
-              try hashFile(verifier) == AgeProofPins.verifierSHA256 else { throw ProductError.invalidResponse }
+        do {
+            guard try hashFile(prover) == AgeProofPins.proverSHA256,
+                  try hashFile(verifier) == AgeProofPins.verifierSHA256 else { throw AgeProofFailure.resources }
+        } catch is CancellationError { throw CancellationError() }
+        catch { throw AgeProofFailure.resources }
         verifiedResources = (prover, verifier)
     }
 
@@ -51,7 +54,7 @@ actor AgeProofService {
         try prepare()
         let witness = try JPKIAgeWitness.prepare(authentication: authentication, orderHash: orderHash, nonce: nonce,
                                                 referenceTime: referenceTime, expiresAt: expiresAt)
-        guard let resources = verifiedResources else { throw ProductError.invalidResponse }
+        guard let resources = verifiedResources else { throw AgeProofFailure.resources }
         try Task.checkCancellation()
         let nativeStart = ContinuousClock.now
         let result = try witness.withLocalProverInput { input in
@@ -61,8 +64,9 @@ actor AgeProofService {
         // The native call cannot yet be interrupted halfway through. Cancelling
         // always discards its result and must never start checkout afterward.
         try Task.checkCancellation()
-        guard Date().timeIntervalSince1970 < Double(expiresAt), result.proof.count == 384,
-              result.publicInputs.map(Self.decimal) == witness.publicInputs else { throw ProductError.invalidResponse }
+        guard Date().timeIntervalSince1970 < Double(expiresAt) else { throw AgeProofFailure.orderWindow }
+        guard result.proof.count == 384,
+              result.publicInputs.map(Self.decimal) == witness.publicInputs else { throw AgeProofFailure.output }
         let proof = VerifiedAgeProof(proof: Self.hex(result.proof), rootKeyHash: Self.hex(witness.rootKeyHash))
         return MeasuredAgeProof(proof: proof, timing: AgeProofTiming(
             totalMilliseconds: AgeProofTiming.milliseconds(start.duration(to: .now)),

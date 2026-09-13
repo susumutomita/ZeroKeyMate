@@ -2,7 +2,7 @@ import {createPublicClient, http, keccak256, parseAbi, decodeEventLog} from 'vie
 import {arcTestnet} from 'viem/chains';
 import {encodePaymentRequiredHeader, encodePaymentResponseHeader} from '@x402/core/http';
 import {CHAIN_ID, NETWORK, USDC, PRODUCTS, configuration, hex32, hashKey, newOrder, nowSeconds, requirements, paymentPayload} from './protocol.mjs';
-import {checkoutReady, supportedNetworks, MAX_ORDERS} from './readiness.mjs';
+import {checkoutReady, checkoutReadiness, supportedNetworks, MAX_ORDERS} from './readiness.mjs';
 import {ageArguments, ageSubmission} from './age.mjs';
 import {checkedAgeCall} from './age-rpc.mjs';
 import {expiredUnusedPayment} from './expiry.mjs';
@@ -111,9 +111,10 @@ async function settleReserved(env,pending,payload,required) {
 async function route(request,env) {
   const url=new URL(request.url);
   if(request.method==='GET' && url.pathname==='/api/catalog') {
-    const available=await checkoutReady(env,client(),supported,secondaryClient());
+    const readiness=await checkoutReadiness(env,client(),supported,secondaryClient());
+    const available=readiness.available;
     return json({name:'Mate Atelier',products:PRODUCTS,network:NETWORK,chainId:CHAIN_ID,testnet:true,shipsPhysicalGoods:false,
-      checkoutAvailable:available,unavailableReason:available?null:'The shop cannot accept new orders right now. Check again shortly. Existing orders can still be checked.'});
+      checkoutAvailable:available,availabilityCode:readiness.code,unavailableReason:available?null:'The shop cannot accept new orders right now. Check again shortly. Existing orders can still be checked.'});
   }
   if(!configuration(env))return json({error:'shop_not_ready',message:'Age verification and testnet checkout are not connected yet.'},503);
   const origin=request.headers.get('origin');

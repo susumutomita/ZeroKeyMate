@@ -51,6 +51,9 @@ final class JPKIAgeWitnessTests: XCTestCase {
         XCTAssertThrowsError(try prepare(order: 0))
         XCTAssertThrowsError(try prepare(card: "unknown-date"))
         XCTAssertThrowsError(try prepare(card: "duplicate-date"))
+        for card in ["missing-policy", "wrong-policy", "unknown-critical"] {
+            XCTAssertThrowsError(try prepare(card: card))
+        }
     }
     func testOrderWindowRejectsExpiryFutureOverflowAndWrongDuration() {
         for args: (UInt64, UInt64, Double) in [

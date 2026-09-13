@@ -27,3 +27,10 @@ __pycache__/
 services/shop/worker-configuration.d.ts
 
 /apps/ios/ZeroKeyMate/Resources/ShopConnection.json
+
+.pitchdeck/
+
+# Local generated exports and scheduler runtime state
+/output/
+/config/scheduler/state.json
+/data/scheduler/

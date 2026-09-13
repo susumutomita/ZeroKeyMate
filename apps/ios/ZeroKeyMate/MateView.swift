@@ -19,8 +19,8 @@ struct MateView:View {
         let _ = locale.identifier
         CompanionHome(model:model,sensors:model.sensors,voice:model.voice)
             .task{if !introduced{model.sheet = .welcome};model.setForeground(scenePhase == .active);await model.start()}
-            .onChange(of:language){_,_ in model.rest();model.errorMessage=nil}
-            .onChange(of:spokenLanguage){_,_ in model.rest();model.errorMessage=nil}
+            .onChange(of:language){_,_ in model.languagePreferencesChanged()}
+            .onChange(of:spokenLanguage){_,_ in model.languagePreferencesChanged()}
             .onChange(of:scenePhase){_,value in
                 if value == .background{model.setForeground(false)}
                 else if value == .active{model.setForeground(true)}
@@ -50,8 +50,11 @@ struct MateView:View {
                         }
                     }
                     .toolbar{
-                        if sheet == .welcome || sheet == .conversation {
-                            ToolbarItem(placement:.topBarLeading){Button("Settings"){model.sheet = .settings}.accessibilityIdentifier("open-settings")}
+                        ToolbarItemGroup(placement:.topBarLeading){
+                            AppLanguageMenu { model.languagePreferencesChanged() }
+                            if sheet == .welcome || sheet == .conversation {
+                                Button("Settings"){model.sheet = .settings}.accessibilityIdentifier("open-settings")
+                            }
                         }
                         ToolbarItem(placement:.topBarTrailing){Button("Close",systemImage:"xmark"){model.sheet=nil}.labelStyle(.iconOnly).accessibilityIdentifier("close-sheet")}
                     }
@@ -64,6 +67,39 @@ struct MateView:View {
             .alert("Please check",isPresented:Binding(get:{model.errorMessage != nil},set:{if !$0{model.errorMessage=nil}})){
                 Button("Close",role:.cancel){model.errorMessage=nil}
             }message:{Text(L10n.text(model.errorMessage ?? ""))}
+    }
+}
+
+/// Change display and spoken guidance together without replacing the sheet or
+/// its checkout state. Settings still allows a separate speech preference.
+private struct AppLanguageMenu: View {
+    let onSelection: () -> Void
+    @AppStorage(L10n.preferenceKey) private var language = AppLanguage.english.rawValue
+    @AppStorage(L10n.speechPreferenceKey) private var spokenLanguage = AppLanguage.japanese.rawValue
+
+    var body: some View {
+        Menu {
+            ForEach(AppLanguage.allCases) { choice in
+                Button {
+                    language = choice.rawValue
+                    spokenLanguage = choice.rawValue
+                    // Also apply an unchanged preference: a Japanese voice
+                    // request may have chosen Japanese narration in English UI.
+                    onSelection()
+                } label: {
+                    if language == choice.rawValue {
+                        Label(choice.name, systemImage: "checkmark")
+                    } else {
+                        Text(verbatim: choice.name)
+                    }
+                }.accessibilityIdentifier("choose-language-\(choice.rawValue)")
+            }
+        } label: {
+            Label(language == AppLanguage.english.rawValue ? "EN" : "日本語", systemImage: "globe")
+        }
+        .accessibilityLabel(L10n.text("Language"))
+        .accessibilityValue(language == AppLanguage.english.rawValue ? "English" : "日本語")
+        .accessibilityIdentifier("language-menu")
     }
 }
 
@@ -761,7 +797,7 @@ private struct ActivitySheet:View {
                             Text("Mate Lager · 0.10 test USDC").font(.headline)
                             Text(purchase.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale))).font(.subheadline).foregroundStyle(.secondary)
                             Text("Recorded on Arc Testnet · No physical delivery").font(.footnote).foregroundStyle(.secondary)
-                            if let url=URL(string:"https://testnet.arcscan.app/tx/"+purchase.transaction) { Link("View payment receipt", destination:url) }
+                            ArcPaymentReceiptView(transaction: purchase.transaction)
                         }.padding(.vertical,8)
                     }
                 }

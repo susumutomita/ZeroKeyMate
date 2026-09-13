@@ -138,3 +138,64 @@ test('insufficient funds leave the slot unused; authorization and permission exp
     const expired=await payment(f,1);
     assert.equal(await read(f.account,accountABI,'isValidSignature',[expired.hash,expired.blob]),'0xffffffff');
 });
+
+
+test('owner revocation binds account, nonce and expiry and blocks remaining payment slots',async()=>{
+    const f=await fixture(),other=await fixture();
+    const now=(await client.getBlock()).timestamp;
+    const message={nonce:0n,expiresAt:now+120n};
+    const domain={name:'ZeroKeyMate Purchase Account',version:'1',chainId:31337,verifyingContract:f.account};
+    const revokeTypes={Revoke:[{name:'nonce',type:'uint256'},{name:'expiresAt',type:'uint64'}]};
+    const sign=(values=message,d=domain)=>owner.signTypedData({domain:d,types:revokeTypes,primaryType:'Revoke',message:values});
+    const signature=await sign();
+    await assert.rejects(()=>call(other.account,accountABI,'revoke',[0n,message.expiresAt,signature]),/InvalidAdminAuthorization/);
+    await assert.rejects(()=>call(f.account,accountABI,'revoke',[1n,message.expiresAt,signature]),/InvalidAdminAuthorization/);
+    for(const expiresAt of [now,now+301n]) {
+        const invalid=await sign({nonce:0n,expiresAt});
+        await assert.rejects(()=>call(f.account,accountABI,'revoke',[0n,expiresAt,invalid]),/InvalidAdminAuthorization/);
+    }
+    const wrongChain=await sign(message,{...domain,chainId:5042002});
+    await assert.rejects(()=>call(f.account,accountABI,'revoke',[0n,message.expiresAt,wrongChain]),/InvalidAdminAuthorization/);
+    assert.equal(await read(f.account,accountABI,'adminNonce'),0n);
+    await call(f.account,accountABI,'revoke',[0n,message.expiresAt,signature]);
+    assert.equal(await read(f.account,accountABI,'revoked'),true);
+    assert.equal(await read(f.account,accountABI,'adminNonce'),1n);
+    await assert.rejects(()=>call(f.account,accountABI,'revoke',[0n,message.expiresAt,signature]),/InvalidAdminAuthorization/);
+    const p=await payment(f,2);
+    await assert.rejects(()=>call(f.token,tokenABI,'transferWithAuthorization',p.args),/InvalidSignature/);
+    assert.equal(await read(f.token,tokenABI,'balanceOf',[merchant.address]),0n);
+});
+
+test('permission signatures bind every delegation field and the factory domain',async()=>{
+    const f=await fixture(),other=await fixture();
+    for(const changes of [{owner:attacker.address},{agent:attacker.address},{merchant:attacker.address},
+        {maxPurchases:4},{validUntil:f.p.validUntil+1n},{salt:keccak256(toHex('another permission'))}]) {
+        await assert.rejects(()=>call(f.factory,factoryABI,'create',[{...f.p,...changes},f.signature]),/InvalidOwnerSignature/);
+    }
+    await assert.rejects(()=>call(other.factory,factoryABI,'create',[f.p,f.signature]),/InvalidOwnerSignature/);
+    for(const changes of [{maxPurchases:0},{maxPurchases:101},{agent:owner.address},
+        {merchant:'0x0000000000000000000000000000000000000000'},{validUntil:1n},
+        {validUntil:(await client.getBlock()).timestamp+86401n}]) {
+        const p={...f.p,...changes};
+        const signature=await owner.signTypedData({domain:f.domain,types,primaryType:'PurchasePermission',message:p});
+        await assert.rejects(()=>call(f.factory,factoryABI,'create',[p,signature]),/InvalidPermission/);
+    }
+});
+
+test('malformed ABI words and invalid time windows cannot consume a payment slot',async()=>{
+    const f=await fixture();
+    const valid=await payment(f);
+    for(const word of [0,6,7]) {
+        const bytes=Buffer.from(valid.blob.slice(2),'hex');bytes[word*32]=1;
+        const args=[...valid.args];args[6]='0x'+bytes.toString('hex');
+        await assert.rejects(()=>call(f.token,tokenABI,'transferWithAuthorization',args),/InvalidSignature/);
+    }
+    const now=(await client.getBlock()).timestamp;
+    for(const changes of [{validAfter:now+1n},{validBefore:now},{validBefore:f.p.validUntil+1n}]) {
+        const p=await payment(f,0,changes);
+        assert.equal(await read(f.account,accountABI,'isValidSignature',[p.hash,p.blob]),'0xffffffff');
+    }
+    assert.equal(await read(f.token,tokenABI,'authorizationState',[f.account,valid.p.nonce]),false);
+    await call(f.token,tokenABI,'transferWithAuthorization',valid.args);
+    assert.equal(await read(f.token,tokenABI,'balanceOf',[merchant.address]),100000n);
+});

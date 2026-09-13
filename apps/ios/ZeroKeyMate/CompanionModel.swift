@@ -348,16 +348,16 @@ final class CompanionModel:ObservableObject {
                 }
             }
             do {
-                let control=input.lowercased().filter{!$0.isWhitespace && !$0.isPunctuation}
-                if ["注文を確認して","注文どうなった","注文の状況を教えて","checkmyorder","checktheorder","orderstatus"].contains(control) {
+                if ShopOrderQuestion.matches(input) {
                     self.agentOffer=nil;self.revokeOffer=nil
                     guard self.stateLoaded else {
                         self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
                         return
                     }
                     if self.pendingExecution == nil && ShopCheckout.hasSavedOrder() {
-                        self.openShop(language: replyLanguage)
-                        self.agentSay(replyLanguage == .japanese ? "保存したビールの注文を確認します。新しく支払いはしません。" : "I'll check your saved beer order. This won't create a new payment.", language: replyLanguage)
+                        let answer = await ShopCheckout.savedOrderAnswer()
+                        guard self.foreground, self.conversationGeneration == generation else { return }
+                        self.agentSay(L10n.text(answer, language: replyLanguage), language: replyLanguage)
                     } else if self.pendingExecution != nil {
                         self.executionStatus=replyLanguage == .japanese ? "同じ注文の結果を確認しています" : "Checking the existing order"
                         await self.recoverExecution()
@@ -507,6 +507,17 @@ final class CompanionModel:ObservableObject {
         shopReplyLanguage = language ?? L10n.language
         shopStartsFromVoice = startsFromVoice
         sheet = .shop
+    }
+    func languagePreferencesChanged() {
+        if sheet == .shop {
+            // A language choice changes narration, never the current order,
+            // its authorization or the card/proof operation in progress.
+            shopReplyLanguage = L10n.language
+            voice.stop()
+        } else {
+            rest()
+        }
+        errorMessage = nil
     }
     func guideShop(_ phase: ShopCheckout.Phase) {
         guard sheet == .shop, foreground, let text = phase.spokenGuide else { return }
