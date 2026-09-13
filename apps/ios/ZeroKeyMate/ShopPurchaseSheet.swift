@@ -67,6 +67,14 @@ struct ShopPurchaseSheet: View {
                 case .readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
+                    if checkout.phase == .proving, let start = checkout.proofStartedAt {
+                        TimelineView(.periodic(from: .now, by: 1)) { _ in
+                            let seconds = Double(AgeProofTiming.milliseconds(start.duration(to: .now))) / 1_000
+                            Text(L10n.format("Working locally · %.0f s", seconds))
+                                .monospacedDigit().foregroundStyle(.secondary)
+                                .accessibilityIdentifier("shop-proof-elapsed")
+                        }
+                    }
                 case .paymentApproval:
                     Text("The store has checked the age proof. This approves only this order, recipient and amount on Arc Testnet.")
                     Button("Approve 0.10 test USDC") { checkout.continuePayment(wallet: wallet) }
@@ -90,6 +98,11 @@ struct ShopPurchaseSheet: View {
                     Button("Check again") { checkout.retryAvailability() }.buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .expired:
                     Text("The original authorization expired without being used. Mate checked the finalized network record; this order was not paid.")
+                }
+                if let timing = checkout.proofTiming {
+                    Label(L10n.format("Age proof made on this phone · %.1f s", Double(timing.totalMilliseconds) / 1_000),
+                          systemImage: "checkmark.shield")
+                        .font(.subheadline).accessibilityIdentifier("shop-proof-duration")
                 }
                 if checkout.canStartNew {
                     Button("Start a new order") { pin = ""; checkout.startNew() }.disabled(checkout.busy)

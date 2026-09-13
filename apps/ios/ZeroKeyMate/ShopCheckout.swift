@@ -13,6 +13,7 @@ private struct SavedShopOrder: Codable {
     var paymentExpiresAt: UInt64?
     var paymentRetiredAtBlockHash: String?
     var locallyProvenOrderHash: String?
+    var proofTiming: AgeProofTiming?
     var completed = false
 }
 private struct PendingShopCreation: Codable {
@@ -33,6 +34,11 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     @Published private(set) var message: String?
     @Published private(set) var storeURL: URL?
     @Published private(set) var canStart = false
+    @Published private(set) var proofStartedAt: ContinuousClock.Instant?
+    var proofTiming: AgeProofTiming? {
+        guard let saved, Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash) else { return nil }
+        return saved.proofTiming
+    }
     let reader = MyNumberNFCService()
     private let prover = AgeProofService()
     private let storageKey = "arc-testnet-age-shop-order-v1"
@@ -127,17 +133,20 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             let credential = try await self.reader.authenticate(pin: pin, challenge: challenge,
                 expiresAt: Date(timeIntervalSince1970: Double(order.expiresAt)))
             try self.check(ticket); self.phase = .proving
+            self.proofStartedAt = .now
             let proof = try await self.prover.prove(authentication: credential.authentication,
                 orderHash: CanonicalBytes.hex(order.orderHash, count: 32), nonce: CanonicalBytes.hex(order.paymentNonce, count: 32),
                 referenceTime: order.createdAt, expiresAt: order.expiresAt)
             try self.check(ticket)
+            self.proofStartedAt = nil
             // Only the local authenticated-card prover can establish this
             // marker. No server field is copied into local proof evidence.
             guard var local = self.saved, local.order.orderHash == order.orderHash else { throw AgeShopError.invalidOrder }
             local.locallyProvenOrderHash = order.orderHash
+            local.proofTiming = proof.timing
             try LocalSecrets.write(local, key: self.storageKey); self.saved = local
             self.phase = .verifying
-            let verified = try await client.verifyAge(order: order, key: saved.key, proof: proof)
+            let verified = try await client.verifyAge(order: order, key: saved.key, proof: proof.proof)
             try self.check(ticket); try self.store(verified)
             self.phase = .paymentApproval
         }
@@ -263,7 +272,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         let ticket = UUID(); generation = ticket
         operation = Task { [weak self] in
             guard let self else { return }
-            defer { if self.generation == ticket { self.operation = nil } }
+            defer { if self.generation == ticket { self.operation = nil; self.proofStartedAt = nil } }
             do { try await body(ticket) }
             catch is CancellationError { }
             catch {
@@ -282,6 +291,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     }
     func cancel() {
         generation = UUID(); operation?.cancel(); operation = nil; reader.cancel()
+        proofStartedAt = nil
         // Saved payment state intentionally survives closing/backgrounding.
         // Foregrounding may check status, but must never resume PIN use or sign.
         phase = .initial; canStart = false

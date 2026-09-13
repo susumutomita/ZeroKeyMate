@@ -33,6 +33,18 @@ final class ShopProposalTests: XCTestCase {
         XCTAssertNotEqual(L10n.text("Your phone is making the proof", language:.japanese), "Your phone is making the proof")
         let template=L10n.text("The signature PIN was rejected. %lld attempts remain. Mate did not retry.", language:.japanese)
         XCTAssertEqual(String(format:template,Int64(2)), "署名用暗証番号が違います。残り2回です。Mateは再試行していません。")
+        let timing = L10n.text("Age proof made on this phone · %.1f s", language: .japanese)
+        XCTAssertEqual(String(format: timing, locale: Locale(identifier: "ja"), 12.5), "このスマホで年齢証明を作成・12.5秒")
+    }
+    func testAgeSubmissionDoesNotIncludeLocalPerformanceMeasurements() throws {
+        // The local result may grow device diagnostics without expanding the
+        // disclosure accepted by the shop client. Synthetic public fields only.
+        let measured = MeasuredAgeProof(
+            proof: VerifiedAgeProof(proof: "0x" + String(repeating: "11", count: 384),
+                                    rootKeyHash: "0x" + String(repeating: "22", count: 32)),
+            timing: AgeProofTiming(totalMilliseconds: 12345, nativeMilliseconds: 12000))
+        let submitted = try JSONSerialization.jsonObject(with: JSONEncoder().encode(measured.proof)) as! [String: Any]
+        XCTAssertEqual(Set(submitted.keys), ["proof", "rootKeyHash"])
     }
     @MainActor func testExpiredCardStepExplainsHowToRecoverInBothLanguages() {
         let message = ShopCheckout.explanation(MyNumberCardError.requestExpired)

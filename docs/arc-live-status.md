@@ -58,6 +58,16 @@ of standard ProveKit age-proof performance. Its setup is about 629 MiB plus a
 The experimental backend and single-party test setup are not for mainnet.
 World ID, AgentKit and Selfie Check are not integrated into this checkout.
 
+The purchase screen now shows elapsed local-processing time while proving and
+the measured successful duration afterward, retained with that order on the
+phone. The monotonic timer covers `AgeProofService.prove`: resource preparation
+if not already cached, witness preparation, native proving/local verification
+and output validation. It excludes card/PIN interaction, earlier store-readiness
+checks and network verification/payment. A separate native-call duration is
+kept locally; neither timing value is submitted to the shop. Failure or
+cancellation cannot create a successful timing record. This instrumentation is
+not itself a physical measurement, a peak-memory measurement or a speed claim.
+
 The earlier three proposed targets were Arc/Circle Agent Stack, Privy financial
 flow and The Graph AI use case. Their completion remains outstanding:
 

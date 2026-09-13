@@ -7740,6 +7740,40 @@
           }
         }
       }
+    },
+    "Working locally · %.0f s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working locally · %.0f s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスマホで処理中・%.0f秒"
+          }
+        }
+      }
+    },
+    "Age proof made on this phone · %.1f s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age proof made on this phone · %.1f s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスマホで年齢証明を作成・%.1f秒"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
