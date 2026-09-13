@@ -6,12 +6,17 @@ struct ShopPurchaseSheet: View {
     @ObservedObject var wallet: WalletService
     @StateObject private var checkout = ShopCheckout()
     @State private var pin = ""
+    // Keep the destination across the temporary checking phase when the user
+    // returns from Mail. The one-use code remains local to the child view.
+    @State private var buyerEmail = ""
+    @State private var buyerCodeSentTo: String?
     @Environment(\.scenePhase) private var scenePhase
 
     private var heading: String {
         switch checkout.phase {
         case .initial,.checking: return "Opening the store"
         case .review: return "Let Mate get your beer"
+        case .funding: return "Add free test USDC"
         case .card: return "Confirm you're 20 or older"
         case .readingCard: return "Hold your card to the phone"
         case .proving: return "Your phone is making the proof"
@@ -49,11 +54,21 @@ struct ShopPurchaseSheet: View {
                     Text("Mate will place this order, ask you to tap your My Number card, and prove your age on this phone. You'll approve the exact test payment with Face ID or your device passcode.")
                     privacy
                     if wallet.ownerAddress == nil {
-                        Button("Connect wallet") { model.sheet = .wallet }.buttonStyle(.borderedProminent)
+                        ShopWalletConnection(wallet: wallet, email: $buyerEmail, sentTo: $buyerCodeSentTo)
                     } else {
                         Button("Start this order · 0.10 test USDC") { checkout.startOrder(wallet: wallet) }
                             .buttonStyle(.borderedProminent).accessibilityIdentifier("shop-start-order")
                     }
+                case .funding:
+                    Text("Your buyer wallet needs 0.10 test USDC on Arc Testnet. The store pays the network fee. No order has been created yet.")
+                    if let address = checkout.fundingAddress {
+                        Text(address).font(.footnote.monospaced()).textSelection(.enabled)
+                        ShareLink(item: address) { Label("Share buyer address", systemImage: "square.and.arrow.up") }
+                    }
+                    Link("Get free test USDC from Circle", destination: URL(string: "https://faucet.circle.com/")!)
+                    Text("Choose Arc Testnet and paste this buyer address. Return here after the faucet transfer.").foregroundStyle(.secondary)
+                    Button("Check funds and start this order") { checkout.startOrder(wallet: wallet) }
+                        .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .card:
                     Text("Use the signature PIN: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
                     SecureField("Signature PIN", text: $pin)
@@ -67,6 +82,14 @@ struct ShopPurchaseSheet: View {
                 case .readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
+                    if checkout.phase == .proving, let start = checkout.proofStartedAt {
+                        TimelineView(.periodic(from: .now, by: 1)) { _ in
+                            let seconds = Double(AgeProofTiming.milliseconds(start.duration(to: .now))) / 1_000
+                            Text(L10n.format("Working locally · %.0f s", seconds))
+                                .monospacedDigit().foregroundStyle(.secondary)
+                                .accessibilityIdentifier("shop-proof-elapsed")
+                        }
+                    }
                 case .paymentApproval:
                     Text("The store has checked the age proof. This approves only this order, recipient and amount on Arc Testnet.")
                     Button("Approve 0.10 test USDC") { checkout.continuePayment(wallet: wallet) }
@@ -91,6 +114,11 @@ struct ShopPurchaseSheet: View {
                 case .expired:
                     Text("The original authorization expired without being used. Mate checked the finalized network record; this order was not paid.")
                 }
+                if let timing = checkout.proofTiming {
+                    Label(L10n.format("Age proof made on this phone · %.1f s", Double(timing.totalMilliseconds) / 1_000),
+                          systemImage: "checkmark.shield")
+                        .font(.subheadline).accessibilityIdentifier("shop-proof-duration")
+                }
                 if checkout.canStartNew {
                     Button("Start a new order") { pin = ""; checkout.startNew() }.disabled(checkout.busy)
                 }
@@ -101,7 +129,7 @@ struct ShopPurchaseSheet: View {
         .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
         .controlSize(.large)
         .task { checkout.load() }
-        .onDisappear { pin = ""; checkout.cancel() }
+        .onDisappear { pin = ""; buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { pin = ""; checkout.cancel() }
             else if phase == .active { checkout.load() }
@@ -118,6 +146,62 @@ struct ShopPurchaseSheet: View {
         case .verifying: return "Only the public proof is sent to the store."
         case .paying: return "Sending the approved authorization once, then checking the receipt."
         default: return "Checking the store and the on-device proof runtime."
+        }
+    }
+}
+
+/// Purchase-specific onboarding keeps the user in the order and does not
+/// require a specialist API, policy vault, deposit approval or execution key.
+private struct ShopWalletConnection: View {
+    @ObservedObject var wallet: WalletService
+    @Binding var email: String
+    @State private var code = ""
+    @Binding var sentTo: String?
+    @State private var message: String?
+    @State private var operation: Task<Void, Never>?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Connect with Privy").font(.headline)
+            Text("Use your email to prepare a buyer wallet for this test purchase. Your card information is not shared with Privy.")
+                .font(.subheadline).foregroundStyle(.secondary)
+            if wallet.isAuthenticated {
+                Button("Prepare buyer wallet") { run { try await wallet.prepareShopWallet() } }
+                    .buttonStyle(.borderedProminent)
+            } else if let sentTo {
+                SecureField("Verification code", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+                    .textFieldStyle(.roundedBorder)
+                Button("Sign in and prepare buyer wallet") {
+                    let oneUse = code; code = ""
+                    run {
+                        try await wallet.login(email: sentTo, code: oneUse)
+                        try Task.checkCancellation()
+                        try await wallet.prepareShopWallet()
+                    }
+                }.buttonStyle(.borderedProminent).disabled(code.isEmpty)
+                Button("Use a different email") { self.sentTo = nil; code = ""; message = nil }
+            } else {
+                TextField("Email address", text: $email).keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder)
+                Button("Send verification code") {
+                    let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                    run { try await wallet.sendCode(email: address); try Task.checkCancellation(); sentTo = address }
+                }.buttonStyle(.borderedProminent).disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            if operation != nil || wallet.busy { ProgressView() }
+            if let message { Text(L10n.text(message)).foregroundStyle(.secondary) }
+        }
+        .disabled(operation != nil || wallet.busy)
+        .onDisappear { operation?.cancel(); code = "" }
+    }
+    private func run(_ body: @escaping @MainActor () async throws -> Void) {
+        guard operation == nil else { return }
+        message = nil
+        operation = Task { @MainActor in
+            defer { operation = nil }
+            do { try await body() }
+            catch is CancellationError { }
+            catch { message = "Wallet connection did not finish. Check your email and code, then try again. No order was created." }
         }
     }
 }

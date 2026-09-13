@@ -6193,66 +6193,66 @@
         }
       }
     },
-    "Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone.": {
+    "Ask Mate to buy a beer. Your iPhone proves you're 20 or older, while your name and birth date stay private.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone."
+            "value": "Ask Mate to buy a beer. Your iPhone proves you're 20 or older, while your name and birth date stay private."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mateに頼んでみましょう。予算の総額をiPhoneに残したまま、決めたルールの範囲で有料の翻訳を任せられます。"
+            "value": "Mateにビールを頼んでみましょう。氏名や生年月日を明かさず、このiPhoneで20歳以上であることを証明します。"
           }
         }
       }
     },
-    "Try a translation request": {
+    "Try a beer purchase": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Try a translation request"
+            "value": "Try a beer purchase"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "翻訳の依頼を試す"
+            "value": "ビールの購入を試す"
           }
         }
       }
     },
-    "Translate this into Japanese: The meeting starts at ten.": {
+    "Buy me one beer.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Translate this into Japanese: The meeting starts at ten."
+            "value": "Buy me one beer."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「会議は10時に始まります。」を英語に翻訳して。"
+            "value": "ビールを1本買って。"
           }
         }
       }
     },
-    "Edit the example, then send it. External requests need a connected shop and approved spending rules.": {
+    "Send the request to open Mate's store. You'll tap your My Number card and approve 0.10 test USDC before payment. No physical delivery.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Edit the example, then send it. External requests need a connected shop and approved spending rules."
+            "value": "Send the request to open Mate's store. You'll tap your My Number card and approve 0.10 test USDC before payment. No physical delivery."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "例文を編集して送ってみましょう。外部への依頼には、店舗との接続と予算の承認が必要です。"
+            "value": "送信するとMateの店舗を開きます。マイナンバーカードをタッチし、0.10テストUSDCの支払いを承認して進みます。商品の配送はありません。"
           }
         }
       }
@@ -7737,6 +7737,227 @@
           "stringUnit": {
             "state": "translated",
             "value": "注文の期限が切れたため、カードの処理を停止しました。新しい注文を開始してください。"
+          }
+        }
+      }
+    },
+    "Working locally · %.0f s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working locally · %.0f s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスマホで処理中・%.0f秒"
+          }
+        }
+      }
+    },
+    "Age proof made on this phone · %.1f s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age proof made on this phone · %.1f s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスマホで年齢証明を作成・%.1f秒"
+          }
+        }
+      }
+    },
+    "Add free test USDC": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add free test USDC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料のテストUSDCを追加"
+          }
+        }
+      }
+    },
+    "Your buyer wallet needs 0.10 test USDC on Arc Testnet. The store pays the network fee. No order has been created yet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your buyer wallet needs 0.10 test USDC on Arc Testnet. The store pays the network fee. No order has been created yet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用ウォレットにArc TestnetのテストUSDCが0.10必要です。ネットワーク手数料は店舗が負担します。注文はまだ作成されていません。"
+          }
+        }
+      }
+    },
+    "Share buyer address": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share buyer address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用アドレスを共有"
+          }
+        }
+      }
+    },
+    "Get free test USDC from Circle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get free test USDC from Circle"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Circleで無料のテストUSDCを受け取る"
+          }
+        }
+      }
+    },
+    "Choose Arc Testnet and paste this buyer address. Return here after the faucet transfer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Arc Testnet and paste this buyer address. Return here after the faucet transfer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arc Testnetを選び、この購入用アドレスを貼り付けてください。テストUSDCを受け取ったら、この画面に戻ってください。"
+          }
+        }
+      }
+    },
+    "Check funds and start this order": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check funds and start this order"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残高を確認して注文を開始"
+          }
+        }
+      }
+    },
+    "Use your email to prepare a buyer wallet for this test purchase. Your card information is not shared with Privy.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use your email to prepare a buyer wallet for this test purchase. Your card information is not shared with Privy."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールでログインして、テスト購入用ウォレットを準備します。カード情報はPrivyに共有しません。"
+          }
+        }
+      }
+    },
+    "Prepare buyer wallet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare buyer wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用ウォレットを準備"
+          }
+        }
+      }
+    },
+    "Sign in and prepare buyer wallet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and prepare buyer wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインして購入用ウォレットを準備"
+          }
+        }
+      }
+    },
+    "Use a different email": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a different email"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のメールアドレスを使う"
+          }
+        }
+      }
+    },
+    "Wallet connection did not finish. Check your email and code, then try again. No order was created.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet connection did not finish. Check your email and code, then try again. No order was created."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォレットの接続が完了しませんでした。メールアドレスとコードを確認して再度お試しください。注文は作成されていません。"
           }
         }
       }

@@ -28,13 +28,26 @@ private final class ShopTestRPC: URLProtocol, @unchecked Sendable {
             let result: Any
             if method == "eth_chainId" { result = mode == "wrong-chain" ? "0x14a34" : "0x4cef52" }
             else if method == "eth_getBlockByNumber" {
-                result = ["number": "0x64", "hash": "0x" + String(repeating: "bb", count: 32),
+                result = ["number": mode == "funds-wrong-block" ? "0x65" : "0x64", "hash": "0x" + String(repeating: "bb", count: 32),
                           "timestamp": "0x" + String(mode == "early" ? end - 1 : end + 1, radix: 16)]
             } else if method == "eth_call" {
                 let params = body["params"] as! [Any], call = params[0] as! [String: String]
+                if mode.hasPrefix("funds-") {
+                    guard call["to"] == AgeShopProtocol.token,
+                          call["data"] == "0x70a08231" + String(repeating: "0", count: 24) + String(repeating: "11", count: 20),
+                          params[1] as? String == "0x64" else { throw URLError(.badServerResponse) }
+                    switch mode {
+                    case "funds-short": result = "0x186a0"
+                    case "funds-large": result = "0x" + String(repeating: "f", count: 64)
+                    default:
+                        let units: UInt64 = mode == "funds-zero" ? 0 : mode == "funds-low" ? 99999 : 100000
+                        result = CanonicalBytes.hexString(Data(repeating: 0, count: 24) + CanonicalBytes.u64(units))
+                    }
+                } else {
                 guard call["to"] == AgeShopProtocol.token, call["data"]?.hasPrefix("0xe94a0102") == true,
                       call["data"]?.count == 138, params[1] as? String == "0x64" else { throw URLError(.badServerResponse) }
                 result = mode == "short" ? "0x0" : "0x" + String(repeating: "0", count: 63) + (mode == "used" ? "1" : "0")
+                }
             } else { throw URLError(.unsupportedURL) }
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type":"application/json"])!
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
@@ -46,6 +59,18 @@ private final class ShopTestRPC: URLProtocol, @unchecked Sendable {
 }
 
 final class ShopRPCTests: XCTestCase {
+    func testBuyerFundsUseExactSixDecimalTokenBalanceBeforeCardRead() async throws {
+        let payer = "0x" + String(repeating: "11", count: 20)
+        for (mode, expected) in [("funds-zero", false), ("funds-low", false), ("funds-exact", true), ("funds-large", true)] {
+            let funds = try await rpc(mode, end: 1000).shopFunds(payer: payer, blockNumber: 100)
+            XCTAssertEqual(funds.sufficient, expected, mode)
+            XCTAssertEqual(funds.blockHash, "0x" + String(repeating: "bb", count: 32))
+        }
+        for mode in ["funds-short", "funds-wrong-block", "wrong-chain"] {
+            do { _ = try await rpc(mode, end: 1000).shopFunds(payer: payer, blockNumber: 100); XCTFail("Accepted \(mode)") }
+            catch { }
+        }
+    }
     private func order() throws -> AgeShopOrder {
         let bundle = Bundle(for: Self.self)
         let file = bundle.url(forResource: "shop-order", withExtension: "json")

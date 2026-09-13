@@ -9,6 +9,22 @@ struct VerifiedAgeProof: Sendable, Encodable {
     let rootKeyHash: String
 }
 
+/// Local measurement only. This wrapper is deliberately not Encodable: the
+/// network client accepts only VerifiedAgeProof, never device timing or witness data.
+struct MeasuredAgeProof: Sendable {
+    let proof: VerifiedAgeProof
+    let timing: AgeProofTiming
+}
+struct AgeProofTiming: Sendable, Codable {
+    let totalMilliseconds: Int
+    let nativeMilliseconds: Int
+
+    static func milliseconds(_ duration: Duration) -> Int {
+        let parts = duration.components
+        return Int(parts.seconds * 1_000 + parts.attoseconds / 1_000_000_000_000_000)
+    }
+}
+
 /// Separate from spending-policy proofs. The card credential and witness stay
 /// within this background actor; networking and signing are outside its scope.
 actor AgeProofService {
@@ -30,21 +46,27 @@ actor AgeProofService {
     }
 
     func prove(authentication: UnverifiedJPKIAuthentication, orderHash: Data, nonce: Data,
-               referenceTime: UInt64, expiresAt: UInt64) throws -> VerifiedAgeProof {
+               referenceTime: UInt64, expiresAt: UInt64) throws -> MeasuredAgeProof {
+        let start = ContinuousClock.now
         try prepare()
         let witness = try JPKIAgeWitness.prepare(authentication: authentication, orderHash: orderHash, nonce: nonce,
                                                 referenceTime: referenceTime, expiresAt: expiresAt)
         guard let resources = verifiedResources else { throw ProductError.invalidResponse }
         try Task.checkCancellation()
+        let nativeStart = ContinuousClock.now
         let result = try witness.withLocalProverInput { input in
             try MateAgeNative.prove(proverPath: resources.0.path, verifierPath: resources.1.path, input: input)
         }
+        let nativeEnd = ContinuousClock.now
         // The native call cannot yet be interrupted halfway through. Cancelling
         // always discards its result and must never start checkout afterward.
         try Task.checkCancellation()
         guard Date().timeIntervalSince1970 < Double(expiresAt), result.proof.count == 384,
               result.publicInputs.map(Self.decimal) == witness.publicInputs else { throw ProductError.invalidResponse }
-        return VerifiedAgeProof(proof: Self.hex(result.proof), rootKeyHash: Self.hex(witness.rootKeyHash))
+        let proof = VerifiedAgeProof(proof: Self.hex(result.proof), rootKeyHash: Self.hex(witness.rootKeyHash))
+        return MeasuredAgeProof(proof: proof, timing: AgeProofTiming(
+            totalMilliseconds: AgeProofTiming.milliseconds(start.duration(to: .now)),
+            nativeMilliseconds: AgeProofTiming.milliseconds(nativeStart.duration(to: nativeEnd))))
     }
 
     private func hashFile(_ url: URL) throws -> String {
