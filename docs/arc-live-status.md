@@ -68,6 +68,16 @@ kept locally; neither timing value is submitted to the shop. Failure or
 cancellation cannot create a successful timing record. This instrumentation is
 not itself a physical measurement, a peak-memory measurement or a speed claim.
 
+Purchase onboarding now stays in the purchase screen: Privy email sign-in and
+buyer-wallet preparation do not require the separate specialist vault or an
+extra execution wallet. Before creating an order or asking for a card, Mate
+reads the buyer's six-decimal USDC token balance at the same finalized height
+through both fixed Arc RPC providers and requires matching block hashes and
+balances. Less than 0.10 test USDC shows the buyer address and Circle faucet
+instructions; the user completes the faucet request and returns to recheck.
+The merchant sponsors settlement gas. This preflight is not a balance
+reservation; settlement still checks the actual authorization and receipt.
+
 The earlier three proposed targets were Arc/Circle Agent Stack, Privy financial
 flow and The Graph AI use case. Their completion remains outstanding:
 

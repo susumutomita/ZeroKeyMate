@@ -7774,6 +7774,193 @@
           }
         }
       }
+    },
+    "Add free test USDC": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add free test USDC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料のテストUSDCを追加"
+          }
+        }
+      }
+    },
+    "Your buyer wallet needs 0.10 test USDC on Arc Testnet. The store pays the network fee. No order has been created yet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your buyer wallet needs 0.10 test USDC on Arc Testnet. The store pays the network fee. No order has been created yet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用ウォレットにArc TestnetのテストUSDCが0.10必要です。ネットワーク手数料は店舗が負担します。注文はまだ作成されていません。"
+          }
+        }
+      }
+    },
+    "Share buyer address": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share buyer address"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用アドレスを共有"
+          }
+        }
+      }
+    },
+    "Get free test USDC from Circle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get free test USDC from Circle"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Circleで無料のテストUSDCを受け取る"
+          }
+        }
+      }
+    },
+    "Choose Arc Testnet and paste this buyer address. Return here after the faucet transfer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Arc Testnet and paste this buyer address. Return here after the faucet transfer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arc Testnetを選び、この購入用アドレスを貼り付けてください。テストUSDCを受け取ったら、この画面に戻ってください。"
+          }
+        }
+      }
+    },
+    "Check funds and start this order": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check funds and start this order"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残高を確認して注文を開始"
+          }
+        }
+      }
+    },
+    "Use your email to prepare a buyer wallet for this test purchase. Your card information is not shared with Privy.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use your email to prepare a buyer wallet for this test purchase. Your card information is not shared with Privy."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールでログインして、テスト購入用ウォレットを準備します。カード情報はPrivyに共有しません。"
+          }
+        }
+      }
+    },
+    "Prepare buyer wallet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare buyer wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用ウォレットを準備"
+          }
+        }
+      }
+    },
+    "Sign in and prepare buyer wallet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and prepare buyer wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインして購入用ウォレットを準備"
+          }
+        }
+      }
+    },
+    "Use a different email": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a different email"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のメールアドレスを使う"
+          }
+        }
+      }
+    },
+    "Wallet connection did not finish. Check your email and code, then try again. No order was created.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet connection did not finish. Check your email and code, then try again. No order was created."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウォレットの接続が完了しませんでした。メールアドレスとコードを確認して再度お試しください。注文は作成されていません。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

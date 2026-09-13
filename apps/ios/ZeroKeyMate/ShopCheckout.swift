@@ -28,12 +28,13 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
 }
 
 @MainActor final class ShopCheckout: ObservableObject {
-    enum Phase: Equatable { case initial, checking, review, card, readingCard, proving, verifying, paymentApproval, paying, pending, complete, expired, unavailable }
+    enum Phase: Equatable { case initial, checking, review, funding, card, readingCard, proving, verifying, paymentApproval, paying, pending, complete, expired, unavailable }
     @Published private(set) var phase = Phase.initial
     @Published private(set) var order: AgeShopOrder?
     @Published private(set) var message: String?
     @Published private(set) var storeURL: URL?
     @Published private(set) var canStart = false
+    @Published private(set) var fundingAddress: String?
     @Published private(set) var proofStartedAt: ContinuousClock.Instant?
     var proofTiming: AgeProofTiming? {
         guard let saved, Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash) else { return nil }
@@ -100,10 +101,25 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     }
 
     func startOrder(wallet: WalletService) {
-        guard !busy, phase == .review, order == nil, canStart, client != nil, let connection else { return }
+        guard !busy, [.review, .funding].contains(phase), order == nil, canStart, client != nil, let connection else { return }
         guard let payer = wallet.ownerAddress else { message = "Connect your wallet first. No order has been sent."; return }
         phase = .checking; message = nil
         run { ticket in
+            let primary = EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID)
+            let independent = EthereumRPC(url: "https://rpc.drpc.testnet.arc.io", chainID: AgeShopProtocol.chainID)
+            async let firstHeight = primary.finalizedShopHeight()
+            async let secondHeight = independent.finalizedShopHeight()
+            let heights = try await (firstHeight, secondHeight)
+            let height = min(heights.0, heights.1)
+            async let firstFunds = primary.shopFunds(payer: payer, blockNumber: height)
+            async let secondFunds = independent.shopFunds(payer: payer, blockNumber: height)
+            let funds = try await (firstFunds, secondFunds)
+            try self.check(ticket)
+            guard wallet.ownerAddress?.lowercased() == payer.lowercased(), funds.0 == funds.1 else { throw ProductError.invalidResponse }
+            guard funds.0.sufficient else {
+                self.fundingAddress = payer; self.phase = .funding; return
+            }
+            self.fundingAddress = nil
             let key = String(CanonicalBytes.hexString(try LocalSecrets.random32()).dropFirst(2))
             let pending = PendingShopCreation(connection: connection, key: key, payer: payer)
             // Even a lost creation response must resume the same capability.
