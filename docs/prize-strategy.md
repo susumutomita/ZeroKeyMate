@@ -2,10 +2,10 @@
 
 Updated September 13, 2026. The physical-card age proof and real Arc test purchase have completed. The [README partner map](../README.md#partner-prize-evidence-where-to-review-the-integration) links each claimed integration to its code, public contracts and buyer receipts. These are implementation facts, not an award or eligibility decision.
 
-| Current choice | Actual integration | Submission work still needed |
+| Current choice | Actual integration | Submission status and remaining boundaries |
 | --- | --- | --- |
-| **Arc — Best DeFi/Onchain Finance Application** | Arc Age Gate verification and actual USDC payments; persistent merchant gas sponsorship and receipt recovery | Final narrated video, public source revision, architecture and partner feedback. Part of the award has a September 30 mainnet condition; current work and authorization are testnet only. |
-| **Privy — Best financial flow** | Real embedded buyer wallet and exact EIP-712 signing in the completed financial flow | Final video and submitted application explaining the actual wallet experience and feedback. |
+| **Arc — Best DeFi/Onchain Finance Application** | Arc Age Gate verification and actual USDC payments; persistent merchant gas sponsorship and receipt recovery | The narrated film, public source revision, architecture and partner feedback are prepared and saved. The entrant reported successful submission on September 13, 2026. Part of the award has a September 30 mainnet condition; current work and authorization are testnet only. |
+| **Privy — Best financial flow** | Real embedded buyer wallet and exact EIP-712 signing in the completed financial flow | Narrated video and application copy describing the actual wallet experience and feedback are saved. The entrant reported successful submission on September 13, 2026. |
 | **The Graph — incomplete** | Arc payment-history Subgraph source merged and tested | Studio deployment, live query and a meaningful purchase/budget decision from live Graph data remain missing. Do not claim this as completed. |
 
 Official requirements: [Arc](https://ethglobal.com/events/ethonline2026/prizes/arc), [Privy](https://ethglobal.com/events/ethonline2026/prizes/privy), [The Graph](https://ethglobal.com/events/ethonline2026/prizes/the-graph).

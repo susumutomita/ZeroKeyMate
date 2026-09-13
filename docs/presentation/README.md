@@ -4,10 +4,10 @@ The main narrative is **problem → real recorded experience → how it works �
 
 - [Open the offline English deck](index.html): nine main slides and two status/trust appendices. Arrow keys and Space navigate; print produces one page per slide.
 - [Open the large-text human reading guide](narration.html): nine short sections, Japanese pronunciation hints and adjustable text size. It is display-only and never records or uploads audio.
-- [Read the 3:52 script](../demo.md): use the supplied 58.5-second edited recording in place of slide 3, then explain the local agent, proof, disclosure boundary and payment.
+- [Read the narration and editing notes](../demo.md): the final 3:27 film includes 50 seconds of the supplied device recording, then explains the local agent, proof, disclosure boundary and payment.
 - [Public project overview](https://zerokeymate-arc-shop.oyster880.workers.dev/demo/): recorded walkthrough, actual app screenshots, technology explanation, receipt and store links.
 
-The PDF export is saved locally as `output/pdf/ZeroKeyMate-pitch.pdf`. The recording is not a continuous same-order capture. The short walkthrough does not replace the required 2–4-minute human-narrated submission video.
+The [pitch PDF](ZeroKeyMate-pitch.pdf), [3:27 narrated film](../../services/shop/public/demo/assets/submission.mp4), [English subtitles](submission-en.srt) and [original visual assets](../../images/) are committed to the repository. The recording is not a continuous same-order capture. The short walkthrough does not replace the required 2–4-minute human-narrated submission video.
 
 ## Claim-to-code map
 
@@ -27,4 +27,4 @@ The submission logo and cover were created with the built-in OpenAI image genera
 
 The logo prompt asks for the existing friendly two-eye face, no mouth or text, as a square ivory/forest-green icon. The cover prompt asks for a 16:9 editorial phone-on-stand illustration with the exact text “ZeroKey Mate”, “Your companion. Your rules.” and “Local AI · Local ZK · Arc payments”. The [full generation prompts](artwork-prompts.md) are included for attribution.
 
-No AI voiceover or synthesized replacement pronunciation is included. Human narration, final export, video upload and final dashboard submission remain separate acceptance steps.
+No AI voiceover or synthesized replacement pronunciation is included. The human-narrated 207.38-second export has been uploaded and saved in the ETHGlobal dashboard. The entrant reported successful final submission on September 13, 2026. Award eligibility and judging remain with the organizers.

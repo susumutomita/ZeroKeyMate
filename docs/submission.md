@@ -1,6 +1,6 @@
-# ETHOnline 2026 submission draft
+# ETHOnline 2026 submission copy
 
-Current story: the physical-card age proof and Arc test purchase. Updated September 13, 2026. **This is prepared copy, not a submitted entry.** The final video URL and dashboard receipt are still missing. Use [live evidence](arc-live-status.md), [the four-minute plan](demo.md), and [prize requirements](prize-strategy.md).
+Current story: the physical-card age proof and Arc test purchase. Updated September 13, 2026. **The entrant reported successful submission on September 13, 2026.** The [3:27 narrated film](../services/shop/public/demo/assets/submission.mp4) has been uploaded and saved; this document preserves the submitted project story. Use [live evidence](arc-live-status.md), [the four-minute plan](demo.md), and [prize requirements](prize-strategy.md).
 
 ## Project name
 
@@ -69,9 +69,9 @@ The project reuses attributed public dependencies, including the MIT-licensed Ci
 | --- | --- |
 | Repository | https://github.com/susumutomita/ZeroKeyMate — use the final merged revision matching the take |
 | App / store | [Project LP](https://zerokeymate-arc-shop.oyster880.workers.dev/demo/) · https://zerokeymate-arc-shop.oyster880.workers.dev/ — native iPhone is required for the card flow |
-| Demo video | 58.5-second edited walkthrough prepared; final 2–4-minute human-narrated export and upload remain |
-| Selected prizes | Recommended: Privy financial flow and Arc DeFi/Onchain Finance; Graph remains incomplete |
+| Demo video | 207.38-second human-narrated film exported in 1080p and uploaded to the dashboard; entrant reported successful submission |
+| Selected prizes | Privy financial flow and Arc DeFi/Onchain Finance were selected; Graph remains incomplete |
 | Entrant / track / prior work | Verify current dashboard values and contribution statement |
-| Final submission receipt | Not submitted; reload-confirm the organizer's submitted state after the completed form is sent |
+| Final submission receipt | Entrant reported successful submission on September 13, 2026; no dashboard receipt is archived here |
 
 The deadline is **September 14, 2026 at 01:00 JST** (September 13 at 12:00 EDT). Up to three partner prizes may be selected. Arc attaches a September 30 mainnet condition to part of its award; the current app, evidence and authorization are testnet only. [Official submission guide](https://ethglobal.com/events/ethonline2026/info/details).
