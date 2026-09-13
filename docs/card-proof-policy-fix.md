@@ -44,8 +44,9 @@ Validation on the replacement setup:
 - Core `make test` and `make -o project build-ios` pass. The macOS core test
   requires normal Security.framework access; a sandbox-blocked trust evaluation
   is not a reason to remove certificate checks.
-- 22 native regression/UI tests pass for card capture, password entry, checkout
-  questions and failure recovery. Physical-card data is not used by those tests.
+- 26 build-7 simulator regression/UI tests pass for card capture, password
+  entry, checkout questions, readiness retries and failure recovery.
+  Physical-card data is not used by those tests.
 - The actual host native FFI accepts the policy-bearing synthetic witness;
   9 invalid native inputs return failure with no proof output. The circuit
   acceptance rejects 20 negative witnesses, including missing/wrong policies
@@ -76,3 +77,6 @@ An additional synchronous XCTest witness test was interrupted by iOS process-exi
 watchdog while its main thread waited for native work; this was not a circuit
 rejection. The test now runs native proving on a background task, matching the
 app service. The raw native valid/invalid-input test passed on the same phone.
+The corrected Swift-witness test subsequently passed on that physical iPhone
+in build 7, together with four readiness tests (five passed, none failed or
+skipped). This fixture-based test is separate from the user's real-card order.

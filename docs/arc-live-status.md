@@ -2,8 +2,12 @@
 
 The [Mate Atelier storefront](https://zerokeymate-arc-shop.oyster880.workers.dev/)
 is deployed on Cloudflare Workers with its dedicated D1 database and settlement
-Durable Object. Its live catalog reports `checkoutAvailable: true` after checking
-the actual Arc contracts, database and funded merchant.
+Durable Object. Twelve consecutive public catalog checks on 2026-09-13 reported
+`checkoutAvailable: true` after checking the actual Arc contracts, database and
+funded merchant. The user also reported intermittent unavailability; its root
+cause is not yet reproduced or resolved by that successful sample. The catalog
+now returns a fixed `availabilityCode` for diagnosis, without raw errors or
+order data. It does not relax any readiness or verification check.
 
 **The main physical-card test-purchase path completed on 2026-09-13 in build 6.**
 The user reported successful My Number card use and supplied the completed-order
@@ -43,7 +47,7 @@ Only new dedicated test keys and free faucet test USDC were used.
 
 | Expected experience | Verified boundary |
 | --- | --- |
-| Ask Mate to buy one beer | On-device model tool and deterministic controls implemented; User confirmed that “buy beer” opens checkout; the completed purchase was started from the screen. Repeated voice-order completion still needs acceptance |
+| Ask Mate to buy one beer | On-device model tool and deterministic controls implemented; user confirmed that “buy beer” opens checkout; the completed purchase was started from the screen. Repeated voice-order completion still needs acceptance |
 | Authenticate a My Number card | User completed physical card interaction; the resulting proof was accepted for purchase; revocation remains unchecked |
 | Produce the age proof locally | User screenshot reports 12.0 s for a successful real-card proof on iPhone; native synthetic proof and negative-input checks also passed; no peak-memory benchmark |
 | Verify before payment | Worker calls the deployed age gate with order-bound inputs via two-provider eth_call before payment; the real-card order completed |
@@ -56,13 +60,22 @@ the verification-before-fulfillment boundary. Both-provider agreement is an RPC
 trust assumption. See [the shop protocol](../services/shop/README.md).
 
 The original build 4 was replaced wirelessly with **0.3.0 (6)** after the
-paired iPhone joined the Mac's network. Installed-app inventory confirmed build
-6. That app contains the policy-compatible setup and new gate above, and the
-user completed the purchase with it. Build 7 adds a visible Arc Explorer button,
-selectable transaction hash and explicit copy action to checkout and history;
-its installation is recorded separately when verified. A fresh voice request
+paired iPhone joined the Mac's network. That app contains the policy-compatible
+setup and new gate above, and the user completed the purchase with it. Builds 7
+and **8** were subsequently installed and normally launched; installed-app
+inventory independently confirmed both versions. Build 7 adds a visible Arc
+Explorer button, selectable transaction hash and explicit copy action to
+checkout and history. A fresh voice request
 now suppresses terminal announcements from the previous order; read-only store
 readiness retries up to three times without retrying card input or payment.
+
+Build 8 adds a globe language menu to the purchase screen and other sheets.
+Choosing English changes display and future purchase narration together without
+replacing the current checkout. The preference survives relaunch; Settings can
+still configure display and spoken language separately. Touch and hold the face
+or swipe up to access the same menu in Controls. No control is added to the face.
+The physical phone's language interaction still requires user confirmation;
+installation and automated simulator checks are separate evidence.
 
 ## Proving and prize claims
 
@@ -102,7 +115,7 @@ flow and The Graph AI use case. Their completion remains outstanding:
   buyer settlement evidence are separate requirements. Settlement is now
   confirmed; meaningful Circle Agent Stack use is still outstanding.
 - [Privy financial flow](https://ethglobal.com/events/ethonline2026/prizes/privy):
-  the iOS wallet SDK and public application/client IDs are configured, but a
+  the iOS wallet SDK and public application/client IDs are configured, and a
   physical-phone wallet purchase now has the receipt evidence above; prize
   eligibility still requires checking the full sponsor criteria.
 - [The Graph AI use case](https://ethglobal.com/events/ethonline2026/prizes/the-graph):

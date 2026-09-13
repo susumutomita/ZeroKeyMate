@@ -110,7 +110,9 @@ from the new pinned verifier key reproduced the whole-package digest. See
 [the current deployment and cumulative fees](arc-live-status.md).
 
 Public contract deployment, the dedicated sponsor secret and funding, and
-Cloudflare publishing are complete. Remaining: configured physical iPhone
-installation, actual card touch and full card-to-USDC acceptance. A meaningful Circle Agent Stack
+Cloudflare publishing are complete. The configured physical iPhone completed
+one real card-to-USDC test purchase on 2026-09-13; see the receipt and acceptance
+limits in the live-status document. Repeat voice-order stability is still under
+investigation. A meaningful Circle Agent Stack
 integration into this checkout is also outstanding for that specific category;
 the existing separate API attestor adapter does not satisfy it by itself.

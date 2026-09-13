@@ -12,6 +12,7 @@ struct ShopPurchaseSheet: View {
     @State private var buyerEmail = ""
     @State private var buyerCodeSentTo: String?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.locale) private var locale
 
     private var heading: String {
         switch checkout.phase {
@@ -34,6 +35,9 @@ struct ShopPurchaseSheet: View {
         }
     }
     var body: some View {
+        // Dynamic phase/error strings use L10n; observe the locale so they
+        // refresh alongside SwiftUI's static text in the existing checkout.
+        let _ = locale.identifier
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .center, spacing: 20) {

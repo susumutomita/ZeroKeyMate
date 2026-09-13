@@ -231,6 +231,7 @@ test('catalog stays unavailable when RPC, code, clock, storage or facilitator ar
   ]) {
     Object.assign(h.rpc,base,override);
     assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,false);
+    assert.equal((await (await h.request('/catalog')).json()).availabilityCode,'age_network');
   }
   Object.assign(h.rpc,base);
   for(const kinds of [[],[{x402Version:1,network:NETWORK,scheme:'exact'}],[{x402Version:2,network:'eip155:1',scheme:'exact'}]]) {
@@ -239,7 +240,10 @@ test('catalog stays unavailable when RPC, code, clock, storage or facilitator ar
     assert.equal((await response.json()).checkoutAvailable,false);
   }
   h.db.exec('DROP TABLE orders');
-  assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,false);
+  const unavailable=await (await h.request('/catalog')).json();
+  assert.equal(unavailable.checkoutAvailable,false);
+  assert.equal(unavailable.availabilityCode,'storage');
+  assert.equal(JSON.stringify(unavailable).includes('SQLITE'),false);
 });
 test('an outage prevents new orders but leaves existing order recovery available',async t=>{
   const h=harness(t),order=await h.order();h.rpc.getChainId=async()=>{throw new Error('offline');};

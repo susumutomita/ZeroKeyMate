@@ -508,6 +508,17 @@ final class CompanionModel:ObservableObject {
         shopStartsFromVoice = startsFromVoice
         sheet = .shop
     }
+    func languagePreferencesChanged() {
+        if sheet == .shop {
+            // A language choice changes narration, never the current order,
+            // its authorization or the card/proof operation in progress.
+            shopReplyLanguage = L10n.language
+            voice.stop()
+        } else {
+            rest()
+        }
+        errorMessage = nil
+    }
     func guideShop(_ phase: ShopCheckout.Phase) {
         guard sheet == .shop, foreground, let text = phase.spokenGuide else { return }
         // No microphone is started in checkout; never dictate or transcribe PINs.
