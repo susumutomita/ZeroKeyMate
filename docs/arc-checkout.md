@@ -102,10 +102,12 @@ providers, using 0.034476939 test USDC in gas; see the [public evidence](arc-liv
 Merchant settlement separately caps each submission at 0.00375 test USDC gas.
 
 The reviewed Arc package SHA-256 is
-`b525f26df035c15670ba891fbdea8121691400a8375bdb498e64c82179712d81`.
-Compared with the previous package, only the gate, chain ID and gate source hash
-change. The compiler, verifier and original mobile proving parameters match.
-Fresh export from the pinned verifier key reproduced this whole-package digest.
+`07f44f7aaff63da2bed7254878e93df692342168f9dac54a3f47fa3a0d3504a9`.
+This replaces the original package after the physical signing-policy fix.
+The circuit, mobile proving setup and EVM verifier now match that policy; the
+government-root gate source and compiler settings are unchanged. Fresh export
+from the new pinned verifier key reproduced the whole-package digest. See
+[the current deployment and cumulative fees](arc-live-status.md).
 
 Public contract deployment, the dedicated sponsor secret and funding, and
 Cloudflare publishing are complete. Remaining: configured physical iPhone

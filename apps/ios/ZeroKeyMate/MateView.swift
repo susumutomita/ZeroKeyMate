@@ -761,7 +761,7 @@ private struct ActivitySheet:View {
                             Text("Mate Lager · 0.10 test USDC").font(.headline)
                             Text(purchase.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale))).font(.subheadline).foregroundStyle(.secondary)
                             Text("Recorded on Arc Testnet · No physical delivery").font(.footnote).foregroundStyle(.secondary)
-                            if let url=URL(string:"https://testnet.arcscan.app/tx/"+purchase.transaction) { Link("View payment receipt", destination:url) }
+                            ArcPaymentReceiptView(transaction: purchase.transaction)
                         }.padding(.vertical,8)
                     }
                 }

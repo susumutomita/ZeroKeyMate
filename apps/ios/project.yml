@@ -26,7 +26,7 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: YES
     MARKETING_VERSION: '0.3.0'
-    CURRENT_PROJECT_VERSION: '5'
+    CURRENT_PROJECT_VERSION: '7'
     SWIFT_ACTIVE_COMPILATION_CONDITIONS: '$(inherited) ${MATE_SWIFT_RUNTIME_FLAG}'
   configs:
     Debug:
@@ -70,7 +70,14 @@ targets:
   NativeAcceptance:
     type: bundle.unit-test
     platform: iOS
-    sources: [NativeAcceptance]
+    sources:
+      - path: NativeAcceptance
+      - path: ../../Tests/MateCoreTests/Fixtures/JPKI/card.der
+        buildPhase: resources
+      - path: ../../Tests/MateCoreTests/Fixtures/JPKI/root.der
+        buildPhase: resources
+      - path: ../../Tests/MateCoreTests/Fixtures/JPKI/card-signature.bin
+        buildPhase: resources
     dependencies:
       - target: ZeroKeyMate
       - package: MateCore

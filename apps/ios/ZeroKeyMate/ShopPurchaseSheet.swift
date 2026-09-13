@@ -22,7 +22,9 @@ struct ShopPurchaseSheet: View {
         case .preparingCard: return "Preparing the card scanner"
         case .readingCard: return "Hold your card to the phone"
         case .proving: return "Your phone is making the proof"
+        case .proofFailed: return "Age proof could not be completed"
         case .verifying: return "The store is checking your proof"
+        case .verificationFailed: return "Waiting for age verification"
         case .paymentApproval: return "Approve the exact payment"
         case .paying: return "Mate is paying the store"
         case .pending: return "Checking your payment"
@@ -69,6 +71,21 @@ struct ShopPurchaseSheet: View {
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .card:
                     SignaturePINField(entry: pinEntry, submit: startCardRead)
+                case .proofFailed:
+                    if checkout.canRetryAgeProof {
+                        Button("Retry proof without scanning") { checkout.retryAgeProof() }
+                            .buttonStyle(.borderedProminent).disabled(checkout.busy)
+                    } else {
+                        Button("Read the card again") { checkout.restartCardRead() }.disabled(checkout.busy)
+                    }
+                    Button("Back to Mate") { model.sheet = nil }
+                case .verificationFailed:
+                    if checkout.canRetryAgeSubmission {
+                        Button("Send the same proof again") { checkout.retryAgeSubmission() }
+                            .buttonStyle(.borderedProminent).disabled(checkout.busy)
+                    }
+                    Button("Check the same order") { checkout.checkOrder() }.disabled(checkout.busy)
+                    Button("Back to Mate") { model.sheet = nil }
                 case .preparingCard,.readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
@@ -93,9 +110,8 @@ struct ShopPurchaseSheet: View {
                     }
                 case .complete:
                     Text("Paid. Your birth date stayed on your iPhone.")
-                    if let hash = checkout.order?.paymentTransaction,
-                       let url = URL(string: "https://testnet.arcscan.app/tx/" + hash) {
-                        Link("View payment receipt", destination: url)
+                    if let hash = checkout.order?.paymentTransaction {
+                        ArcPaymentReceiptView(transaction: hash)
                     }
                     Button("Back to Mate") { model.sheet = nil }.buttonStyle(.borderedProminent)
                 case .unavailable:
@@ -114,6 +130,10 @@ struct ShopPurchaseSheet: View {
                 }
                 DisclosureGroup("Purchase details") {
                     VStack(alignment: .leading, spacing: 12) {
+                        if let code = checkout.proofFailureCode {
+                            Text(code).font(.footnote.monospaced()).textSelection(.enabled)
+                                .accessibilityIdentifier("shop-proof-failure-code")
+                        }
                         if let url = checkout.storeURL {
                             Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }
                         }
@@ -136,8 +156,11 @@ struct ShopPurchaseSheet: View {
         .controlSize(.large)
         .task { checkout.load() }
         .onChange(of: checkout.phase) { _, phase in
-            model.guideShop(phase)
+            // A fresh voice request may first recover a completed/expired old
+            // order. Its terminal phase is not the result of the new request.
+            let replacingOldOrder = model.shopStartsFromVoice && !automaticOrderStarted && checkout.canStartNew
             advanceVoiceOrder()
+            if !replacingOldOrder && checkout.phase == phase { model.guideShop(phase) }
         }
         .onChange(of: checkout.busy) { _, _ in advanceVoiceOrder() }
         .onChange(of: wallet.ownerAddress) { _, _ in advanceVoiceOrder() }
@@ -155,8 +178,12 @@ struct ShopPurchaseSheet: View {
         // A current, explicit one-beer voice request may create its order after
         // readiness/funds checks. It does not authorize a payment signature.
         guard model.shopStartsFromVoice, !automaticOrderStarted,
-              checkout.phase == .review, checkout.canStart, !checkout.busy,
+              !checkout.busy,
               wallet.ownerAddress != nil else { return }
+        // A fresh, explicit voice order may replace a safely terminal order.
+        // An uncertain payment never satisfies canStartNew and remains intact.
+        if checkout.canStartNew { pinEntry.clear(); checkout.startNew(); return }
+        guard checkout.phase == .review, checkout.canStart else { return }
         automaticOrderStarted = true
         checkout.startOrder(wallet: wallet)
     }

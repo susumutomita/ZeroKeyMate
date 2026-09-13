@@ -8641,6 +8641,438 @@
           }
         }
       }
+    },
+    "The order expired before its age proof was ready. Nothing was paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The order expired before its age proof was ready. Nothing was paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢の証明ができる前に注文の期限が切れました。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "Mate could not load its age proof engine. Reading the card again will not fix this. Nothing was paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mate could not load its age proof engine. Reading the card again will not fix this. Nothing was paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢の証明を作る機能を読み込めませんでした。カードを読み直す必要はありません。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "Mate cannot yet prove the age on this card's certificate. Nothing was paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mate cannot yet prove the age on this card's certificate. Nothing was paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このカードの証明書に対応できず、年齢の証明を作れませんでした。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "The age proof engine is still finishing another attempt. Nothing was paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The age proof engine is still finishing another attempt. Nothing was paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の証明処理がまだ終了していません。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "Age proof creation stopped before it finished. Nothing was paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age proof creation stopped before it finished. Nothing was paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢の証明が途中で停止しました。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "Card reading finished, but age proof creation failed on this iPhone. Nothing was paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card reading finished, but age proof creation failed on this iPhone. Nothing was paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードは読み取れましたが、このiPhoneで年齢の証明を作れませんでした。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "Your age proof was made, but the store has not confirmed it. Nothing was paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your age proof was made, but the store has not confirmed it. Nothing was paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢の証明は作れましたが、お店での確認が完了していません。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "The card was read, but I couldn't finish the age proof. Your purchase is not complete.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The card was read, but I couldn't finish the age proof. Your purchase is not complete."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードは読み取れましたが、年齢の証明を作れませんでした。購入はまだ完了していません。"
+          }
+        }
+      }
+    },
+    "Your age proof is ready, but the store hasn't confirmed it. Your purchase is not complete.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your age proof is ready, but the store hasn't confirmed it. Your purchase is not complete."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢の証明はできていますが、お店での確認が完了していません。購入はまだ完了していません。"
+          }
+        }
+      }
+    },
+    "Age proof could not be completed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age proof could not be completed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢の証明を作れませんでした"
+          }
+        }
+      }
+    },
+    "Waiting for age verification": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for age verification"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お店での年齢確認を待っています"
+          }
+        }
+      }
+    },
+    "Retry proof without scanning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry proof without scanning"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み直さず証明を再試行"
+          }
+        }
+      }
+    },
+    "Read the card again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read the card again"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードを読み直す"
+          }
+        }
+      }
+    },
+    "Send the same proof again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send the same proof again"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ証明をもう一度送る"
+          }
+        }
+      }
+    },
+    "Yes. Your Mate Lager test purchase is complete, and the payment is confirmed on Arc Testnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes. Your Mate Lager test purchase is complete, and the payment is confirmed on Arc Testnet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "はい、Mate Lagerのテスト購入は完了しています。Arcテストネットで支払いを確認できました。"
+          }
+        }
+      }
+    },
+    "Not yet. Your card was read, but age proof creation did not finish. No payment was sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not yet. Your card was read, but age proof creation did not finish. No payment was sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ完了していません。カードは読み取れましたが、年齢の証明を作れていません。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "Not yet. Your age proof was created, but the store has not confirmed it. No payment was sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not yet. Your age proof was created, but the store has not confirmed it. No payment was sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ完了していません。年齢の証明はできていますが、お店での確認が完了していません。支払いはしていません。"
+          }
+        }
+      }
+    },
+    "Not yet. Your age is verified. The purchase is waiting for you to approve 0.10 test USDC.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not yet. Your age is verified. The purchase is waiting for you to approve 0.10 test USDC."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ購入は完了していません。年齢確認は済んでいて、0.10テストUSDCの支払い承認を待っています。"
+          }
+        }
+      }
+    },
+    "Your payment is still unconfirmed. I will check the same order before reporting it complete.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your payment is still unconfirmed. I will check the same order before reporting it complete."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いの結果はまだ確認できていません。同じ注文を確認してから、完了をお伝えします。"
+          }
+        }
+      }
+    },
+    "No. The payment authorization expired unused. This order was not paid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No. The payment authorization expired unused. This order was not paid."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいえ、支払いの承認は使われないまま期限が切れました。この注文は支払われていません。"
+          }
+        }
+      }
+    },
+    "Not yet. Age verification has not finished, and no payment was sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not yet. Age verification has not finished, and no payment was sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ完了していません。年齢確認が終わっておらず、支払いはしていません。"
+          }
+        }
+      }
+    },
+    "I cannot confirm a completed purchase. Please check the saved order.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I cannot confirm a completed purchase. Please check the saved order."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入完了を確認できていません。保存した注文を確認してください。"
+          }
+        }
+      }
+    },
+    "I couldn't check the saved order right now. I cannot confirm that the purchase is complete.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't check the saved order right now. I cannot confirm that the purchase is complete."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いまは保存した注文を確認できませんでした。購入が完了したとは言えません。"
+          }
+        }
+      }
+    },
+    "View transaction on Arc Explorer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View transaction on Arc Explorer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arcで取引を見る"
+          }
+        }
+      }
+    },
+    "Transaction hash": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transaction hash"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トランザクションハッシュ"
+          }
+        }
+      }
+    },
+    "Copy transaction hash": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy transaction hash"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハッシュをコピー"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーしました"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
