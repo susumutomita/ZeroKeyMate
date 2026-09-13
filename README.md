@@ -2,6 +2,10 @@
 
 **Your companion. Your rules.**
 
+**Current purchase flow, 2026-09-13:** ask Mate for one beer, authenticate a My Number card on the iPhone, generate an order-bound age proof locally, and pay 0.10 test USDC through x402 on Arc Testnet. The [store](https://zerokeymate-arc-shop.oyster880.workers.dev/) and age-verification contracts are live; the complete physical-card purchase and phone proving time remain unverified. See [current deployment and acceptance evidence](docs/arc-live-status.md) and the [checkout architecture](docs/arc-checkout.md).
+
+The specialist translation/policy-vault documentation below describes the earlier, separate local prototype. Its undeployed MateVault and fixture-discovery boundaries do not describe the now-public age-checkout contracts. Use the current evidence page for submission and deployment status.
+
 A private iPhone companion that proves each paid AI request follows your rules.
 
 Mate is designed to keep everyday conversation on your iPhone. When you ask a specialist to translate or summarize something, you review the exact text, provider, recipient and price first. A ProveKit proof checks the request against your private spending policy; a narrowly scoped Ethereum vault enforces the signed execution. The language model has no authority to approve a payment.

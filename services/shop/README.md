@@ -1,10 +1,12 @@
 # Mate Atelier
 
 Workers static assets + D1 + a sponsor Durable Object + x402 v2, testnet only. The storefront currently
-reports checkout unavailable. The repository now contains the signed-card age
-circuit, a directly verifying EVM gate and the iPhone purchase integration. Public
-deployment and the physical card-to-payment acceptance are still pending. See
-[the implementation checkpoint](../../docs/age-shop-progress.md).
+has a [public Arc deployment](https://zerokeymate-arc-shop.oyster880.workers.dev/)
+whose catalog readiness check passes. The signed-card circuit, directly verifying
+EVM gate and iPhone purchase integration are implemented. Physical card-to-payment
+acceptance and device proving performance remain unverified. See the
+[current live status](../../docs/arc-live-status.md) and
+[implementation history](../../docs/age-shop-progress.md).
 
 ## Local development
 
