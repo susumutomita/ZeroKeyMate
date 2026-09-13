@@ -1,5 +1,7 @@
 # ETHGlobal submission copy
 
+**Historical specialist-flow copy:** the descriptions below were prepared on September 10 for the translation/policy-vault prototype. They are not the final copy for the September 13 beer-purchase flow. The [current live status](arc-live-status.md) records the published store, age contracts and remaining physical-card acceptance. Do not submit the older specialist description as the completed purchase experience.
+
 Updated 2026-09-10 against merged main through [PR #31](https://github.com/susumutomita/ZeroKeyMate/pull/31). This is reviewable submission copy, not a submitted entry. ETHOnline 2026 and Building from Scratch were previously recorded as selected in the entrant dashboard; final eligibility and the current form still require entrant review. Proposed prizes are Arc, Privy and The Graph. See the [requirements and evidence matrix](submission-evidence.md).
 
 ## Project name
@@ -70,7 +72,7 @@ Codex assisted with implementation, debugging, automated validation and this sub
 | Team members and contribution statements | Not supplied. Use each entrant's actual name, role and work. |
 | Repository | [ZeroKeyMate](https://github.com/susumutomita/ZeroKeyMate); use the exact final merged commit matching the recording and reproducibility check. Do not submit an unmerged implementation branch as completed main. |
 | Demo video | Not recorded/uploaded. [Three-minute script and capture plan](demo.md). |
-| App / deployment link | No public install or live deployment claimed. Provide source/build instructions, and add verified testnet links if deployed. |
+| App / deployment link | [Live test store](https://zerokeymate-arc-shop.oyster880.workers.dev/) and [deployed age contracts](arc-live-status.md) are available. Physical iPhone installation and a completed card-to-payment purchase remain unverified. The separate specialist vault is not covered by this deployment. |
 | Partner prizes and feedback | Proposed priorities: Arc/Circle Agent Stack, Privy financial flow, The Graph AI use case. Live evidence is pending; none selected in the form. See [strategy](prize-strategy.md). |
 | AI/spec workflow disclosure | This document and [development history](development-history.md); add any earlier prompts/specs actually used before final submission. |
 

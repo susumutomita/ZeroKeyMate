@@ -3,7 +3,8 @@
 The beer purchase path targets **Arc Testnet, 5042002** throughout: order
 commitment, iPhone EIP-712 signature, government-root age gate, merchant
 settlement and receipt recovery. This replaces the unfinished Base Sepolia
-checkout. It does not enable mainnet or perform a public deployment.
+checkout. The [store and age contracts are now publicly deployed](arc-live-status.md).
+This does not enable mainnet or establish a completed physical-card purchase.
 
 ## Architecture and data
 
@@ -94,9 +95,10 @@ EIP-712 domain separator and supported finalized-block reads. This is **not a
 deployment or public payment**. No real card data or private key was sent.
 
 Both endpoints estimated 1,325,921 gas for the verifier and 331,202 for the gate.
-At the reviewed 25-gwei ceiling this is 0.041428075 native test USDC before any
-gas-limit margin. Estimates may change. Public deployment still needs approval
-of a dedicated deployer and total budget, plus receipt/code checks afterwards.
+At the reviewed 25-gwei ceiling this was 0.041428075 native test USDC before any
+gas-limit margin. These are historical pre-deployment estimates. The authorized
+deployment has since completed with matching receipts and code checks on both
+providers, using 0.034476939 test USDC in gas; see the [public evidence](arc-live-status.md).
 Merchant settlement separately caps each submission at 0.00375 test USDC gas.
 
 The reviewed Arc package SHA-256 is
@@ -105,8 +107,8 @@ Compared with the previous package, only the gate, chain ID and gate source hash
 change. The compiler, verifier and original mobile proving parameters match.
 Fresh export from the pinned verifier key reproduced this whole-package digest.
 
-Remaining: authorized public contract deployment, dedicated sponsor secret and
-funding, Cloudflare publishing, configured physical iPhone installation, actual
-card touch and full card-to-USDC acceptance. A meaningful Circle Agent Stack
+Public contract deployment, the dedicated sponsor secret and funding, and
+Cloudflare publishing are complete. Remaining: configured physical iPhone
+installation, actual card touch and full card-to-USDC acceptance. A meaningful Circle Agent Stack
 integration into this checkout is also outstanding for that specific category;
 the existing separate API attestor adapter does not satisfy it by itself.
