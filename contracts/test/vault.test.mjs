@@ -7,6 +7,7 @@ import {foundry} from 'viem/chains';
 import {mnemonicToAccount} from 'viem/accounts';
 import {actionDigest,contractAction,domain,grantTypes,executionTypes,proofTypes,newNonce,sha256} from '../../services/api/protocol.mjs';
 
+// Local payment simulation on Anvil. No live Sepolia payment.
 // Public Anvil development accounts. NEVER used outside this loopback test chain.
 const phrase = 'test test test test test test test test test test test junk';
 const accounts = Array.from({length:5},(_,addressIndex)=>mnemonicToAccount(phrase,{addressIndex}));
@@ -141,4 +142,20 @@ test('signatures from a different EIP-712 domain cannot be transplanted',async()
   const actionHash=actionDigest(31337,f.vault,f.action);
   args[2]=await agent.signTypedData({domain:{...f.d,chainId:1},types:executionTypes,primaryType:'Execution',message:{actionHash}});
   await rejects(f.vault,'execute',args,'InvalidAgentSignature');
+});
+test('name resolvers preserve exact immutable address binding and reject other nodes',async()=>{
+  const factoryArtifact=JSON.parse(fs.readFileSync(new URL('../../.build/contracts/MateResolverFactory.json',import.meta.url),'utf8'));
+  const resolverArtifact=JSON.parse(fs.readFileSync(new URL('../../.build/contracts/MateNameResolver.json',import.meta.url),'utf8'));
+  const factory=(await mined(await wallets[0].deployContract({abi:factoryArtifact.abi,bytecode:factoryArtifact.bytecode}))).contractAddress;
+  const node=sha256('resolver test node');
+  const request={address:factory,abi:factoryArtifact.abi,functionName:'create',args:[node,agent.address],account:owner};
+  const expected=(await publicClient.simulateContract(request)).result;
+  await mined(await wallets[0].writeContract(request));
+  assert.equal((await publicClient.simulateContract(request)).result,expected);
+  const resolve=args=>publicClient.readContract({address:expected,abi:resolverArtifact.abi,functionName:'addr',args});
+  assert.equal((await resolve([node])).toLowerCase(),agent.address.toLowerCase());
+  assert.equal(await resolve([sha256('different node')]),'0x0000000000000000000000000000000000000000');
+  const other=(await publicClient.simulateContract({...request,args:[node,attacker.address]})).result;
+  assert.notEqual(other,expected);
+  assert.equal((await resolve([node])).toLowerCase(),agent.address.toLowerCase());
 });

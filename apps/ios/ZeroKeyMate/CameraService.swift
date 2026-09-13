@@ -1,11 +1,20 @@
 @preconcurrency import AVFoundation
 import Foundation
 
+protocol CameraCapturing: Sendable {
+    func setObserver(_ observer:@escaping @Sendable (FrameObservation)->Void) async
+    func start() async throws
+    func stop() async
+}
+
 /// All capture-session mutation is serialized away from the main actor.
-actor CameraService {
+actor CameraService:CameraCapturing {
     private let session=AVCaptureSession()
     private let analyzer=FrameAnalyzer()
     private var configured=false
+    private var rotation:AVCaptureDevice.RotationCoordinator?
+    private var rotationObservation:NSKeyValueObservation?
+    private var videoOutput:AVCaptureVideoDataOutput?
     private var observer:(@Sendable (FrameObservation)->Void)?
 
     static func requestPermission() async -> Bool {
@@ -17,6 +26,7 @@ actor CameraService {
     }
     func setObserver(_ observer:@escaping @Sendable (FrameObservation)->Void) {
         self.observer=observer
+        analyzer.configure(enabled:session.isRunning,callback:observer)
     }
     func start() throws {
         if !configured{try configure()}
@@ -43,16 +53,36 @@ actor CameraService {
         guard session.canAddInput(input),session.canAddOutput(output) else {throw CameraError.unavailable}
         session.sessionPreset = .vga640x480
         session.addInput(input);session.addOutput(output)
+        videoOutput=output
+        if let connection=output.connection(with:.video),connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring=false;connection.isVideoMirrored=true
+        }
+        let rotation=AVCaptureDevice.RotationCoordinator(device:device,previewLayer:nil)
+        self.rotation=rotation
+        applyRotation(rotation.videoRotationAngleForHorizonLevelCapture)
+        rotationObservation=rotation.observe(\.videoRotationAngleForHorizonLevelCapture,options:[.new]){[weak self] coordinator,_ in
+            let angle=coordinator.videoRotationAngleForHorizonLevelCapture
+            Task{await self?.applyRotation(angle)}
+        }
         configured=true
+    }
+    private func applyRotation(_ angle:CGFloat) {
+        guard let connection=videoOutput?.connection(with:.video) else{return}
+        let quarter=(angle/90).rounded()*90
+        let normalized=quarter.truncatingRemainder(dividingBy:360)
+        if connection.isVideoRotationAngleSupported(normalized),connection.videoRotationAngle != normalized {
+            connection.videoRotationAngle=normalized
+        }
     }
 }
 
-enum CameraError:Error,LocalizedError {
-    case noFrontCamera,unavailable
+enum CameraError:Error,LocalizedError,Equatable {
+    case noFrontCamera,unavailable,stopTimedOut
     var errorDescription:String? {
         switch self {
-        case .noFrontCamera:return "フロントカメラを利用できません。SimulatorではなくiPhoneで確認してください。"
-        case .unavailable:return "カメラを起動できませんでした。ほかのアプリの利用や端末の状態を確認してください。"
+        case .stopTimedOut:return "The camera has not stopped yet. Close Mate and reopen it before scanning your card."
+        case .noFrontCamera:return "The front camera is unavailable. Try a physical iPhone."
+        case .unavailable:return "Could not start the camera. Check whether another app is using it and try again."
         }
     }
 }

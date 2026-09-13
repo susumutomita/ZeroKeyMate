@@ -33,12 +33,26 @@ export IPHONEOS_DEPLOYMENT_TARGET=17.0
 # Resolve exactly the checked-in lockfile before the upstream build script runs.
 cargo fetch --locked --manifest-path "$ROOT/.tools/provekit-source/Cargo.toml"
 bash "$ROOT/.tools/verity/core/build/build-ios.sh" "$ROOT/.tools/provekit-source" --backends provekit
+# Verity's Swift package can link independently of the app (including test bundles).
+# Keep the ABI shim in each FFI archive so every consumer resolves the same real prover.
+FRAMEWORK="$ROOT/.tools/verity/output/Verity.xcframework"
+for slice in ios-arm64 ios-arm64-simulator; do
+  sdk=iphoneos; target=arm64-apple-ios17.0
+  if [[ "$slice" == ios-arm64-simulator ]]; then sdk=iphonesimulator; target=arm64-apple-ios17.0-simulator; fi
+  object="$FRAMEWORK/$slice/mate-json-adapter.o"
+  xcrun --sdk "$sdk" clang -target "$target" -isysroot "$(xcrun --sdk "$sdk" --show-sdk-path)" \
+    -DMATE_NATIVE_PROOFS=1 -c "$ROOT/native/ProveKitJSONAdapter.c" -o "$object"
+  xcrun libtool -static -o "$FRAMEWORK/$slice/libverity-adapted.a" "$FRAMEWORK/$slice/libverity.a" "$object"
+  mv "$FRAMEWORK/$slice/libverity-adapted.a" "$FRAMEWORK/$slice/libverity.a"
+  rm "$object"
+done
 python3 - "$ROOT" "$VERITY_REV" "$PROVEKIT_REV" "$TOOLCHAIN" <<'PY'
 import hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1]);framework=root/'.tools/verity/output/Verity.xcframework'
 files={str(p.relative_to(framework)):hashlib.sha256(p.read_bytes()).hexdigest() for p in framework.rglob('*.a')}
 assert len(files)==2, 'Both native device and native Simulator libraries are required'
 (framework/'mate-runtime.json').write_text(json.dumps({'verityRevision':sys.argv[2],
-    'provekitRevision':sys.argv[3],'rustToolchain':sys.argv[4],'libraries':files},indent=2)+'\n')
+    'provekitRevision':sys.argv[3],'rustToolchain':sys.argv[4],
+    'adapterSHA256':hashlib.sha256((root/'native/ProveKitJSONAdapter.c').read_bytes()).hexdigest(),'libraries':files},indent=2)+'\n')
 PY
 printf '%s\n' 'Built upstream native ProveKit for iOS and Apple Silicon Simulator.'

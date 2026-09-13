@@ -41,9 +41,16 @@ export function respond(response, status, value) {
   response.end(bytes);
 }
 /** Pairing capability is installation-scoped, never a public anonymous API. */
-export function jsonServer({token, handler, publicHandler, maxConcurrent = 4}) {
-  if (typeof token !== 'string' || token.length < 32) throw new Error('A random pairing token of at least 32 characters is required');
-  let active = 0, period = Date.now(), count = 0;
+export function jsonServer({token, authorize, pairHandler, handler, publicHandler, maxConcurrent = 4}) {
+  if (!authorize && (typeof token !== 'string' || token.length < 32)) throw new Error('A random pairing token of at least 32 characters is required');
+  let active = 0, period = Date.now(), count = 0, closed = false, drained = false;
+  let resolveDrained;
+  const whenDrained = new Promise(resolve => { resolveDrained = resolve; });
+  const finish = () => {
+    if (closed && active === 0 && !drained) {
+      drained = true; server.emit('drained'); resolveDrained();
+    }
+  };
   const server = http.createServer(async (request, response) => {
     let admitted = false;
     try {
@@ -54,13 +61,14 @@ export function jsonServer({token, handler, publicHandler, maxConcurrent = 4}) {
         const value = publicHandler(url.pathname);
         if (value !== undefined) { respond(response, 200, value); return; }
       }
-      requireValue(authenticated(request, token), 'unauthorized', '接続を承認できません。', 401);
+      const pairing = request.method === 'POST' && url.pathname === '/v1/pair' && pairHandler;
       requireValue(!request.headers.origin, 'browser_origin', 'ブラウザからの操作は許可していません。', 403);
       requireValue(['GET','POST'].includes(request.method), 'method', '未対応の操作です。', 405);
       if (Date.now() - period > 60_000) { period = Date.now(); count = 0; }
       requireValue(++count <= 120 && active < maxConcurrent, 'busy', '別の操作が実行中です。', 429);
+      requireValue(pairing || (authorize ? authorize(request) : authenticated(request, token)), 'unauthorized', 'Pair this device again in Connection settings.', 401);
       active++; admitted = true;
-      const value = await handler(request, url);
+      const value = await (pairing ? pairHandler : handler)(request, url);
       if (!response.destroyed) respond(response, 200, value);
     } catch (error) {
       if (!response.destroyed && !response.headersSent) {
@@ -72,8 +80,12 @@ export function jsonServer({token, handler, publicHandler, maxConcurrent = 4}) {
         });
       }
       // Deliberately do not log request bodies, RPC URLs, signatures, credentials or raw SDK errors.
-    } finally { if (admitted) active--; }
+    } finally { if (admitted) active--; finish(); }
   });
+  // Socket closure does not cancel an asynchronous transaction/model handler.
+  // Journal ownership must outlive all admitted work, even disconnected clients.
+  server.once('close', () => { closed = true; finish(); });
+  server.whenDrained = whenDrained;
   server.requestTimeout = 30_000; server.headersTimeout = 10_000;
   server.keepAliveTimeout = 5_000; server.maxRequestsPerSocket = 100;
   return server;

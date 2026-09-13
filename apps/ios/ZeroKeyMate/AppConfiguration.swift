@@ -2,47 +2,67 @@ import Foundation
 import MateCore
 
 struct AppConfiguration: Codable, Sendable {
-    var apiURL: String
-    var apiToken: String
-    var privyAppID: String
-    var privyClientID: String
-    var rpcURL: String
-    var vault: String
-    var token: String
-    var ensParent: String = ""
-    let chainID: UInt64
+    var apiURL:String
+    var apiToken:String
+    var privyAppID:String
+    var privyClientID:String
+    var rpcURL:String
+    var vault:String
+    var token:String
+    var ensParent:String = ""
+    var chainID:UInt64
+    var apiTokenExpiresAt:UInt64? = nil
 
     static func load() -> AppConfiguration {
-        guard let url = Bundle.main.url(forResource: "Configuration", withExtension: "json"),
-              let data = try? Data(contentsOf: url), let value = try? JSONDecoder().decode(Self.self, from: data) else {
-            return Self(apiURL: "http://127.0.0.1:8787", apiToken: "", privyAppID: "", privyClientID: "",
-                rpcURL: "https://ethereum-sepolia-rpc.publicnode.com", vault: "",
-                token: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", chainID: 11_155_111)
+        if let saved=try? LocalSecrets.read(Self.self,key:"connection-settings") { return saved }
+        guard let url=Bundle.main.url(forResource:"Configuration",withExtension:"json"),
+              let data=try? Data(contentsOf:url),let value=try? JSONDecoder().decode(Self.self,from:data) else {
+            return Self(apiURL:"http://127.0.0.1:8787",apiToken:"",privyAppID:"",privyClientID:"",
+                        rpcURL:"https://ethereum-sepolia-rpc.publicnode.com",vault:"",token:"",chainID:11_155_111)
         }
         return value
     }
-    var walletConfigured: Bool { !privyAppID.isEmpty && !privyClientID.isEmpty }
-    var paymentsConfigured: Bool {
-        chainID == 11_155_111 && apiToken.count >= 32
-            && (try? CanonicalBytes.hex(vault, count: 20)) != nil
-            && vault.lowercased() != "0x" + String(repeating: "00", count: 20)
-            && token.lowercased() == "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238"
-            && URL(string: rpcURL)?.scheme == "https"
+    var networkName:String { chainID == 5_042_002 ? "Arc Testnet" : chainID == 11_155_111 ? "Sepolia testnet" : "Unsupported network" }
+    var explorerURL:String { chainID == 5_042_002 ? "https://testnet.arcscan.app" : "https://sepolia.etherscan.io" }
+    var expectedToken:String? {
+        switch chainID {
+        case 5_042_002: return "0x3600000000000000000000000000000000000000"
+        case 11_155_111: return "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238"
+        default: return nil
+        }
     }
-    var storageScope: String {
-        LocalSecrets.hash(Data("\(chainID):\(vault.lowercased()):\(privyAppID)".utf8))
+    func stateKey(_ name:String) -> String {
+        // Preserve recoverability of the original Sepolia installation.
+        chainID == 11_155_111 ? name : "\(chainID):\(vault.lowercased()):\(name)"
+    }
+    var walletConfigured:Bool { !privyAppID.isEmpty && !privyClientID.isEmpty }
+    func sameEnvironment(as other:Self) -> Bool {
+        apiURL.trimmingCharacters(in:CharacterSet(charactersIn:"/")) == other.apiURL.trimmingCharacters(in:CharacterSet(charactersIn:"/"))
+        && rpcURL == other.rpcURL && chainID == other.chainID
+        && vault.lowercased() == other.vault.lowercased() && token.lowercased() == other.token.lowercased()
+        && privyAppID == other.privyAppID && privyClientID == other.privyClientID && ensParent == other.ensParent
+    }
+    var pairingValid:Bool {
+        apiToken.range(of:"^session_[a-f0-9]{64}$",options:.regularExpression) != nil
+        && (apiTokenExpiresAt ?? 0) > UInt64(Date().timeIntervalSince1970)
+    }
+    var paymentsConfigured:Bool { deploymentConfigured && pairingValid }
+    var deploymentConfigured:Bool {
+        expectedToken != nil
+        && (try? CanonicalBytes.hex(vault,count:20))?.contains(where:{$0 != 0}) == true
+        && token.lowercased()==expectedToken
+        && URL(string:rpcURL)?.scheme == "https"
     }
 }
 
 enum ProductError: Error, LocalizedError {
-    case unavailable(String), invalidResponse, busy, cancelled, transactionReverted(String)
-    var errorDescription: String? {
+    case unavailable(String), invalidResponse, busy, cancelled
+    var errorDescription:String? {
         switch self {
-        case .unavailable(let message): return message
-        case .invalidResponse: return "応答を検証できませんでした。操作は完了扱いにしていません。"
-        case .busy: return "実行中の操作が終わってから再試行してください。"
-        case .cancelled: return "外部送信前に操作を中止しました。"
-        case .transactionReverted(let hash): return "取引はチェーン上でrevertしました。成功として記録していません。\n" + hash
+        case .unavailable(let message):return message
+        case .invalidResponse:return "The response could not be verified. The operation has not been marked complete."
+        case .busy:return "Wait for the current operation to finish, then try again."
+        case .cancelled:return "The operation was cancelled."
         }
     }
 }

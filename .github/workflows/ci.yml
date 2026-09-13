@@ -1,40 +1,93 @@
-name: Source and protocol checks
+name: CI
 on:
-  pull_request:
   push:
     branches: [main]
-  workflow_dispatch:
+  pull_request:
 permissions:
   contents: read
 concurrency:
-  group: source-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  source:
+  graph-history:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: integrations/graph-arc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: integrations/graph-arc/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=low
+      - run: npm test
+      - run: npm run build
+  shop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/shop
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: services/shop/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=low
+      - run: npm test
+      - run: npm run build
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: make test
+      - run: make build-ios
+      - run: make build-device
+      - run: make test-ios
+      - name: Summarize iOS acceptance
+        if: always()
+        run: |
+          for result in .build/native-evidence/*.xcresult; do
+            [ -d "$result" ] || continue
+            xcrun xcresulttool get test-results summary --path "$result"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baseline-native-acceptance
+          path: .build/native-evidence
+          include-hidden-files: true
+  enforcement:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --ignore-scripts
-      - run: npm run check:sources
-      - run: find services scripts contracts -name '*.mjs' -print0 | xargs -0 -n1 node --check
-      - run: npm audit --audit-level=high
-      - run: npm test
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=low
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: v1.3.1
-      - run: node scripts/compile-contracts.mjs --tests
-      - run: npm run test:contracts
-  portable-swift:
-    runs-on: macos-15
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - run: swift test --parallel
+      - run: npm test
+      - run: make test-contracts

@@ -4,12 +4,12 @@ public enum MandateError: Error, LocalizedError, Equatable, Sendable {
     case invalidAmount, invalidHex, invalidPolicy, invalidAction, overBudget, serviceNotAllowed
     public var errorDescription: String? {
         switch self {
-        case .invalidAmount: return "金額は正の数で、小数点以下6桁までにしてください。"
-        case .invalidHex: return "アドレスまたは識別子の形式が正しくありません。"
-        case .invalidPolicy: return "委任条件が正しくありません。"
-        case .invalidAction: return "実行内容が正しくありません。"
-        case .overBudget: return "この依頼は、承認済みの利用上限を超えます。"
-        case .serviceNotAllowed: return "この種類の依頼は許可されていません。"
+        case .invalidAmount: return "Enter a positive amount with up to six decimal places."
+        case .invalidHex: return "The address or identifier format is invalid."
+        case .invalidPolicy: return "The mandate terms are invalid."
+        case .invalidAction: return "The execution details are invalid."
+        case .overBudget: return "This request exceeds the approved spending limit."
+        case .serviceNotAllowed: return "This service is not allowed."
         }
     }
 }
@@ -72,7 +72,7 @@ public struct TokenAmount: Equatable, Sendable {
 public enum MateService: UInt8, CaseIterable, Codable, Sendable {
     case translation = 0
     case summary = 1
-    public var title: String { self == .translation ? "翻訳" : "要約" }
+    public var title: String { self == .translation ? "Translation" : "Summary" }
     public var bit: UInt8 { 1 << rawValue }
 }
 
@@ -105,9 +105,7 @@ public struct MandateGrant: Codable, Equatable, Sendable {
     public init(owner: String, agent: String, policyHash: String, validUntil: UInt64, nonce: String) throws {
         _ = try CanonicalBytes.hex(owner, count: 20); _ = try CanonicalBytes.hex(agent, count: 20)
         _ = try CanonicalBytes.hex(policyHash, count: 32)
-        guard owner.lowercased() != agent.lowercased(), validUntil > 0, !nonce.isEmpty, nonce.utf8.allSatisfy({ (48...57).contains($0) }),
-              nonce.count == 1 || nonce.first != "0",
-              nonce.count < 78 || (nonce.count == 78 && nonce <= "115792089237316195423570985008687907853269984665640564039457584007913129639935") else { throw MandateError.invalidPolicy }
+        guard owner.lowercased() != agent.lowercased(), validUntil > 0, UInt64(nonce) != nil else { throw MandateError.invalidPolicy }
         self.owner = owner; self.agent = agent; self.policyHash = policyHash; self.validUntil = validUntil; self.nonce = nonce
     }
 }

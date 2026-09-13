@@ -1,0 +1,4 @@
+module MateAgeRuntime {
+    header "mate_age.h"
+    export *
+}

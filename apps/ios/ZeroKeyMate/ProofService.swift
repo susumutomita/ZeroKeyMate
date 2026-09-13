@@ -8,12 +8,16 @@ struct VerifiedLocalProof: Sendable {
     let policyHash: String
     let actionHash: String
     let elapsedMilliseconds: Int
+    let preparationMilliseconds: Int
+    let totalMilliseconds: Int
+    let usedCachedKeys: Bool
+    let thermalStateBefore: String
+    let thermalStateAfter: String
     var proofHash: String { LocalSecrets.hash(bytes) }
 }
 
 /// Native proving is isolated from the UI and networking. Witnesses never leave this actor.
 actor ProofService {
-    static let shared = ProofService()
     struct Manifest: Decodable {
         let system: String
         let version: String
@@ -23,11 +27,14 @@ actor ProofService {
     }
     private var keyData: (Data,Data)?
     func prepare() throws {
+        guard Verity.runtimeMode == .native else {
+            throw ProductError.unavailable("The on-device proof runtime is not installed. Run make native-runtime and make proofs, then rebuild.")
+        }
         guard keyData == nil else { return }
         guard let manifestURL = Bundle.main.url(forResource: "manifest", withExtension: "json"),
               let proverURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkp"),
               let verifierURL = Bundle.main.url(forResource: "mate_policy", withExtension: "pkv") else {
-            throw ProductError.unavailable("証明用ファイルがありません。./mate を実行して正規の回路から生成してください。")
+            throw ProductError.unavailable("Proof resources are missing. Run make proofs, then rebuild.")
         }
         let manifest = try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: manifestURL))
         guard manifest.system == "ProveKit", manifest.version == "1.0.1",
@@ -38,10 +45,18 @@ actor ProofService {
             guard let expected = manifest.files[name], expected.count == 64,
                   String(LocalSecrets.hash(data).dropFirst(2)) == expected else { throw ProductError.invalidResponse }
         }
+        let runtime=try Verity(backend:.provekit)
+        let loadedProver=try runtime.loadProver(data:prover)
+        defer{loadedProver.close()}
+        let loadedVerifier=try runtime.loadVerifier(data:verifier)
+        loadedVerifier.close()
         keyData = (prover,verifier)
     }
     func prove(policy: PrivatePolicy, action: MandateAction, chainID: UInt64, vault: String) throws -> VerifiedLocalProof {
         try Task.checkCancellation()
+        let totalStart = ContinuousClock.now
+        let usedCachedKeys = keyData != nil
+        let thermalBefore = Self.thermalStateName(ProcessInfo.processInfo.thermalState)
         try prepare()
         guard let keys = keyData, let amount = UInt64(action.amount), let spent = UInt64(action.spentBefore),
               let service = MateService(rawValue: action.service) else { throw ProductError.invalidResponse }
@@ -49,11 +64,11 @@ actor ProofService {
         let policyHash = LocalSecrets.hash(try policy.material())
         let actionHash = LocalSecrets.hash(try action.material(chainID: chainID, vault: vault))
         let values: [String:Any] = [
-            "policy_hash": Array(try CanonicalBytes.hex(policyHash,count:32)).map { String($0) },
-            "action_hash": Array(try CanonicalBytes.hex(actionHash,count:32)).map { String($0) },
+            "policy_hash": Array(try CanonicalBytes.hex(policyHash,count:32)),
+            "action_hash": Array(try CanonicalBytes.hex(actionHash,count:32)),
             "spent": String(spent), "amount": String(amount), "service": String(action.service),
-            "budget": String(policy.budget), "services": String(policy.services), "salt": Array(policy.salt).map { String($0) },
-            "context": Array(try action.context(chainID: chainID,vault: vault)).map { String($0) }
+            "budget": String(policy.budget), "services": String(policy.services), "salt": Array(policy.salt),
+            "context": Array(try action.context(chainID: chainID,vault: vault))
         ]
         let witness = try Witness(json: String(decoding: JSONSerialization.data(withJSONObject: values), as: UTF8.self))
         let runtime = try Verity(backend: .provekit)
@@ -61,23 +76,46 @@ actor ProofService {
         defer { prover.close() }
         let verifier = try runtime.loadVerifier(data: keys.1)
         defer { verifier.close() }
-        let start = DispatchTime.now().uptimeNanoseconds
+        let start = ContinuousClock.now
+        let preparationMilliseconds = Self.milliseconds(totalStart.duration(to: start))
         let proof = try prover.prove(witness: witness)
         guard try verifier.verify(proof: proof) else { throw ProductError.invalidResponse }
         try Task.checkCancellation()
+        let end = ContinuousClock.now
         return VerifiedLocalProof(bytes: proof.data, policyHash: policyHash, actionHash: actionHash,
-            elapsedMilliseconds: Int((DispatchTime.now().uptimeNanoseconds - start) / 1_000_000))
+            elapsedMilliseconds: Self.milliseconds(start.duration(to: end)),
+            preparationMilliseconds: preparationMilliseconds,
+            totalMilliseconds: Self.milliseconds(totalStart.duration(to: end)),
+            usedCachedKeys: usedCachedKeys, thermalStateBefore: thermalBefore,
+            thermalStateAfter: Self.thermalStateName(ProcessInfo.processInfo.thermalState))
     }
-    func rejectsTampering(proof: Data) throws -> Bool {
+    private static func milliseconds(_ duration: Duration) -> Int {
+        let parts = duration.components
+        return Int(parts.seconds * 1_000 + parts.attoseconds / 1_000_000_000_000_000)
+    }
+
+    private static func thermalStateName(_ state: ProcessInfo.ThermalState) -> String {
+        switch state {
+        case .nominal: return "Nominal"
+        case .fair: return "Fair"
+        case .serious: return "Serious"
+        case .critical: return "Critical"
+        @unknown default: return "Unknown"
+        }
+    }
+
+    /// Negative verification uses the same native verifier, never a UI-only comparison.
+    func rejectsTamperedCopy(of proof: VerifiedLocalProof) throws -> Bool {
+        try Task.checkCancellation()
         try prepare()
-        guard let keys = keyData, !proof.isEmpty else { throw ProductError.invalidResponse }
+        guard let keys = keyData, !proof.bytes.isEmpty else { throw ProductError.invalidResponse }
         let runtime = try Verity(backend: .provekit)
         let verifier = try runtime.loadVerifier(data: keys.1)
         defer { verifier.close() }
-        guard try verifier.verify(proof: Proof(data: proof)) else { throw ProductError.invalidResponse }
-        var changed = proof
+        var changed = proof.bytes
         changed[changed.count / 2] ^= 1
         do { return try !verifier.verify(proof: Proof(data: changed)) }
         catch { return true }
     }
+
 }

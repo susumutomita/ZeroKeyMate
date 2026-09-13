@@ -1,0 +1,139 @@
+--- a/tooling/cli/src/cmd/prepare.rs
++++ b/tooling/cli/src/cmd/prepare.rs
+@@ -147,10 +147,40 @@
+                 let abi = d.witness_generator.abi.clone();
+                 let mut r1cs = d.r1cs;
+                 let program = d.program;
+-                let split_witness_builders = d.split_witness_builders;
+-                let witness_generator = d.witness_generator;
++                let mut split_witness_builders = d.split_witness_builders;
++                let mut witness_generator = d.witness_generator;
+                 let w1_size = d.whir_for_witness.w1_size;
+                 let challenge_offsets = d.whir_for_witness.challenge_offsets.clone();
++
++                // Hiding mask, following gnark GHSA-9xcg-3q8v-7fq6 / PR #1245.
++                // Append AFTER Gaussian elimination so mask * 1 = mask cannot
++                // disappear. Real wires keep their indices; virtual solver-only
++                // wires move by one to make room for this final real column.
++                use provekit_common::witness::WitnessIndexRemapper;
++                let blinding_wire = r1cs.num_witnesses();
++                let old_solving_size = r1cs.num_witnesses_for_solving();
++                if r1cs.num_virtual > 0 {
++                    let map = (0..old_solving_size).map(|i|
++                        (i, if i >= blinding_wire { i + 1 } else { i })).collect();
++                    let remapper = WitnessIndexRemapper::from_map(map);
++                    for layers in [&mut split_witness_builders.w1_layers, &mut split_witness_builders.w2_layers] {
++                        for layer in &mut layers.layers {
++                            for builder in &mut layer.witness_builders {
++                                *builder = remapper.remap_builder(builder);
++                            }
++                        }
++                    }
++                    for index in witness_generator.witness_map.iter_mut().flatten() {
++                        if index.get() as usize >= blinding_wire {
++                            *index = std::num::NonZeroU32::new(index.get().checked_add(1)
++                                .context("witness index overflow")?).context("zero witness index")?;
++                        }
++                    }
++                }
++                r1cs.add_witnesses(1);
++                let one = ark_bn254::Fr::from(1u64);
++                r1cs.add_constraint(&[(one, blinding_wire)], &[(one, 0)], &[(one, blinding_wire)]);
++
+ 
+                 // The Noir compiler doesn't set num_public_inputs on the R1CS
+                 // (WHIR handles public inputs separately). For Groth16, we need
+@@ -175,7 +205,8 @@
+                 // Build BSB22 commitment info: WHIR-style, one Pedersen commitment
+                 // over all private w1 wires, producing N challenges via hash_to_fr_multi.
+                 let num_challenges = challenge_offsets.len();
+-                let private_w1_wires: Vec<usize> = (num_public..w1_size).collect();
++                let mut private_w1_wires: Vec<usize> = (num_public..w1_size).collect();
++                private_w1_wires.push(blinding_wire);
+                 let public_committed: Vec<usize> = (1..num_public).collect();
+ 
+                 let (commitment_info, groth16_ci, num_challenges_per_commitment) =
+@@ -240,6 +271,15 @@
+                     "Groth16 setup complete"
+                 );
+ 
++                // A zero basis would make the mask ineffective. Fail setup
++                // instead of producing parameters that only appear private.
++                use ark_ec::AffineRepr;
++                if !commitment_info.is_empty() {
++                    anyhow::ensure!(commitment_info.len() == 1, "single commitment required");
++                    anyhow::ensure!(!pk.commitment_keys[0].basis.last()
++                        .context("missing mask basis")?.is_zero(), "zero hiding basis");
++                }
++
+                 // Build + write the Verifier first; this owns the only live
+                 // copy of `r1cs`. Then move that `r1cs` out of the Verifier
+                 // into the Prover via partial move — no clone. The previous
+@@ -260,6 +300,7 @@
+                     r1cs: verifier.r1cs,
+                     split_witness_builders,
+                     witness_generator,
++                    blinding_wire,
+                     groth16_pk: pk.into(),
+                     commitment_info,
+                 });
+--- a/provekit/prover/src/lib.rs
++++ b/provekit/prover/src/lib.rs
+@@ -459,6 +459,7 @@
+             split_witness_builders,
+             witness_generator,
+             groth16_pk: pk,
++            blinding_wire,
+             commitment_info,
+         } = self;
+ 
+@@ -513,6 +514,19 @@
+                 &mut dummy_transcript,
+             )
+             .context("While solving Groth16 w1 witnesses")?;
++        }
++
++        // Fresh independent field element on EVERY proof, including retries.
++        // Never derive it from the private witness or serialize it in the proof.
++        anyhow::ensure!(blinding_wire + 1 == num_witnesses, "invalid hiding wire");
++        if has_commitments {
++            anyhow::ensure!(commitment_info.len() == 1 &&
++                commitment_info[0].private_committed.last() == Some(&blinding_wire),
++                "prover parameters lack a committed hiding mask; regenerate setup");
++        }
++        {
++            use ark_std::UniformRand;
++            witness[blinding_wire] = Some(FieldElement::rand(&mut ark_std::rand::thread_rng()));
+         }
+ 
+         // --- Phase 2: BSB22 Pedersen commitment (WHIR-style: one commit, N challenges)
+--- a/provekit/prover/src/prover_types.rs
++++ b/provekit/prover/src/prover_types.rs
+@@ -213,6 +213,8 @@
+     pub split_witness_builders: SplitWitnessBuilders,
+     pub witness_generator:      NoirWitnessGenerator,
+     /// Typed Groth16 proving key (owned or mmap-backed).
++    /// Final real wire: per-proof random commitment mask, never an ABI input.
++    pub blinding_wire: usize,
+     pub groth16_pk:             Groth16PkSource,
+     /// BSB22 commitment metadata (empty if circuit has no commitments).
+     /// Same treatment as `r1cs` above: omitted from postcard, transported
+--- a/provekit/prover/src/pkp_mmap_io.rs
++++ b/provekit/prover/src/pkp_mmap_io.rs
+@@ -266,6 +266,8 @@
+             let _s = info_span!("postcard_witness_generator").entered();
+             postcard::take_from_bytes(rest).context("decoding witness_generator")?
+         };
++        let (blinding_wire, rest): (usize, &[u8]) = postcard::take_from_bytes(rest)
++            .context("missing hiding mask metadata; regenerate setup")?;
+         let (groth16_pk, _): (Groth16PkSource, &[u8]) = {
+             let _s = info_span!("postcard_groth16_pk_placeholder").entered();
+             postcard::take_from_bytes(rest).context("decoding groth16_pk placeholder")?
+@@ -277,6 +279,7 @@
+             split_witness_builders,
+             witness_generator,
+             groth16_pk,
++            blinding_wire,
+             commitment_info: Vec::new(),
+         })
+     };

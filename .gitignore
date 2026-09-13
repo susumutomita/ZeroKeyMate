@@ -12,15 +12,25 @@ xcuserdata/
 apps/ios/*.xcodeproj/
 apps/ios/Generated/
 apps/ios/ZeroKeyMate/Resources/Proofs/
+apps/ios/ZeroKeyMate/Resources/AgeProof
 apps/ios/ZeroKeyMate/Resources/Configuration.json
+apps/ios/ZeroKeyMate/Resources/Selectors.json
 .env
 .env.*
 !.env.example
 *.p12
 *.mobileprovision
+__pycache__/
+.wrangler/
+.dev.vars
+.dev.vars.*
+services/shop/worker-configuration.d.ts
 
-.provider-data/
-*.sealed
-*.sqlite*
-.env.new
-artifacts/
+/apps/ios/ZeroKeyMate/Resources/ShopConnection.json
+
+.pitchdeck/
+
+# Local generated exports and scheduler runtime state
+/output/
+/config/scheduler/state.json
+/data/scheduler/

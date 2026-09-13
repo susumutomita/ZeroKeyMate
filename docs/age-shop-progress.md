@@ -1,0 +1,494 @@
+# Physical-card age checkout: implementation checkpoint
+
+**Current public status:** PRs #45 and #46 are merged. The actual Arc verifier,
+age gate, funded merchant and Workers/D1 storefront are deployed; hosted catalog
+readiness passes. The NFC-capable physical build is blocked on Xcode Apple
+Account/provisioning setup. No real-card purchase or physical proving speed is
+claimed. See [live evidence and remaining acceptance](arc-live-status.md).
+The dated checkpoints below record earlier states and do not override that page.
+
+Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
+project finished from unit tests, a simulator, a catalog page or a configured URL.
+
+Current integration: PRs #39–#44 are merged, including signed-card proving,
+purchase integration, pinned deployment artifacts, the order deadline guard
+and the Arc migration.
+The purchase target is now **Arc Testnet (5042002)** at the user's request.
+The phone, shop and age gate have been migrated; the shop self-facilitates exact
+x402 USDC transfers with a separately approved testnet gas wallet. No public key
+setup, deployment or payment has been performed. See [Arc acceptance, sources
+and remaining work](arc-checkout.md). Earlier dated experiment notes are
+historical and must not be treated as the current deployment plan.
+
+The [unsigned deployment preflight](../services/shop/README.md#prepare-the-matching-public-contracts-without-credentials)
+now prepares both transactions with predicted addresses, exact constructor data
+and a combined 0.10 test USDC fee limit before any signing. The standard checks
+passed (86 Swift, 64 Node and 21 Python tests), along with an unsigned simulator
+build. The synthetic native integration used this plan on an isolated Anvil
+chain and checked actual deployed addresses and total fees before exercising
+proof, purchase and restart recovery. A read-only run against both public Arc
+RPCs also passed using the public diagnostic address `0x1111…1111`; its balance
+is not a project wallet or project funding. Neither run signed or submitted a
+public transaction. Public deployment, hosted readiness and physical acceptance
+remain outstanding.
+
+## Working increment
+
+- An explicit iPhone NFC session reads the input-assistance application's birth
+  date with the four-digit PIN. PIN verification is sequential and never retried
+  automatically. The Settings > Age verification screen uses this diagnostic
+  path only and says that checkout remains locked.
+- The separate `MyNumberNFCService.authenticate(pin:challenge:expiresAt:)` path reads the
+  JPKI signing certificate and asks the card to sign a domain-separated order
+  hash and nonce. It requires the **6–16 uppercase alphanumeric signing PIN**,
+  not the four-digit input-assistance PIN. The Mate beer purchase screen now calls this path after explicit PIN entry and a tap.
+- Local Security.framework verification uses only fingerprint-pinned official
+  2019/2023 J-LIS roots, disables network fetching, verifies the certificate chain
+  and card signature, and reads DOB only from the signed SAN otherName field.
+  Unknown/partial dates are rejected. The returned credential explicitly has
+  `revocationChecked = false`; this is not completed eKYC or shop age approval.
+- PINs, certificates, raw responses, DOB and card signatures are not logged,
+  persisted or transmitted by either reader. Cancellation resolves an outstanding
+  APDU continuation so it does not retain a read indefinitely.
+- `services/shop` contains an English, responsive Workers storefront and D1
+  order API for one 0.10 test-USDC Mate Lager on **Arc Testnet (5042002)**.
+  Existing Arc service routes remain separate.
+- Orders commit to product, quantity, payer, merchant, token, chain, amount,
+  expiry, age threshold and payment nonce. A capability header retrieves the
+  same persistent order across retries. The Worker uses the actual x402 v2 SDK
+  and the store gas-sponsorship adapter.
+- Payment is reserved in D1 before settlement. An uncertain result stays pending
+  and looks for the original `AuthorizationUsed` event. Completion requires a
+  successful canonical receipt, two confirmations, the exact nonce and matching
+  USDC transfer. A pending payment is never replaced with another nonce.
+- After a one-minute attempt lease, the client may resubmit only the exact
+  original signed header while still valid. Concurrent retries reserve one
+  attempt. Transaction hashes are stored before receipt polling; GET never pays.
+- New orders require live chain/clock/code/gate/D1/facilitator readiness. Fixed
+  resource-key Workers rate limits bound API/creation traffic without sending IP
+  addresses to the limiter, and D1 caps the test shop at 1,000 stored orders.
+- Settings/request screens now reuse one presentation. This fixes quick switches
+  that previously left an old form visible while a replacement sheet opened.
+
+## Still required (implementation work, not a request for the user to debug)
+
+1. The actual signed-card age circuit is implemented and checked with synthetic
+   certificates. Validate its deliberately narrow physical-card certificate
+   profile on a real card; no physical identity acceptance has been performed.
+2. Measure the now-connected native age prover and purchase/card UI on a physical phone. The separate native library, private Swift witness
+   preparation, fixed setup hashes and actual Simulator proving now work.
+   Cancellation discards a completed result; it cannot yet interrupt the backend
+   halfway through. Desktop Groth16 and actual EVM verification pass, but
+   this is an unaudited upstream branch with single-party test setup. Production
+   setup/security review remains required; no mainnet use is authorized.
+3. Publish matching verifier/gate and configure the Worker only after the native
+   flow is ready and the specific deployment credentials are authorized. `/age`
+   now accepts a proof and directly verifies it with the contract via `eth_call`;
+   no public contract, Worker or age transaction has been deployed by this work.
+4. Validate the implemented local-model beer tool and complete purchase sequence
+   against the deployed shop. Creation capability and exact limited authorization
+   persist in the device-only Keychain before their network request. The model
+   proposes only the supported item; it gets no card data, URL, wallet or signing
+   access. Face ID/passcode approval signs one exact 0.10 test-USDC transfer.
+5. Define credential revocation handling without disclosing a person's certificate
+   or serial number to an unapproved endpoint. Do not claim revocation is checked.
+6. Exercise the implemented terminal expiry recovery on the deployed testnet.
+   The Worker and phone require two-provider agreement that the exact signed
+   nonce is unused at a common finalized block past its saved deadline. Otherwise
+   the original order stays pending. Absence of a receipt is never enough.
+7. Validate the readiness probe and resource limits on deployed Workers, and
+   confirm the configured limiter namespace IDs are unused in that account.
+8. Publish Workers/D1 and the real testnet contracts, install on a physical iPhone,
+   then run card tap + local proof + contract verification + x402 receipt together
+   with the user. Recheck stand launch/wake limitations using Apple documentation;
+   placing a phone on a stand is not permission to capture or sign.
+
+## Validation recorded
+
+- `make test`: passed (71 Swift tests, 58 Node tests, 13 Python tests).
+- Unsigned `make build-ios` (skipping the `.env` configuration-generation target):
+  passed after the NFC authentication/cancellation changes.
+- Three real Simulator UI tests passed: card screen explicit start/PIN cleared on
+  reopening, setup deferred/resumed without sensors, and editable unsent request.
+- Shop: 31 tests passed. Protocol/schema tests use the actual x402 SDK; SQLite
+  checkout tests inject RPC/facilitator failures. They are **not** a live payment
+  or ZK verification. Wrangler dry-run build passed without deploying.
+- Browser: desktop 1200px and mobile 393px inspected; no horizontal overflow at
+  393px, price/request in first screen, availability retry works, unready request
+  copy button disabled. Full purchase-flow usability is not yet testable.
+- Physical card/PIN, device install, public gate, public payment: **not performed**.
+
+## Permission boundary for continued work
+
+The user approved 30-minute continued implementation/test/PR/merge, testnet
+publication and eventual installation. They subsequently reserved existing
+private keys, personal data, card PIN/touch and money-related authorization.
+Respect the stricter boundary. Normal GitHub source-management authentication is
+within the approved PR/merge scope; disable commit GPG signing rather than using
+an existing signing key. Never read `.env`, seed phrases, wallet keys or deployment
+secrets to discover what can be used.
+
+When the relevant build/deployment is concrete, ask the user to authorize the
+specific credential and action, not to paste secrets into chat:
+
+| Later action | Credential/data and destination | Current state |
+| --- | --- | --- |
+| Publish test storefront | Cloudflare account authorization for this Worker/D1; no card data | Not used |
+| Install iOS app | Apple Development signing identity, used locally by Xcode | No device signing performed |
+| Deploy verifier | Explicitly approved testnet-only deployer and bounded Arc Testnet USDC gas | No wallet key read or used |
+| Buy one test item | iPhone signs the exact 0.10 test-USDC order for Arc Testnet; the shop receives that limited authorization | Not signed or submitted |
+| Authenticate physical card | User enters the relevant PIN on iPhone and touches card; private credential remains in memory on device | User will do this when awake |
+
+Do not claim anonymous payments: the payer, recipient and amount are public.
+Do not claim anonymous delivery: no shipping flow is implemented.
+
+## Research and source evidence
+
+Research and UX feedback were separately requested in ChatGPT and collected:
+https://chatgpt.com/uc/6aa55289-77c4-83ea-b7d5-c807b6ed3b8b . Its conclusions are
+leads, not implementation proof. Primary-source checks corrected the distinction
+between an input-assistance date, a signed credential and an order-bound ZK proof.
+
+The user-authorized CircuitBreaker revision reads a date but does not validate
+government signatures; its circuit accepts an arbitrary age and its frontend uses
+Sindri cloud proving. Only the public NFC APDU reference was adapted. Public source
+revisions, licenses, J-LIS profile/root fingerprints and x402 docs are in SOURCES.md.
+
+An ACTIVE thread heartbeat named `ZeroKeyMateの実機購入体験を完成させる` was registered
+with ID `zerokeymate` at the user's explicit approval. It should resume from the
+latest branch/PR and this checkpoint, not discard work or repeat initial research.
+
+## Recursive verifier experiment (not a working age proof)
+
+PR #38 contains the card/shop foundation. Its independent review caught a missing
+zero in the JPKI AID; commit c751d0d fixes it and tests the full public APDU bytes.
+`make test`, the unsigned iOS build, and 21 shop tests passed at that commit;
+subsequent shop readiness/retry tests bring the shop count to 28.
+
+The local ProveKit 1.0.1 export for the synthetic spending-policy proof succeeds,
+but its pinned Rust exporter emits `narg_string` and `hints`; the Go recursive
+verifier in the same source revision still expects `io_pattern`, `transcript`,
+and a different blinding layout. An isolated CPU-only Go build succeeded, but
+execution immediately failed with `deferred array too short: expected at least
+8 elements, got 0`. No recursive proof, Solidity verifier, or setup artifacts
+were produced. Do not patch in empty fields or claim this route works.
+
+Artifacts are in ignored `.build/age-evm-probe/` (synthetic data only); logs are in
+`/private/tmp/zerokeymate-recursive-probe.log`. The public Go 1.27.1 toolchain was
+downloaded from go.dev and SHA-256 checked before extracting there. The shared
+`.tools/provekit-source` and existing mobile runtime were not modified.
+
+Separate ChatGPT research led to public ProveKit PR #470, which explicitly warns
+that its later proof format 2.0 is incompatible with the Go verifier and that
+witness openings are not hiding. The pinned 1.0.1 source still uses `WhirZkConfig`;
+do not conflate it with #470 or upgrade to a non-hiding witness path for DOB.
+PR #447 (`dd237e542403302186c8de4bd10df6e5c9b6725a`, still open) provides direct
+Groth16+BSB22 Solidity export. Its public source is isolated under
+`.build/age-groth16-source/` for examination; no mobile proof, resource budget or
+trusted setup has been verified for it. This is a candidate to investigate,
+not a completed replacement or an excuse to disclose private witnesses.
+
+
+## Signed-card circuit and direct EVM increment — 2026-09-13
+
+Branch `codex/jpki-age-proof` starts at merged PR #38 (`0774fd0`).
+`circuits/jpki_age` verifies both RSA-2048 signatures, extracts DOB within signed
+TBS, checks strict DER/profile/calendar/validity and binds the exact Swift card
+challenge to the order. Eight public inputs pack the three public hashes into
+u128 halves, plus reference/expiry. DOB, certificate, card signature and card key
+are private. The government root modulus hash is public and pinned by the gate.
+
+`MateAgeGate.verifyOrderAge` checks expected order/nonce, the exact 15-minute
+window and official root validity before directly calling the proof verifier.
+The Worker builds those inputs from its saved order, accepts only the 384-byte
+proof and root hash, and verifies via `eth_call` with a bounded gas budget. It
+stores the public proof for repeat verification immediately before x402 payment.
+There is no attestor, age-signing wallet or age transaction. This is an intentional
+replacement of the old proposed `isOrderAgeVerified` state-query interface.
+
+Validation: the actual hiding WHIR age proof verified, 17 invalid witnesses were
+rejected, 10 independent SHA vectors and 9 calendar boundary cases passed. The
+same age statement also proved/verified with the isolated direct Groth16 backend,
+and its real Solidity verifier and age gate passed on Anvil. The test verifies
+all eight input mutations, changed expected order/nonce/expiry, expired proof,
+malformed proofs, and rejection of the synthetic root by the official gate. It
+uses a separate, explicitly generated test-only subclass to accept the synthetic
+root for positive gate testing. No fake verifier is used.
+
+The generated proof is 384 bytes and the masked verifier runtime 5,840 bytes;
+direct verifier gas estimate was 369,793. These are desktop/local-EVM results,
+not iPhone or Base Sepolia measurements. A boolean-returning gate must not be
+gas-estimated directly: insufficient gas can yield false through its catch path.
+The Worker uses an explicit 1,000,000 eth_call gas budget.
+
+Separate ChatGPT feedback corroborated an upstream Solidity buffer-boundary bug;
+local source inspection and a real EVM memory-canary test confirmed the fix.
+`patch-age-verifier.py` pins the exact template hash and allocates five words for
+two accumulator plus three ECMUL input words. A Noir beta.19 diagnostic in the
+upstream SHA helper was avoided by directly constraining padding and byte packing.
+The circuit now compiles with checks enabled and without that diagnostic.
+
+Reproduction: `test-jpki-age.py` for the shipping-version WHIR circuit tests;
+`build-age-evm.py` followed by `test-age-evm.mjs .build/age-proof-engine/artifacts`
+for the separate experimental Groth16 path. Its public source archive hashes,
+compiler patch and setup artifact provenance are recorded. It does not modify
+`.tools/provekit-source`, the existing mobile runtime, `.env` or private keys.
+
+Remaining immediately useful work: native age FFI and private witness preparation,
+shop request/card/proof/payment/result UI, real worker-to-contract acceptance,
+terminal expired-payment recovery. Card tap/PIN remains for the user when awake.
+
+
+Privacy audit follow-up: source inspection found a deterministic BSB22 private
+commitment in the candidate backend. This is the class described in gnark's
+published GHSA-9xcg-3q8v-7fq6; successful proof verification did not establish
+hiding. All earlier unmasked Groth16 artifacts are synthetic-only and must not
+be used for real credentials. The isolated backend now includes the published
+post-optimization random-mask method, with solver-column remapping, a nonzero
+mask-basis setup check, new prover metadata and a repeated-identical-witness
+commitment test. The reproducible masked build passed: identical private inputs
+produced different commitment points, both proofs passed native and real EVM
+verification, all eight public-input mutations failed, and the official gate
+rejected the synthetic root. This is regression evidence, not an independent
+cryptographic audit. No real personal data was used in these experiments.
+
+A further external ChatGPT review request was rejected by automatic approval
+review because its payload included unpublished cryptographic design details.
+That payload was not sent; the work continued using read-only public security
+advisories and source code. Do not retry sending the rejected design indirectly.
+
+PR #39 review follow-up: all SHA dependencies (including transitive SHA-1 and
+SHA-512 manifests) are now checksum-pinned and locally vendored before prepare.
+Age verification now requires agreement between the Base and PublicNode RPCs
+at a common recent block, including chain, block hash/time, gate bytecode and
+the proof result. This prevents one fabricated RPC response from unlocking an
+order. It remains a 2-of-2 provider trust boundary, not light-client verification;
+both-provider collusion is outside that guarantee. x402 USDC settlement does
+not independently invoke the age gate. See the shop README for this assumption.
+
+## Native age increment — 2026-09-13
+
+Branch `codex/native-age-proof` starts at PR #39's review-fix commit `6d85e76`.
+`JPKIAgeWitness` rechecks the government credential and exact card challenge,
+retains the original signed TBS bytes, computes RSA reduction hints in Swift,
+and exposes private inputs only through an in-memory local-prover callback.
+Its synthetic result matches independently computed Python cryptography hashes.
+The public entry cannot inject a root; private input diagnostics are redacted.
+
+`native/age-proof` provides a separate Rust C ABI and Swift package around the
+masked Groth16 backend. It does not clone a cached full prover or write witness
+files. It returns only a verified 384-byte proof and eight public field elements;
+errors return fixed codes and zeroed output. During proving, panic payloads are
+suppressed, including worker threads. Swift/Data copies are not guaranteed to be
+securely erased. No existing Verity/policy runtime source was modified.
+
+Both unsigned iOS libraries build. A named static framework fixes Xcode's shared
+module-map collision with Verity. The application has a separate `AgeProofService`
+actor, fixed public parameter hashes and bounded-memory file hashing. Missing
+runtime/resources remain unavailable. The setup is about 628.7 MiB plus a 12.5 MiB
+verifier; physical phone peak memory and latency are still unmeasured.
+
+Validation: `make test` passed with 76 Swift, 58 Node and 13 Python tests. Unsigned
+application build with both native libraries passed. Host FFI generated two
+different commitments, matched all public inputs, rejected six invalid witnesses,
+and both actual proofs passed the EVM verifier/gate. The focused iPhone 17 Pro
+iOS 26.5 Simulator test **ran and passed, zero skips**: two native age proofs,
+different commitments, underage and changed-order rejection. Result bundle:
+`.build/native-evidence/age-acceptance-20260913`. This is not a physical card test.
+
+Reproduce with `build-age-evm.py`, `build-age-native.py --ios`,
+`stage-age-resources.py`, and the focused `NativeAcceptance/AgeProofTests` target.
+The reviewed public setup hashes are in `config/age-runtime-pins.json` and the
+application's `AgeProofPins.swift`; regenerating the random test setup requires
+reviewing/updating those pins and its matching shop verifier. A new setup can be
+tested separately with `--artifacts .build/age-source-validation/artifacts`.
+No real card, existing private key, device signing identity, public deployment,
+or payment was used. The beer tool, purchase UI and payment connection are next.
+
+
+## Native checkout checkpoint — 2026-09-13
+
+- On-device Foundation Models proposes a beer order. Unsupported goods and
+  quantities are explained without fabricating a purchase. Controls and Settings
+  also expose the same purchase screen. Opening it pauses microphone input before
+  PIN entry; closing/backgrounding cancels work and never resumes a card PIN or
+  payment signature automatically.
+- The phone recomputes the capability ID, payment nonce and complete ABI order
+  commitment using RustCrypto Keccak. It rejects a changed chain, token, amount,
+  product, quantity, payer, recipient, gate, nonce or lifetime. Only a public proof
+  and pinned root hash go to the age endpoint.
+- Same-order creation recovery survives a lost response. A signed x402 v2
+  EIP-3009 authorization is saved before submission and can only be retried
+  unchanged. The Worker and phone each require matching canonical transfer and
+  nonce evidence from Base and PublicNode before reporting completion.
+- Store configuration is deliberately absent pending authorized deployment.
+  `scripts/stage-shop-connection.mjs` accepts only public deployment coordinates,
+  checks the gate's reviewed code hash through both providers and writes one
+  ignored app resource without overwriting an existing connection. It never
+  reads `.env`, a wallet or a deployment credential.
+- Every native build now recreates the checksum-verified upstream source and
+  reapplies both checked patches, rather than trusting an old marker. Both WHIR
+  and EVM paths recreate all six pinned Noir dependencies with local paths.
+  Native proving uses a dedicated two-worker pool.
+- Validation: 80 Swift, 58 Node and 16 Python unit tests passed; shop 35 tests
+  passed. The unsigned iOS build passed. Updated real Simulator acceptance had
+  3 passes, 0 failures and 0 skips: two real masked proofs with changed commitment,
+  underage/changed-order rejection, native Keccak/order commitment and the honest
+  unconfigured-shop retry/background/reopen/close UI. This does not prove physical
+  NFC, wallet signing, the local model's actual classification or live settlement.
+- The reviewed screenshots show a visible beer-order entry, clear fixed price,
+  unavailable status, large retry/close controls and testnet/no-delivery wording.
+  Card, proving, approval, pending and completed screens still need a connected
+  flow or explicitly isolated UI harness review; no end-to-end UX claim is made.
+
+
+### Payment expiry recovery
+
+Migration `0002_payment_expiry.sql` preserves existing order capabilities and
+revisions while allowing `payment_expired`. The Worker stores the verified
+signature's `validBefore` before settlement. On expiry, it checks ERC-3009
+`authorizationState` at the common finalized block of both fixed providers;
+block hash/time must agree and both must report unused. No receipt/log absence
+or wall-clock timeout alone can close a payment. The phone repeats that check
+and compares the deadline with its own saved pre-submission authorization before
+allowing a new order. API failures retain the old order. Older pending orders
+without a stored deadline remain pending on the server rather than guessing.
+The phone can also retire a POST lost before server reservation using its own
+saved signed deadline, but only after the same finalized unused-nonce checks.
+
+Validation: 39 shop tests passed, including schema preservation, independent RPC
+failures and terminal expiry without an extra settlement. The iOS RPC failure
+suite passed in Simulator (1 test, 0 skips), rejecting used nonces, noncanonical
+boolean responses, premature blocks, changed signed deadlines and wrong chains.
+This is controlled failure injection, not live-chain acceptance. The native
+proof/Keccak/UI suite separately passed 3 tests with 0 skips.
+
+
+### Host resource measurement
+
+The freshly rebuilt two-worker native backend produced a synthetic valid proof
+in 8.3 seconds on this Mac. The complete repeated-proof/rejection test process
+reported about 2.00 GB maximum resident size and 1.30 GB peak memory footprint
+with macOS time resource accounting. This is host evidence, not an iPhone memory
+or timing result. Measure the physical app with its local model and camera before
+calling the mobile experience accepted.
+
+### Purchase review and real local-model acceptance
+
+The actual Foundation Models service on this Mac initially opened shopping for
+translation, past-tense and hypothetical statements. Production `ShopPlanner`
+now checks the speech act before product extraction, routes language tasks away
+from checkout and limits proposals to current purchase-request forms. Fourteen
+canned English/Japanese cases passed through this production pipeline with the
+real host model available: supported one-beer requests, quantity two, unsupported
+Amazon goods, negation, translation, past events and hypotheticals. Some cases
+are rejected by the request guard before model invocation. This is a bounded
+host acceptance corpus, not proof of every natural-language phrasing or physical
+voice recognition. No order, wallet, card data or payment was accessed.
+
+Reproduce on a Mac with Foundation Models available:
+
+```sh
+CLANG_MODULE_CACHE_PATH="$PWD/.build/ModuleCache" xcrun swiftc -parse-as-library \
+  -module-cache-path "$PWD/.build/ModuleCache" apps/ios/ZeroKeyMate/ShopPlanner.swift \
+  scripts/test-shop-planner.swift -o .build/shop-planner-acceptance
+.build/shop-planner-acceptance
+```
+
+The local prover now establishes an order-hash marker in device-only storage
+before sending its public proof. A server-supplied `age_verified` state cannot
+create that marker or skip card authentication. Signing and confirmed completion
+both require locally established proof evidence for the same order. Successful
+card reading/proving stops at the approval screen; only the separate payment
+button can initiate Face ID/passcode approval. Archived completed purchases are
+accessible in Activity, which projects only the product/date/transaction receipt
+and does not expose order capabilities or signed payment headers.
+
+Purchase headings, status messages, controls, privacy text and PIN errors have
+English/Japanese resources; display still defaults to English and follows the
+explicit language setting. Simulator review acceptance passed four tests with
+zero skips: request boundaries, server age-state spoofing, finalized payment
+expiry/RPC failures and unavailable-shop retry/background/close UI. The two
+inspected screenshots cover entry and unavailable handling, not the full card
+and payment journey.
+
+After localization, focused Simulator acceptance passed another four tests with
+zero skips, including the actual wallet SDK's encoding of a complete USDC v2
+EIP-712 domain and unchanged six-field authorization. It initializes no wallet
+and requests no signature. The focused result is
+`.build/native-evidence/shop-signing-encoding-20260913`. `make test` again passed
+(80 Swift, 58 Node, 16 Python); the unsigned build skips only the `.env`-reading
+project configuration target.
+
+
+## Unsigned deployment preparation and reproducible integration — 2026-09-13
+
+PR #41 is merged at `2c2c531`. The public contract package can now be prepared
+without credentials using `prepare-age-deployment.py`. Solidity is exported
+fresh from the iPhone's pinned public verifier key. The connection staging tool
+requires this package and the deployed verifier address, and checks the complete
+verifier and correctly instantiated government-root gate runtimes through both
+fixed providers at a common recent block before writing the phone configuration.
+It cannot accept an unrelated verifier merely because the operator supplied its
+code hash. No deployment, existing key or wallet use is performed by preparation.
+
+A compatibility failure in `stage-age-resources.py` was reproduced: an older
+reviewed provenance record also contained documentation/generated-output hashes.
+All current circuit/manifest hashes and parameter bytes matched, but whole-map
+comparison prevented re-staging. The shared validator first authenticates the
+entire original record against the unchanged reviewed pin, then ignores only the
+three known historical non-statement entries when comparing current sources.
+Changed, added or missing circuit files, unreviewed records and unknown extra
+entries still fail. The public setup, circuit and app pins were not changed.
+
+The previously local-only synthetic Worker/native/EVM/payment integration is now
+reproducible as `scripts/test-shop-native-e2e.mjs`, with its synthetic-only Python
+card helper. The prepared verifier and gate deployed successfully on the isolated
+chain and matched the computed runtimes. Wrong addresses, an altered RPC response
+and a duplicated RPC client were rejected. Fresh synthetic card proof, EIP-712
+signature, local transfer, persisted completion and no second settlement after
+restart/retry all passed. This is not a public-chain, physical-card, actual USDC,
+public-facilitator or independently operated RPC acceptance result.
+
+Validation: five new provenance regression tests passed; `make test` passed with
+80 Swift, 58 Node and 21 Python tests. Re-staging the unchanged public parameters
+and the unsigned iOS build passed. The explicit existing-key, account, card and
+physical-install permission boundaries above remain in effect.
+
+PR review identified that package-local hashes alone could authorize a substituted
+always-success verifier. The full deterministic public deployment package is now
+pinned independently in `config/age-deployment-pins.json`; preparation and loading
+both require that reviewed digest. It includes code, ABI and immutable locations,
+not just setup labels. A regression test supplies an always-success EVM runtime,
+copies the real public setup and recomputes its hashes; it must be rejected before
+any RPC check. The pin was derived from the freshly exported reviewed verifier
+and actual gate already exercised in the isolated native/EVM checkout.
+Re-exporting/recompiling reproduced the pinned package byte for byte. The fixed
+loader then passed the native/EVM/persisted-payment integration again, while the
+forged-package regression failed closed. Final local validation: 80 Swift,
+59 Node and 21 Python tests, plus the unsigned Simulator build, passed.
+
+## Stop expired orders before card operations — 2026-09-13
+
+PR #42 is merged at `1c7d930`. Review found that an order left open past its
+15-minute window could still open NFC and submit the signing PIN; the existing
+witness preparation rejected it only afterward. The validated order deadline
+now travels into the NFC service and JPKI reader. The service rejects expiry
+before opening a session, and every card exchange checks the deadline before
+sending and after receiving. Expiry stops further certificate pages and signing;
+an actual rejected/locked PIN response remains visible even if it arrives at the
+deadline. No retry, replacement order or payment is triggered. The existing
+recovery screen explains expiry in English/Japanese and offers a new order.
+
+Six deterministic transport regressions cover already-expired orders, expiry
+during selection/PIN/certificate reads, preservation of the rejected-PIN result,
+and invalid clocks. They use synthetic responses and count commands; no physical
+card, private key or credential is needed. Card/witness/proof message bytes and
+public setup pins are unchanged. The witness layer already checked expiry
+before proving and continues to do so.
+
+The planned interactive purchase-screen audit could not start because the Mac
+was locked. No alternate UI-control path or manual unlock was used. Visual
+acceptance and physical NFC remain for the user-present session.
+Local validation passed: 86 Swift, 59 Node and 21 Python tests, and the unsigned
+Simulator build with the `.env`-reading project-generation target excluded.

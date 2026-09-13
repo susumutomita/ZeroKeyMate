@@ -1,0 +1,102 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognize your surroundings on this device and enable DockKit tracking. Video is never saved or sent externally."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内で周囲を認識し、DockKitの追跡を有効にします。映像を保存したり外部へ送ったりしません。"
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen on this iPhone after you wake Mate or enable voice wake. Say goodnight or use Rest to stop."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateを起こすか声の待受けを有効にすると、このiPhoneで音声を認識します。「おやすみ」または休憩操作で停止します。"
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe speech on this device. Use the keyboard when on-device recognition is unavailable."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末で音声を文字にします。端末内の認識が使えない場合はキーボードを使ってください。"
+          }
+        }
+      }
+    },
+    "NSFaceIDUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authenticate when you approve the displayed mandate terms or test USDC operation."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示された委任条件やテストUSDCの操作を承認するときに認証します。"
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send only approved request content to the specialist service running on your Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認した依頼内容だけをMacで動く専門サービスへ送ります。"
+          }
+        }
+      }
+    },
+    "NFCReaderUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read your My Number card only when you choose to. The card PIN and personal information stay on this iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作したときだけマイナンバーカードを読み取ります。暗証番号や個人情報を端末の外へ送りません。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
