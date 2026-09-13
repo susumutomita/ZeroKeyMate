@@ -25,7 +25,7 @@ sequenceDiagram
     Shop-->>Mate: x402 PAYMENT-REQUIRED
     User->>Mate: Approve this purchase
     Mate->>Shop: Exact signed USDC authorization
-    Note over Shop: Reserve order; verify signature; simulate USDC; persist signed transaction
+    Note over Shop: Reserve order, verify signature, simulate USDC, persist signed transaction
     Shop->>Arc: Sponsor gas for transferWithAuthorization
     Shop->>Arc: Confirm Transfer and AuthorizationUsed
     Shop-->>Mate: Persisted completed order

@@ -44,7 +44,7 @@ sequenceDiagram
     Mate->>Shop: Create an exact order
     Shop-->>Mate: Order, nonce and expiry
     Person->>Mate: Physical card + signature password
-    Note over Mate: Authenticate credential; prove age ≥20 locally
+    Note over Mate: Authenticate credential and prove age 20 or over locally
     Mate->>Shop: Order-bound proof, no card fields
     Shop->>Gate: verifyOrderAge via two-provider eth_call
     Gate-->>Shop: Both providers return true
