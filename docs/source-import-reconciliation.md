@@ -2,14 +2,14 @@
 
 PR #3 preserved an incomplete September 6 source delivery. The working September 13 checkout was developed separately and the import branch had not been rebased onto it. Merging the old files verbatim would replace the current companion, wallet, proof, launcher and CI behavior with older variants.
 
-The original delivery is preserved in Git history at [`cb1ed55`](https://github.com/susumutomita/ZeroKeyMate/commit/cb1ed55df866761d4c6826a7a7e1ab2ea43cdf21). This reconciliation keeps the runtime tree of the submitted build, [`96780ed`](https://github.com/susumutomita/ZeroKeyMate/commit/96780eda0a60c97114510fa6d5e4253ae15b2548), and integrates the import history. It does not claim that all optional features from the old delivery were implemented or independently validated.
+The original delivery is preserved at [`cb1ed55`](https://github.com/susumutomita/ZeroKeyMate/commit/cb1ed55df866761d4c6826a7a7e1ab2ea43cdf21), retained by the archive tag `archive/source-delivery-2026-09-06`. This reconciliation keeps the runtime tree of the submitted build, [`96780ed`](https://github.com/susumutomita/ZeroKeyMate/commit/96780eda0a60c97114510fa6d5e4253ae15b2548), and records the disposition of the import. It does not claim that all optional features from the old delivery were implemented or independently validated.
 
 ## Disposition
 
 - The current iPhone purchase flow, consent controls, native proving, Privy integration, testnet configuration and CI definitions remain authoritative.
 - Older alternate ABI/ENS clients, proof-inspection UI, encrypted-file helpers and setup commands remain accessible in the original commit. They are not installed as parallel implementations in this release.
 - The old delivery's incomplete-file checklist and unexecuted-test statements describe that historical delivery, not current acceptance. Current capabilities and limitations are recorded in [the README](../README.md) and [live evidence](arc-live-status.md).
-- Merge with history preservation; do not squash away the source-delivery commit. This reconciliation introduces documentation only relative to the submitted runtime.
+- This repository permits squash merges only. The archive tag preserves the original source-delivery commit independently of the PR branch. This reconciliation introduces documentation only relative to the submitted runtime.
 
 The table covers every path modified by the original import. “Current main” means the current path is retained, including subsequent redesigns. “Historical only” means that the old path remains in the import commit and is not part of the release tree.
 
