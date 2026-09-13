@@ -2,12 +2,19 @@
 
 The [Mate Atelier storefront](https://zerokeymate-arc-shop.oyster880.workers.dev/)
 is deployed on Cloudflare Workers with its dedicated D1 database and settlement
-Durable Object. Twelve consecutive public catalog checks on 2026-09-13 reported
-`checkoutAvailable: true` after checking the actual Arc contracts, database and
-funded merchant. The user also reported intermittent unavailability; its root
-cause is not yet reproduced or resolved by that successful sample. The catalog
-now returns a fixed `availabilityCode` for diagnosis, without raw errors or
-order data. It does not relax any readiness or verification check.
+Durable Object. A physical iPhone probe reproduced one `settlement_network`
+readiness failure followed by two healthy results. The merchant's public
+chain/balance/gas reads now retry up to three times, with 250/500 ms delays.
+Wrong chain, insufficient sponsor funds and fees above the cap still close
+checkout; signing and broadcast are unchanged. Worker version
+`fba92e5a-c050-4d0d-b088-94fd167dbdc6` was published on September 13.
+
+After deployment, two physical-phone probes each returned three of three
+healthy catalog responses. Eight subsequent Mac reads were also healthy.
+These are public-read probes, not purchases. The precise underlying RPC error
+was not captured; the fixed diagnostic deliberately exposes no raw errors.
+The user subsequently supplied a real purchase video, matched below. This does
+not establish that every intermittent failure or recovery path is resolved.
 
 **The main physical-card test-purchase path completed on 2026-09-13 in build 6.**
 The user reported successful My Number card use and supplied the completed-order
@@ -74,8 +81,9 @@ Choosing English changes display and future purchase narration together without
 replacing the current checkout. The preference survives relaunch; Settings can
 still configure display and spoken language separately. Touch and hold the face
 or swipe up to access the same menu in Controls. No control is added to the face.
-The physical phone's language interaction still requires user confirmation;
-installation and automated simulator checks are separate evidence.
+The user supplied an English physical-phone purchase screen and an English
+checkout recording. In-place language switching and persistence also passed
+a separate automated simulator test.
 
 ## Proving and prize claims
 
@@ -107,20 +115,13 @@ instructions; the user completes the faucet request and returns to recheck.
 The merchant sponsors settlement gas. This preflight is not a balance
 reservation; settlement still checks the actual authorization and receipt.
 
-The earlier three proposed targets were Arc/Circle Agent Stack, Privy financial
-flow and The Graph AI use case. Their completion remains outstanding:
-
-- [Arc Agentic Economy](https://ethglobal.com/events/ethonline2026/prizes/arc):
-  meaningful Circle Agent Stack integration into this purchase flow and actual
-  buyer settlement evidence are separate requirements. Settlement is now
-  confirmed; meaningful Circle Agent Stack use is still outstanding.
-- [Privy financial flow](https://ethglobal.com/events/ethonline2026/prizes/privy):
-  the iOS wallet SDK and public application/client IDs are configured, and a
-  physical-phone wallet purchase now has the receipt evidence above; prize
-  eligibility still requires checking the full sponsor criteria.
-- [The Graph AI use case](https://ethglobal.com/events/ethonline2026/prizes/the-graph):
-  the fixed-store beer flow does not use live Graph data to make a decision.
-  The earlier specialist-discovery integration does not establish this claim.
+Current recommendations are **Privy Best financial flow** and **Arc Best
+DeFi/Onchain Finance Application**. They match the actual embedded-wallet
+payment flow; full eligibility and the entrant's pool remain organizer decisions.
+The Arc Agentic category additionally requires meaningful Circle Agent Stack
+use, which is absent from this checkout. The Graph Arc purchase-history source
+was merged in PR #49, but a live deployment and data-driven decision remain
+incomplete. See the [current partner matrix](prize-strategy.md).
 
 Neither local ZK nor use of ProveKit alone establishes eligibility for a
 [World prize](https://ethglobal.com/events/ethonline2026/prizes/world).
@@ -158,3 +159,37 @@ from the official physical-card profile. Adding that extension to the synthetic
 fixture reproduced the failure with the old setup. The replacement processes
 the specified policy without weakening unknown-critical, signature, age, order
 or government-root checks. See [the fix and acceptance boundaries](card-proof-policy-fix.md).
+
+
+## Repeated settlements and recorded purchase
+
+On September 13 at approximately 21:26 JST, a narrow read-only D1 query found
+five completed orders and no `payment_pending` order. Both fixed Arc RPCs
+independently confirmed all five successful 0.10 test-USDC transfers, matching
+block hashes and AuthorizationUsed events. This is five distinct authorizations,
+not retries of one transfer. No assistant test submitted these payments.
+
+| Order created (JST) | Confirmed transaction | Block |
+| --- | --- | --- |
+| 20:13:25 | [First physical-card purchase](https://testnet.arcscan.app/tx/0xfe77313324c3438cfc935dd87c14efe56bc6f3a1a4a4150a9ee661c045856eb3) | 61889554 |
+| 20:27:26 | [Second settlement](https://testnet.arcscan.app/tx/0x6c01f3154d670693e4240b5da2257afff9896855c30288807fb8689e05c363e6) | 61891202 |
+| 21:09:01 | [Third settlement](https://testnet.arcscan.app/tx/0x19686891c24c0ec029784ae90bd77892ecfab3397256e8f93834b8b3e06e2869) | 61896054 |
+| 21:11:01 | [Fourth settlement](https://testnet.arcscan.app/tx/0x91649434ae26d6210f103baf748b947521903b692ceca5005b5431c9eaa86a5b) | 61896916 |
+| 21:16:58 | [Recorded purchase](https://testnet.arcscan.app/tx/0x50546d317c7fb534f813c3171ab026cb3a0bafbfd16c217f1bda7517bda725d2) | 61897001 |
+
+The last receipt was mined at **21:17:36 JST**, with block hash
+`0x3de70f0616076fece5592a986023c35a82f4e46a6d94bbf80e912bbade2614a4`
+and settlement gas **0.001831473 test USDC**. The user-provided 36.8368-second
+1080p recording shows physical NFC activation/read success, proof processing,
+exact payment approval, completion and an explorer view with this block and
+payment timestamp. Audio has not been independently transcribed; do not claim
+that this review verifies the spoken trigger. The physical clip was filmed with
+another phone. The organizer's mobile-filming rule has no stated hardware-demo
+exception, so submission-format compliance remains unresolved.
+
+Validation of the readiness fix: **51 shop tests pass**, including bounded
+read failure, unchanged financial caps and distinct second-order authorization.
+Those route tests inject RPC/facilitator responses and do not replace the live
+receipts above. `make test` also passes (90 Swift, 64 API, 21 launcher tests).
+The native build and opt-in physical probe passed; no card or saved order was
+accessed by the probe. Tests are not a guarantee of universal availability.

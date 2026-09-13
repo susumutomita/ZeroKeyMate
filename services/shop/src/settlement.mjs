@@ -24,12 +24,23 @@ export function settlementConfigured(env) {
 
 // Readiness advertises only the locally configured settlement implementation.
 // No third-party endpoint is presumed to support Arc from its marketing page.
-export async function supportedSettlement(env,{client}={}) {
+export async function supportedSettlement(env,{client,pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}) {
  if(!settlementConfigured(env) || !env.ARC_SETTLEMENT?.getByName)return {kinds:[]};
  const rpc=client??createPublicClient({chain:arcTestnet,transport:http('https://rpc.testnet.arc.io',{timeout:4000,retryCount:0})});
- const [chain,balance,price]=await Promise.all([rpc.getChainId(),rpc.getBalance({address:env.ARC_SETTLER_ADDRESS}),rpc.getGasPrice()]);
- const ready=chain===CHAIN_ID && balance>=SETTLEMENT_GAS*SETTLEMENT_MAX_FEE && price<=SETTLEMENT_MAX_FEE;
- return {kinds:ready?[{x402Version:2,scheme:'exact',network:NETWORK}]:[]};
+ // A physical-phone probe observed a transient RPC failure here followed by
+ // healthy checks. Retry only these public reads; no signing or broadcast is
+ // reachable. Wait for all reads to settle before starting another attempt.
+ for(let attempt=0;attempt<3;attempt++) {
+  const results=await Promise.allSettled([rpc.getChainId(),rpc.getBalance({address:env.ARC_SETTLER_ADDRESS}),rpc.getGasPrice()]);
+  const failed=results.find(result=>result.status==='rejected');
+  if(failed) {
+   if(attempt===2)throw failed.reason;
+   await pause(250*(attempt+1));continue;
+  }
+  const [chain,balance,price]=results.map(result=>result.value);
+  const ready=chain===CHAIN_ID && balance>=SETTLEMENT_GAS*SETTLEMENT_MAX_FEE && price<=SETTLEMENT_MAX_FEE;
+  return {kinds:ready?[{x402Version:2,scheme:'exact',network:NETWORK}]:[]};
+ }
 }
 
 export function createArcTransaction(env,{client,secondary,wallet,clock=()=>Math.floor(Date.now()/1000)}={}) {

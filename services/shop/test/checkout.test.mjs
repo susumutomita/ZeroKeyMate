@@ -128,6 +128,24 @@ test('concurrent payment requests reserve durably and settle at most once',async
   const persisted=h.db.prepare('SELECT value FROM orders').get().value;
   assert.ok(!persisted.includes('44'.repeat(65)));assert.ok(!persisted.includes('authorization'));
 });
+test('a completed purchase leaves the next order available with its own age proof and payment nonce',async t=>{
+  const h=harness(t),first=await h.order();await h.approve(first);h.settleReceipt(first);
+  assert.equal((await (await h.pay(first)).json()).order.state,'complete');
+  assert.equal((await (await h.request('/catalog')).json()).checkoutAvailable,true);
+  const headers={'X-Order-Key':'ac'.repeat(32)};
+  const created=await h.request('/orders','POST',{productId:'mate-lager',quantity:1,payer:first.payer},headers);
+  assert.equal(created.status,201);const second=(await created.json()).order;
+  for(const field of ['id','orderHash','paymentNonce'])assert.notEqual(second[field],first[field]);
+  assert.equal(second.state,'awaiting_age');assert.equal(second.paymentTransaction,null);
+  assert.equal((await h.request(`/orders/${second.id}/pay`,'POST',undefined,{...headers,'PAYMENT-SIGNATURE':h.header(first)})).status,403);
+  assert.equal(h.state.settles,1);
+  assert.equal((await h.request(`/orders/${second.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)},headers)).status,200);
+  h.settleReceipt(second);
+  const paySecond=()=>h.request(`/orders/${second.id}/pay`,'POST',undefined,{...headers,'PAYMENT-SIGNATURE':h.header(second)});
+  assert.equal((await (await paySecond()).json()).order.state,'complete');assert.equal(h.state.settles,2);
+  await h.pay(first);await paySecond();assert.equal(h.state.settles,2);
+  assert.equal(h.db.prepare("SELECT count(*) AS count FROM orders WHERE state='complete'").get().count,2);
+});
 test('timeout with lost transaction hash recovers the original nonce without settling again',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);h.state.timeout=true;
   assert.equal((await h.pay(order)).status,202);h.settleReceipt(order);

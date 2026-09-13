@@ -44,6 +44,23 @@ test('real buyer signature produces only the fixed Arc USDC call within its nati
  assert.equal(decoded.functionName,'transferWithAuthorization');assert.equal(decoded.args[2],100000n);assert.equal(call.gas,SETTLEMENT_GAS);assert.equal(call.maxFeePerGas,SETTLEMENT_MAX_FEE);
  assert.equal(call.gas*call.maxFeePerGas,3750000000000000n);assert.equal(call.value??0n,0n);
 });
+test('a transient readiness RPC failure recovers without signing and still checks the current fee cap',async()=>{
+ for(const price of [21000000000n,SETTLEMENT_MAX_FEE+1n]) {
+  const f=await fixture(),pauses=[];let reads=0;f.state.price=price;
+  const client={...f.client,getGasPrice:async()=>{if(++reads===1)throw Error('temporary network failure');return f.state.price;}};
+  const result=await supportedSettlement(f.env,{client,pause:async ms=>{pauses.push(ms);}});
+  assert.equal(result.kinds.length,price<=SETTLEMENT_MAX_FEE?1:0);
+  assert.equal(reads,2);assert.deepEqual(pauses,[250]);
+  assert.equal(f.state.signs,0);assert.equal(f.state.sends.length,0);
+ }
+});
+test('persistent readiness RPC failure stops after three public reads without assuming availability',async()=>{
+ const f=await fixture(),pauses=[];let reads=0;
+ const client={...f.client,getGasPrice:async()=>{reads++;throw Error('offline');}};
+ await assert.rejects(()=>supportedSettlement(f.env,{client,pause:async ms=>{pauses.push(ms);}}),/offline/);
+ assert.equal(reads,3);assert.deepEqual(pauses,[250,500]);
+ assert.equal(f.state.signs,0);assert.equal(f.state.sends.length,0);
+});
 test('a Base signature or changed receiver, amount, token, domain or deadline cannot use sponsor gas',async()=>{
  const f=await fixture();
  const baseSignature=await f.buyer.signTypedData({...paymentTypedData(f.payload.payload.authorization),domain:{...paymentTypedData({}).domain,chainId:84532}});
