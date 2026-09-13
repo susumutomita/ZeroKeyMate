@@ -1,0 +1,199 @@
+1
+00:00:00,480 --> 00:00:02,700
+This is ZeroKey Mate.
+
+2
+00:00:03,180 --> 00:00:05,800
+It turns my iPhone into a companion.
+
+3
+00:00:06,160 --> 00:00:10,850
+I can ask it for a beer, prove my age privately,
+
+4
+00:00:11,650 --> 00:00:13,500
+and pay on Arc.
+
+5
+00:00:14,150 --> 00:00:18,400
+The shop only needs to know that I am twenty or older.
+
+6
+00:00:18,770 --> 00:00:24,200
+It does not need my name, address, or full date of birth.
+
+7
+00:00:24,720 --> 00:00:26,150
+Here is the real app.
+
+8
+00:00:26,380 --> 00:00:30,050
+These are edited takes from the physical device.
+
+9
+00:00:30,660 --> 00:00:33,400
+I ask Mate to buy a beer.
+
+10
+00:00:33,930 --> 00:00:38,320
+I enter the card password privately, then tap my card.
+
+11
+00:00:39,080 --> 00:00:41,700
+The phone creates the age proof here.
+
+12
+00:00:48,180 --> 00:00:52,700
+After the store verifies it, I approve this exact payment.
+
+13
+00:00:55,970 --> 00:00:59,550
+The purchase completes on Arc Testnet.
+
+14
+00:01:05,580 --> 00:01:08,320
+I can open the receipt in the explorer.
+
+15
+00:01:09,930 --> 00:01:11,970
+This uses test funds.
+
+16
+00:01:12,450 --> 00:01:13,930
+No real beer is delivered.
+
+17
+00:01:14,740 --> 00:01:15,800
+How does it work?
+
+18
+00:01:15,800 --> 00:01:20,900
+Speech recognition and the language model run on the iPhone.
+
+19
+00:01:21,760 --> 00:01:27,200
+Apple Foundation Models turns my request into a small, structured plan.
+
+20
+00:01:28,000 --> 00:01:31,200
+Mate checks the item, shop, and amount.
+
+21
+00:01:31,800 --> 00:01:36,150
+The model cannot access my card data or sign a payment.
+
+22
+00:01:36,730 --> 00:01:38,700
+The proof is the key part.
+
+23
+00:01:39,000 --> 00:01:42,450
+Our Noir circuit checks the government signature,
+
+24
+00:01:42,910 --> 00:01:45,450
+the card signature for this order,
+
+25
+00:01:45,850 --> 00:01:48,800
+and that I am at least twenty.
+
+26
+00:01:49,620 --> 00:01:51,950
+It also checks the time limits.
+
+27
+00:01:52,670 --> 00:01:56,800
+ProveKit, from World Foundation, runs the prover on the iPhone.
+
+28
+00:01:57,490 --> 00:02:02,750
+The private card data becomes an age proof for this order.
+
+29
+00:02:03,150 --> 00:02:05,950
+We use My Number card identity here.
+
+30
+00:02:06,050 --> 00:02:08,100
+World ID is not connected.
+
+31
+00:02:08,620 --> 00:02:12,600
+My birth date and card data stay on the phone.
+
+32
+00:02:13,100 --> 00:02:17,250
+The shop receives the proof and public order inputs.
+
+33
+00:02:18,050 --> 00:02:20,400
+Payment addresses are still public.
+
+34
+00:02:21,120 --> 00:02:24,450
+The privacy boundary is specific and verifiable.
+
+35
+00:02:24,920 --> 00:02:29,250
+The store verifies the proof using our Age Gate contract on Arc.
+
+36
+00:02:30,020 --> 00:02:34,400
+Then Privy signs the exact payment I approve.
+
+37
+00:02:35,300 --> 00:02:38,880
+x402 carries that payment to the store,
+
+38
+00:02:39,180 --> 00:02:40,880
+which pays the network fee.
+
+39
+00:02:41,540 --> 00:02:45,350
+We check the actual receipt before showing success.
+
+40
+00:02:46,260 --> 00:02:50,600
+Age verification and the token transfer are separate steps.
+
+41
+00:02:51,060 --> 00:02:53,150
+Each layer has a clear job.
+
+42
+00:02:53,700 --> 00:02:55,200
+Apple powers the companion.
+
+43
+00:02:55,720 --> 00:02:59,050
+Noir and ProveKit handle the private proof.
+
+44
+00:03:00,080 --> 00:03:03,080
+Cloudflare runs the store and order recovery.
+
+45
+00:03:04,080 --> 00:03:08,650
+Privy, x402, and Arc complete the payment.
+
+46
+00:03:09,200 --> 00:03:14,200
+One physical-card run showed twelve seconds of local proof processing.
+
+47
+00:03:14,550 --> 00:03:17,650
+We completed real test payments on Arc.
+
+48
+00:03:18,140 --> 00:03:21,200
+This is still an experimental testnet build.
+
+49
+00:03:21,680 --> 00:03:23,400
+Your companion. Your rules.
+
+50
+00:03:23,680 --> 00:03:25,100
+That is ZeroKey Mate.

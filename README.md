@@ -6,7 +6,9 @@ An iPhone companion that helps you buy something without giving the store your i
 
 **A physical-card test purchase completed on September 13, 2026.** The iPhone showed **12.0 seconds** of local age-proof processing. Both configured Arc RPC providers confirmed the payment. The 12.0-second timing is one observation, not a general benchmark. Further purchases completed; five separate transfers were verified through both configured RPC providers. Checkout reliability is still being improved.
 
-[Project demo and walkthrough](https://zerokeymate-arc-shop.oyster880.workers.dev/demo/) · [Open the store](https://zerokeymate-arc-shop.oyster880.workers.dev/) · [View the confirmed purchase](https://testnet.arcscan.app/tx/0xfe77313324c3438cfc935dd87c14efe56bc6f3a1a4a4150a9ee661c045856eb3) · [Deployment and evidence](docs/arc-live-status.md) · [Four-minute recording plan](docs/demo.md) · [Submission copy](docs/submission.md)
+[Project demo and walkthrough](https://zerokeymate-arc-shop.oyster880.workers.dev/demo/) · [Open the store](https://zerokeymate-arc-shop.oyster880.workers.dev/) · [View the confirmed purchase](https://testnet.arcscan.app/tx/0xfe77313324c3438cfc935dd87c14efe56bc6f3a1a4a4150a9ee661c045856eb3) · [Deployment and evidence](docs/arc-live-status.md) · [Watch the 3:27 film](services/shop/public/demo/assets/submission.mp4) · [Pitch deck PDF](docs/presentation/ZeroKeyMate-pitch.pdf) · [Narration and editing notes](docs/demo.md) · [Submission copy](docs/submission.md)
+
+The submitted film combines the creator's own recorded voice, English subtitles, technical slides and fifty seconds of edited device footage at original speed. [Submission assets](docs/presentation/README.md) include the film, subtitle file, pitch PDF and original visual assets.
 
 ## The experience
 
@@ -42,7 +44,7 @@ sequenceDiagram
     Mate->>Shop: Create an exact order
     Shop-->>Mate: Order, nonce and expiry
     Person->>Mate: Physical card + signature password
-    Note over Mate: Authenticate credential; prove age ≥20 locally
+    Note over Mate: Authenticate credential and prove age 20 or over locally
     Mate->>Shop: Order-bound proof, no card fields
     Shop->>Gate: verifyOrderAge via two-provider eth_call
     Gate-->>Shop: Both providers return true
@@ -154,4 +156,4 @@ The older specialist translation/private-policy vault is a separate local protot
 
 The human directed the product, privacy constraints, physical-card testing and deployment approvals. Codex assisted with implementation, debugging, tests and documentation; ChatGPT assisted with public technical research. [Development and AI attribution](docs/development-history.md) records known history and reused work. The public MIT-licensed [CircuitBreaker NFC module](https://github.com/knocks-public/2024-CircuitBreaker) is an attributed source, not a new invention. No event eligibility is inferred from a dependency license.
 
-Original project code is [Apache-2.0](LICENSE); retain [third-party notices](docs/THIRD_PARTY_NOTICES.txt). The edited device walkthrough, English technical slides and human reading guide are prepared. Final human narration, a 2–4-minute submission-video export, upload and the Hacker Dashboard submission receipt remain outstanding.
+Original project code is [Apache-2.0](LICENSE); retain [third-party notices](docs/THIRD_PARTY_NOTICES.txt). The human-narrated 3:27 submission film, English technical slides, pitch PDF and public visual assets are included. The entrant reported successful ETHOnline submission on September 13, 2026.

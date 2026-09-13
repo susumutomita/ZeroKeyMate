@@ -1,14 +1,14 @@
-# Four-minute demo: human narration and editing plan
+# Submission film: human narration and editing notes
 
-Target: **3:52**, including the supplied **58.5-second edited demo** at its original speed. Use slides 1–2, the real clip in place of slide 3, then slides 4–9. Slides 10–11 are for questions and the downloadable deck. The main video gives about two minutes to **how it works and the technology stack**.
+Final export: **3:27.38**, H.264/AAC, 1920×1080 at 30 fps, with the creator's recorded narration and 50 English captions. It uses the first **50 seconds** of the supplied **58.5-second edited demo** at its original speed. Use slides 1–2, the real clip in place of slide 3, then slides 4–9. Slides 10–11 are for questions and the downloadable deck. The main video gives about two minutes to **how it works and the technology stack**.
 
-The recording combines successful takes. Introduce it as edited footage; do not imply that it is one continuous order. The original recorded file and its private review copy stay outside version control. The 12.0-second figure is the first documented physical-card proof-processing observation, not a timing benchmark or a claim that every take took the same time.
+The recording combines successful takes. Introduce it as edited footage; do not imply that it is one continuous order. The submitted film and public walkthrough are committed; the untouched original file and private editing workspace stay outside version control. The 12.0-second figure is the first documented physical-card proof-processing observation, not a timing benchmark or a claim that every take took the same time.
 
 Open the [slides](presentation/index.html) and the [large-text reading guide](presentation/narration.html). The guide has no AI speech or audio upload. It shows one short paragraph at a time; read it in your own voice. Record a sentence or section at a time on the Mac, leave a short pause, and record a correction when needed. Keep the best original human take of each sentence. Ordinary cuts and level adjustment can preserve intelligibility without generating replacement speech. Do not accelerate narration or proving footage to fit the limit.
 
 ## Read in your own voice
 
-The English below is the spoken script. Section titles, timestamps and Japanese hints are not spoken. The timing is a rehearsal target; align the demo narration with what the edited clip actually shows and let Mate's audible responses be heard.
+The English below is the recording script; timestamps are the original rehearsal plan. In the final edit, the creator's spoken headings were removed and pauses were aligned to the real device footage. Final chapters start at 0:00, 0:13.8, 0:24.4 (device footage), 1:14.4 (local agent), 1:36.45 (local ZK), 2:08.3 (privacy), 2:24.6 (payment), 2:50.75 (stack) and 3:08.85 (close). The final soundtrack uses only the creator's recorded narration; noisy device audio is omitted. Section titles, timestamps and Japanese hints are not part of the final voiceover.
 
 ### 01 · Introduction · 0:00–0:15
 

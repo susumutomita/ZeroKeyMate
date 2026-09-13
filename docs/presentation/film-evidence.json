@@ -1,0 +1,27 @@
+{
+  "format": {
+    "duration": "207.380000",
+    "size": "9215893"
+  },
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "h264",
+      "width": 1920,
+      "height": 1080,
+      "r_frame_rate": "30/1",
+      "nb_frames": "6221"
+    },
+    {
+      "index": 1,
+      "codec_name": "aac",
+      "r_frame_rate": "0/0",
+      "nb_frames": "9721"
+    }
+  ],
+  "sha256": "362198d149f8144037a757298e0a14b3000abceefa3a27cce045c684412e6949",
+  "voice": "Creator supplied 新規録音.m4a; retained source audio only; no synthesized or regenerated voice",
+  "editing": "Nine sections, title-readings removed; device footage from 0 to 50 seconds at its original speed; includes successful card-read UI and live proof timer",
+  "captions": "50 English captions, timed against local speech recognition and creator script",
+  "qa": "Final full audio/video decode passed. All sections visually checked. Device motion checked across 900 frames. Subjective listening requires human playback."
+}
