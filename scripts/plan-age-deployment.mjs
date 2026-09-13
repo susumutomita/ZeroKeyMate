@@ -15,9 +15,13 @@ const endpoints=['https://rpc.testnet.arc.io','https://rpc.drpc.testnet.arc.io']
 const validNonce=n=>Number.isSafeInteger(n)&&n>=0&&n<Number.MAX_SAFE_INTEGER;
 const noCode=code=>code===undefined||code==='0x';
 
+// Only a newly provisioned exclusive deployer with no pre-signed transactions
+// is supported. RPC pending counts cannot detect nonce-gap queued transactions.
+// The caller confirms this external provisioning fact; nonce zero alone cannot.
 // pkg must come from loadAgeDeployment, whose independent repository pin
 // authenticates the entire compiler output before any RPC sees its bytecode.
-export async function prepareAgeDeploymentPlan(pkg,deployer,rpcs,now=Math.floor(Date.now()/1000)) {
+export async function prepareAgeDeploymentPlan(pkg,deployer,rpcs,{now=Math.floor(Date.now()/1000),freshlyProvisioned=false}={}) {
+ assert.equal(freshlyProvisioned,true,'Use only a freshly created deployer with no pre-signed transactions');
  assert.equal(pkg.chainId,5042002);assert.equal(pkg.testnetOnly,true);
  assert.ok(isAddress(deployer,{strict:false})&&!/^0x0{40}$/i.test(deployer),'Invalid public deployer address');
  assert.ok(Number.isSafeInteger(now)&&now>0);assert.equal(rpcs.length,2);assert.notEqual(rpcs[0],rpcs[1]);
@@ -36,7 +40,7 @@ export async function prepareAgeDeploymentPlan(pkg,deployer,rpcs,now=Math.floor(
   ]);
   assert.equal(block.number,blockNumber);assert.match(block.hash,/^0x[0-9a-fA-F]{64}$/);
   assert.ok(typeof block.timestamp==='bigint'&&block.timestamp>=BigInt(now-120)&&block.timestamp<=BigInt(now+30),'Stale or future chain snapshot');
-  assert.ok(validNonce(nonce)&&nonce===pending,'Pending or changed deployer nonce');
+  assert.ok(validNonce(nonce)&&nonce===0&&pending===0,'Use a fresh deployer with unused nonce zero');
   assert.ok(typeof balance==='bigint'&&balance>=0n,'Invalid native balance');
   assert.ok(typeof price==='bigint'&&price>0n&&price<=DEPLOYMENT_FEE_CAP,'Arc fee exceeds deployment cap');
   assert.ok(noCode(code),'Deployer must be a dedicated undelegated EOA');
@@ -72,7 +76,8 @@ export async function prepareAgeDeploymentPlan(pkg,deployer,rpcs,now=Math.floor(
  // A nonce changing while the estimates run invalidates both predicted addresses.
  for(const rpc of rpcs)assert.equal(await rpc.getTransactionCount({address:deployer,blockTag:'pending'}),nonce,'Deployer nonce changed during preparation');
  return {format:1,chainId:5042002,testnetOnly:true,unsigned:true,deployed:false,notAuthorization:true,
-  createdAt:now,expiresAt:now+120,requiresFreshCheckBeforeSigning:true,deployer,
+  createdAt:now,expiresAt:now+120,requiresFreshCheckBeforeSigning:true,
+  freshDeployerRequired:true,queuedTransactionsObservable:false,deployer,
   snapshot:{blockNumber:String(blockNumber),blockHash:hash,timestamp:String(timestamp)},
   verifier,gate,verifierCodeHash:pkg.verifier.runtimeCodeHash,gateCodeHash:keccak256(expectedGateRuntime(pkg,verifier)),
   nativeCurrency:{symbol:'test USDC',decimals:18},nativeBalance:String(balance),
@@ -89,12 +94,13 @@ export async function writeAgeDeploymentPlan(file,plan) {
 }
 
 async function main() {
- const {values}=parseArgs({options:{'deployment-package':{type:'string'},deployer:{type:'string'},out:{type:'string'},help:{type:'boolean'}}});
- if(values.help){console.log('Read-only: node scripts/plan-age-deployment.mjs --deployment-package DIRECTORY --deployer PUBLIC_ADDRESS --out NEW_FILE');return;}
+ const {values}=parseArgs({options:{'deployment-package':{type:'string'},deployer:{type:'string'},out:{type:'string'},'fresh-deployer':{type:'boolean'},help:{type:'boolean'}}});
+ if(values.help){console.log('Read-only: node scripts/plan-age-deployment.mjs --deployment-package DIRECTORY --deployer PUBLIC_ADDRESS --fresh-deployer --out NEW_FILE');return;}
  assert.ok(values['deployment-package']&&values.deployer&&values.out,'Provide the reviewed package, public deployer address and new output file');
+ assert.equal(values['fresh-deployer'],true,'Confirm a newly created deployer with no pre-signed or queued transactions');
  const pkg=await loadAgeDeployment(values['deployment-package']);
  const rpcs=endpoints.map(url=>createPublicClient({chain:arcTestnet,cacheTime:0,transport:http(url,{timeout:8000,retryCount:0})}));
- const plan=await prepareAgeDeploymentPlan(pkg,values.deployer,rpcs);
+ const plan=await prepareAgeDeploymentPlan(pkg,values.deployer,rpcs,{freshlyProvisioned:values['fresh-deployer']});
  const pins=JSON.parse(await readFile(new URL('../config/age-deployment-pins.json',import.meta.url)));
  await writeAgeDeploymentPlan(values.out,{...plan,deploymentSHA256:pins.deploymentSHA256,rpcProviders:endpoints});
  console.log(JSON.stringify({unsigned:true,deployed:false,chainId:plan.chainId,verifier:plan.verifier,gate:plan.gate,

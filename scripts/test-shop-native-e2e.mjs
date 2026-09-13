@@ -92,7 +92,7 @@ try {
   const hash=await wallet.deployContract({abi:a.abi,bytecode:'0x'+a.evm.bytecode.object,args});
   const receipt=await client.waitForTransactionReceipt({hash});assert.equal(receipt.status,'success');return receipt.contractAddress;
  };
- const deploymentPlan=pkg?await prepareAgeDeploymentPlan(pkg,account.address,[client,secondary]):null;
+ const deploymentPlan=pkg?await prepareAgeDeploymentPlan(pkg,account.address,[client,secondary],{freshlyProvisioned:true}):null;
  let deploymentFee=0n;
  const deployPlanned=async index=>{
   const tx=deploymentPlan.transactions[index];
