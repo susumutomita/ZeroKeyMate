@@ -6,6 +6,10 @@ struct ShopPurchaseSheet: View {
     @ObservedObject var wallet: WalletService
     @StateObject private var checkout = ShopCheckout()
     @State private var pin = ""
+    // Keep the destination across the temporary checking phase when the user
+    // returns from Mail. The one-use code remains local to the child view.
+    @State private var buyerEmail = ""
+    @State private var buyerCodeSentTo: String?
     @Environment(\.scenePhase) private var scenePhase
 
     private var heading: String {
@@ -50,7 +54,7 @@ struct ShopPurchaseSheet: View {
                     Text("Mate will place this order, ask you to tap your My Number card, and prove your age on this phone. You'll approve the exact test payment with Face ID or your device passcode.")
                     privacy
                     if wallet.ownerAddress == nil {
-                        ShopWalletConnection(wallet: wallet)
+                        ShopWalletConnection(wallet: wallet, email: $buyerEmail, sentTo: $buyerCodeSentTo)
                     } else {
                         Button("Start this order · 0.10 test USDC") { checkout.startOrder(wallet: wallet) }
                             .buttonStyle(.borderedProminent).accessibilityIdentifier("shop-start-order")
@@ -125,7 +129,7 @@ struct ShopPurchaseSheet: View {
         .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
         .controlSize(.large)
         .task { checkout.load() }
-        .onDisappear { pin = ""; checkout.cancel() }
+        .onDisappear { pin = ""; buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { pin = ""; checkout.cancel() }
             else if phase == .active { checkout.load() }
@@ -150,9 +154,9 @@ struct ShopPurchaseSheet: View {
 /// require a specialist API, policy vault, deposit approval or execution key.
 private struct ShopWalletConnection: View {
     @ObservedObject var wallet: WalletService
-    @State private var email = ""
+    @Binding var email: String
     @State private var code = ""
-    @State private var sentTo: String?
+    @Binding var sentTo: String?
     @State private var message: String?
     @State private var operation: Task<Void, Never>?
 
