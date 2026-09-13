@@ -102,7 +102,10 @@ async function settleReserved(env,pending,payload,required) {
   if(!await save(env,current,next))return json({order:(await load(env,pending.id)).order},202);
   current=await load(env,pending.id);
   const result=await reconcile(env,current);
-  return json({order:result},result.state==='complete'?200:202,{'PAYMENT-RESPONSE':encodePaymentResponseHeader(settled)});
+  // A persisted hash (even with a lost broadcast response) is not a successful
+  // x402 settlement. Publish the success header only after both RPC receipts.
+  return json({order:result},result.state==='complete'?200:202,
+    result.state==='complete'?{'PAYMENT-RESPONSE':encodePaymentResponseHeader(settled)}:{});
 }
 
 async function route(request,env) {

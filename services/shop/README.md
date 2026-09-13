@@ -207,7 +207,9 @@ in D1. Purchase completion still requires the exact successful receipt evidence;
 sponsor nonce consumption alone can also mean a reverted transaction.
 
 A submitted transaction is not a completed order. The Worker and phone require
-matching receipt evidence from both fixed providers. Only ERC-20 logs emitted
+matching receipt evidence from both fixed providers. A pending HTTP 202 does
+not advertise an x402 success header; that response is emitted only after
+confirmed successful settlement. Only ERC-20 logs emitted
 by `0x3600000000000000000000000000000000000000` count; Arc's separate native
 18-decimal system-emitter logs must not be counted as an extra purchase.
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {keccak256,encodeEventTopics,encodeAbiParameters,parseAbi} from 'viem';
-import {encodePaymentSignatureHeader,decodePaymentRequiredHeader} from '@x402/core/http';
+import {encodePaymentSignatureHeader,decodePaymentRequiredHeader,decodePaymentResponseHeader} from '@x402/core/http';
 import {createShop} from '../src/worker.mjs';
 import {requirements,USDC,NETWORK} from '../src/protocol.mjs';
 import {ageArguments} from '../src/age.mjs';
@@ -188,6 +188,16 @@ test('recovery stores the transaction hash even when receipt polling fails',asyn
   h.settleReceipt(order);h.state.now+=61;
   assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'complete');
   assert.equal(h.state.settles,1);
+});
+test('the x402 success header is withheld until both providers confirm the exact payment',async t=>{
+  for(const confirmed of [false,true]) {
+    const h=harness(t),order=await h.order();await h.approve(order);
+    if(confirmed)h.settleReceipt(order);
+    const response=await h.pay(order),header=response.headers.get('PAYMENT-RESPONSE');
+    assert.equal(response.status,confirmed?200:202);
+    if(!confirmed)assert.equal(header,null);
+    else assert.deepEqual(decodePaymentResponseHeader(header),{success:true,payer:order.payer,network:NETWORK,transaction});
+  }
 });
 test('a malformed payment header is a client error and never reaches settlement',async t=>{
   const h=harness(t),order=await h.order();await h.approve(order);

@@ -171,6 +171,7 @@ try {
  await client.request({method:'evm_mine',params:[]});
  const response=await request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header});
  assert.equal(response.status,202);
+ assert.equal(response.headers.get('PAYMENT-RESPONSE'),null,'Unknown settlement cannot advertise x402 success');
  const pending=(await response.json()).order;assert.equal(pending.state,'payment_pending');assert.ok(pending.paymentTransaction);
  assert.equal(signs,1);assert.ok(await storage.get('alarm'));
  // Close/reopen the actual SQLite file and recreate both queue and Worker. The
