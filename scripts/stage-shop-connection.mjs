@@ -2,7 +2,7 @@
 import {parseArgs} from 'node:util';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {createPublicClient,http,isAddress} from 'viem';
-import {baseSepolia} from 'viem/chains';
+import {arcTestnet} from 'viem/chains';
 import {loadAgeDeployment,checkAgeDeployment} from './age-deployment.mjs';
 const {values}=parseArgs({options:{origin:{type:'string'},recipient:{type:'string'},'age-gate':{type:'string'},'age-gate-code-hash':{type:'string'},verifier:{type:'string'},'deployment-package':{type:'string'}}});
 const origin=new URL(values.origin);
@@ -10,7 +10,7 @@ if(origin.protocol!=='https:' || origin.username || origin.password || origin.se
 for(const key of ['recipient','age-gate','verifier'])if(!isAddress(values[key]??'',{strict:false}) || /^0x0{40}$/i.test(values[key]))throw new Error(`Invalid public ${key}`);
 if(!values['deployment-package'])throw new Error('Provide the prepared public deployment package');
 const pkg=await loadAgeDeployment(values['deployment-package']);
-const clients=['https://sepolia.base.org','https://base-sepolia-rpc.publicnode.com'].map(url=>createPublicClient({chain:baseSepolia,transport:http(url,{timeout:5000,retryCount:0})}));
+const clients=['https://rpc.testnet.arc.io','https://rpc.drpc.testnet.arc.io'].map(url=>createPublicClient({chain:arcTestnet,transport:http(url,{timeout:5000,retryCount:0})}));
 const checked=await checkAgeDeployment(pkg,{verifier:values.verifier,gate:values['age-gate']},clients);
 if(values['age-gate-code-hash'] && values['age-gate-code-hash'].toLowerCase()!==checked.gateCodeHash)throw new Error('Gate hash differs from the prepared deployment');
 const connection={origin:origin.origin,recipient:values.recipient.toLowerCase(),ageGate:values['age-gate'].toLowerCase(),ageGateCodeHash:checked.gateCodeHash};

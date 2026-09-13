@@ -10,11 +10,13 @@ import {createInterface} from 'node:readline';
 import net from 'node:net';
 import path from 'node:path';
 import solc from 'solc';
-import {createPublicClient,createWalletClient,http,keccak256,parseSignature,verifyTypedData} from 'viem';
-import {baseSepolia} from 'viem/chains';
+import {createPublicClient,createWalletClient,http,keccak256} from 'viem';
+import {arcTestnet} from 'viem/chains';
 import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
 import {createShop} from '../services/shop/src/worker.mjs';
 import {USDC,NETWORK,requirements} from '../services/shop/src/protocol.mjs';
+import {createArcSettlement,createArcTransaction,supportedSettlement} from '../services/shop/src/settlement.mjs';
+import {SettlementQueue} from '../services/shop/src/settlement-queue.mjs';
 import {AGE_ABI,ageArguments} from '../services/shop/src/age.mjs';
 import {encodePaymentSignatureHeader,decodePaymentRequiredHeader} from '../services/shop/node_modules/@x402/core/dist/esm/http/index.mjs';
 
@@ -65,20 +67,23 @@ assert.equal((compiled.errors??[]).filter(e=>e.severity==='error').length,0,JSON
 const artifact=(file,name)=>compiled.contracts[file][name];
 const listener=net.createServer();await new Promise(resolve=>listener.listen(0,'127.0.0.1',resolve));const port=listener.address().port;await new Promise(resolve=>listener.close(resolve));
 const url=`http://127.0.0.1:${port}`;
-const rpc=()=>createPublicClient({chain:baseSepolia,cacheTime:0,transport:http(url,{retryCount:0,timeout:5000})});
+const rpc=()=>createPublicClient({chain:arcTestnet,cacheTime:0,transport:http(url,{retryCount:0,timeout:5000})});
 const client=rpc(),secondary=rpc();
-const account=privateKeyToAccount(generatePrivateKey());
+const settlementKey=generatePrivateKey();
+const account=privateKeyToAccount(settlementKey);
 const payer=privateKeyToAccount(generatePrivateKey());
-const wallet=createWalletClient({chain:baseSepolia,account,transport:http(url)});
-const chain=spawn('anvil',['--host','127.0.0.1','--port',String(port),'--chain-id','84532','--silent'],{stdio:'ignore'});
+const wallet=createWalletClient({chain:arcTestnet,account,transport:http(url)});
+const chain=spawn('anvil',['--host','127.0.0.1','--port',String(port),'--chain-id','5042002','--silent'],{stdio:'ignore'});
 let chainError;chain.on('error',e=>chainError=e);
-const db=new DatabaseSync(':memory:');
+const evidence=mkdtempSync(path.join(root,'.build/shop-integration-'));
+const dbPath=path.join(evidence,'synthetic-orders.sqlite');
+let db=new DatabaseSync(dbPath);
 try {
  let ready=false;
  for(let i=0;i<80;i++){
   if(chainError)throw chainError;
   assert.equal(chain.exitCode,null,'Own isolated chain stopped');
-  try{assert.equal(await client.getChainId(),84532);ready=true;break;}catch{await new Promise(resolve=>setTimeout(resolve,100));}
+  try{assert.equal(await client.getChainId(),5042002);ready=true;break;}catch{await new Promise(resolve=>setTimeout(resolve,100));}
  }
  assert.ok(ready,'Own loopback test chain unavailable');
  await client.request({method:'anvil_setBalance',params:[account.address,'0x56BC75E2D63100000']});
@@ -114,21 +119,32 @@ try {
    };
   }
  };
- const env={SHOP_CHAIN_ID:'84532',AGE_GATE_ADDRESS:gate,AGE_GATE_CODE_HASH:keccak256(await client.getCode({address:gate})),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:database,API_LIMIT:{async limit(){return{success:true};}},ORDER_CREATION_LIMIT:{async limit(){return{success:true};}}};
+ const env={ARC_SETTLER_KEY:settlementKey,ARC_SETTLER_ADDRESS:account.address,SHOP_CHAIN_ID:'5042002',AGE_GATE_ADDRESS:gate,AGE_GATE_CODE_HASH:keccak256(await client.getCode({address:gate})),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:database,API_LIMIT:{async limit(){return{success:true};}},ORDER_CREATION_LIMIT:{async limit(){return{success:true};}}};
  const types={TransferWithAuthorization:[{name:'from',type:'address'},{name:'to',type:'address'},{name:'value',type:'uint256'},{name:'validAfter',type:'uint256'},{name:'validBefore',type:'uint256'},{name:'nonce',type:'bytes32'}]};
- const typed=authorization=>({domain:{name:'USDC',version:'2',chainId:84532,verifyingContract:USDC},primaryType:'TransferWithAuthorization',types,message:authorization});
- let settles=0;
- const facilitator={
-  async verify(payload){const authorization=payload.payload.authorization;return{isValid:await verifyTypedData({...typed(authorization),address:authorization.from,signature:payload.payload.signature}),payer:authorization.from};},
-  async settle(payload){
-   settles++;const a=payload.payload.authorization;const sig=parseSignature(payload.payload.signature);
-   const hash=await wallet.writeContract({address:USDC,abi:token.abi,functionName:'transferWithAuthorization',args:[a.from,a.to,BigInt(a.value),BigInt(a.validAfter),BigInt(a.validBefore),a.nonce,Number(sig.v),sig.r,sig.s]});
-   const receipt=await client.waitForTransactionReceipt({hash});assert.equal(receipt.status,'success');
-   await client.request({method:'evm_mine',params:[]});
-   return{success:true,payer:a.from,network:NETWORK,transaction:hash};
-  }
+ const typed=authorization=>({domain:{name:'USDC',version:'2',chainId:5042002,verifyingContract:USDC},primaryType:'TransferWithAuthorization',types,message:authorization});
+ let settles=0,signs=0,interruptSend=true;
+ db.exec('CREATE TABLE settlement_queue (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+ const storage={
+  async get(key){const row=db.prepare('SELECT value FROM settlement_queue WHERE key=?').get(key);return row?JSON.parse(row.value):undefined;},
+  async put(values){for(const [key,value] of Object.entries(values))db.prepare('INSERT OR REPLACE INTO settlement_queue VALUES (?,?)').run(key,JSON.stringify(value));},
+  async delete(key){db.prepare('DELETE FROM settlement_queue WHERE key=?').run(key);},
+  async setAlarm(value){await this.put({alarm:value});},async deleteAlarm(){await this.delete('alarm');},
+  async transaction(action){db.exec('BEGIN');try{await action(this);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}}
  };
- const supported=async()=>({kinds:[{x402Version:2,scheme:'exact',network:NETWORK}]});
+ const actualTransaction=createArcTransaction(env,{client,secondary,wallet:{...wallet,
+  async signTransaction(call){signs++;return wallet.signTransaction(call);}}});
+ const interruptedTransaction={...actualTransaction,async broadcast(record){
+  if(interruptSend){interruptSend=false;throw Error('synthetic lost submission');}
+  await actualTransaction.broadcast(record);
+ }};
+ let queue=new SettlementQueue(storage,interruptedTransaction);
+ env.ARC_SETTLEMENT={getByName:()=>queue};
+ const actualSettlement=createArcSettlement(env,{client,secondary,wallet});
+ const facilitator={
+  verify:(...args)=>actualSettlement.verify(...args),
+  async settle(...args){settles++;return actualSettlement.settle(...args);}
+ };
+ const supported=()=>supportedSettlement(env,{client});
  const makeWorker=()=>createShop({client:()=>client,secondaryClient:()=>secondary,facilitatorClient:()=>facilitator,supported});
  let worker=makeWorker();
  const key='ad'.repeat(32);
@@ -150,16 +166,32 @@ try {
  const now=Math.floor(Date.now()/1000);const authorization={from:order.payer,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+180),nonce:order.paymentNonce};
  const signature=await payer.signTypedData(typed(authorization));
  const header=encodePaymentSignatureHeader({x402Version:2,accepted:requirements(order),payload:{authorization,signature}});
+ // Anvil mines only on demand; advance its clock after native proving so the
+ // real settlement adapter simulates against a current block, as Arc does.
+ await client.request({method:'evm_mine',params:[]});
  const response=await request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header});
- assert.equal(response.status,200);const completed=(await response.json()).order;
+ assert.equal(response.status,202);
+ assert.equal(response.headers.get('PAYMENT-RESPONSE'),null,'Unknown settlement cannot advertise x402 success');
+ const pending=(await response.json()).order;assert.equal(pending.state,'payment_pending');assert.ok(pending.paymentTransaction);
+ assert.equal(signs,1);assert.ok(await storage.get('alarm'));
+ // Close/reopen the actual SQLite file and recreate both queue and Worker. The
+ // alarm resumes the committed raw transaction even with no new payment POST.
+ db.close();db=new DatabaseSync(dbPath);queue=new SettlementQueue(storage,actualTransaction);worker=makeWorker();
+ await queue.alarm();assert.equal(signs,1);
+ await client.request({method:'evm_mine',params:[]});
+ const completed=(await (await request(`/orders/${order.id}`)).json()).order;
  assert.equal(completed.state,'complete');assert.equal(completed.orderHash,order.orderHash);
  assert.equal(await client.readContract({address:USDC,abi:token.abi,functionName:'balanceOf',args:[env.PAYMENT_RECIPIENT]}),100000n);
  assert.equal(await client.readContract({address:USDC,abi:token.abi,functionName:'authorizationState',args:[order.payer,order.paymentNonce]}),true);
+ // Standard Anvil finalizes behind its latest block (unlike Arc's immediate
+ // finality). Advance the test chain instead of weakening the product check.
+ await client.request({method:'anvil_mine',params:['0x40']});
+ await queue.alarm();assert.equal(await storage.get('active'),undefined);
  worker=makeWorker();assert.equal((await(await request(`/orders/${order.id}`)).json()).order.paymentTransaction,completed.paymentTransaction);
  assert.equal((await request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header})).status,200);assert.equal(settles,1);
  const saved=db.prepare('SELECT value FROM orders').get().value;
  for(const secret of ['card_signature','certificate_signature','root_modulus','419900102',signature])assert.equal(saved.includes(secret),false);
- const report={syntheticOnly:true,localChainOnly:true,physicalCard:false,publicFacilitator:false,realUSDC:false,independentRPCOperators:false,workerRoutes:true,realNativeAgeProof:true,realGroth16EVMVerification:true,officialGateRejectedSyntheticRoot:true,damagedProofRejected:true,realEIP712Signature:true,localEVMTransfer:true,persistedCompletedOrder:true,restartAndRetryNoSecondSettlement:true,settlements:settles,unsignedPackageContractsVerified:Boolean(pkg)};
- const reportPath=path.join(mkdtempSync(path.join(root,'.build/shop-integration-')),'acceptance.json');
+ const report={syntheticOnly:true,localChainOnly:true,physicalCard:false,publicFacilitator:false,realUSDC:false,independentRPCOperators:false,workerRoutes:true,realNativeAgeProof:true,realGroth16EVMVerification:true,officialGateRejectedSyntheticRoot:true,damagedProofRejected:true,realEIP712Signature:true,productionSettlementAdapter:true,productionDurableQueueLogic:true,queueSQLiteRestartAfterLostSubmission:true,signedTransactions:signs,localEVMTransfer:true,persistedCompletedOrder:true,restartAndRetryNoSecondSettlement:true,settlements:settles,unsignedPackageContractsVerified:Boolean(pkg)};
+ const reportPath=path.join(evidence,'acceptance.json');
  writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));console.log('Acceptance report: '+path.relative(root,reportPath));
 } finally {db.close();chain.kill('SIGTERM');bridge.kill('SIGTERM');}

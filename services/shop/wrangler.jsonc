@@ -1,15 +1,17 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "zerokeymate-shop",
-  "main": "src/worker.mjs",
+  "name": "zerokeymate-arc-shop",
+  "main": "src/index.mjs",
   "compatibility_date": "2026-09-12",
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
-  "d1_databases": [{ "binding": "ORDERS", "database_name": "zerokeymate-shop-orders", "migrations_dir": "migrations" }],
+  "durable_objects": { "bindings": [{ "name": "ARC_SETTLEMENT", "class_name": "ArcSettlementQueue" }] },
+  "migrations": [{ "tag": "arc-settlement-v1", "new_sqlite_classes": ["ArcSettlementQueue"] }],
+  "d1_databases": [{ "binding": "ORDERS", "database_name": "zerokeymate-arc-shop-orders", "migrations_dir": "migrations" }],
   "ratelimits": [
-    { "name": "API_LIMIT", "namespace_id": "84532001", "simple": { "limit": 120, "period": 60 } },
-    { "name": "ORDER_CREATION_LIMIT", "namespace_id": "84532002", "simple": { "limit": 10, "period": 60 } }
+    { "name": "API_LIMIT", "namespace_id": "5042002001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "ORDER_CREATION_LIMIT", "namespace_id": "5042002002", "simple": { "limit": 10, "period": 60 } }
   ],
-  "vars": { "SHOP_CHAIN_ID": "84532", "AGE_GATE_ADDRESS": "", "AGE_GATE_CODE_HASH": "", "PAYMENT_RECIPIENT": "" },
+  "vars": { "SHOP_CHAIN_ID": "5042002", "AGE_GATE_ADDRESS": "", "AGE_GATE_CODE_HASH": "", "PAYMENT_RECIPIENT": "", "ARC_SETTLER_ADDRESS": "" },
   "observability": { "enabled": true, "head_sampling_rate": 0.1 }
 }

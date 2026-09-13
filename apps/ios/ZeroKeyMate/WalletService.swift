@@ -108,7 +108,7 @@ final class WalletService: ObservableObject {
     }
     struct ShopSignature: Sendable { let header: String; let validBefore: UInt64 }
     /// Called only by the deterministic, exact-order purchase approval screen.
-    /// This signs one Base Sepolia USDC transfer, never a general allowance.
+    /// This signs one Arc Testnet USDC transfer, never a general allowance.
     func signShopPayment(order: AgeShopOrder, required: ShopPaymentRequirements,
                          validateApproval: () throws -> Void) async throws -> ShopSignature {
         guard let ownerWallet, ownerWallet.address.lowercased() == order.payer.lowercased(),
@@ -117,9 +117,9 @@ final class WalletService: ObservableObject {
               order.minimumAge == 20, order.state == .ageVerified else { throw AgeShopError.invalidPayment }
         try required.validate(order: order)
         try validateApproval()
-        try await EthereumRPC(url: "https://sepolia.base.org", chainID: AgeShopProtocol.chainID).ensureNetwork()
+        try await EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID).ensureNetwork()
         try validateApproval()
-        try await authenticateOwner(reason: "Approve one Mate Lager for 0.10 test USDC on Base Sepolia")
+        try await authenticateOwner(reason: "Approve one Mate Lager for 0.10 test USDC on Arc Testnet")
         try validateApproval()
         let now = UInt64(Date().timeIntervalSince1970)
         guard now > 0, order.expiresAt > now, order.expiresAt - now > 30 else { throw AgeShopError.expiredOrder }

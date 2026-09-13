@@ -68,7 +68,7 @@ struct ShopPurchaseSheet: View {
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
                 case .paymentApproval:
-                    Text("The store has checked the age proof. This approves only this order, recipient and amount on Base Sepolia.")
+                    Text("The store has checked the age proof. This approves only this order, recipient and amount on Arc Testnet.")
                     Button("Approve 0.10 test USDC") { checkout.continuePayment(wallet: wallet) }
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .pending:
@@ -81,7 +81,7 @@ struct ShopPurchaseSheet: View {
                 case .complete:
                     Text("The store recorded your order and the test USDC payment was confirmed. Your card details stayed on this phone.")
                     if let hash = checkout.order?.paymentTransaction,
-                       let url = URL(string: "https://sepolia.basescan.org/tx/" + hash) {
+                       let url = URL(string: "https://testnet.arcscan.app/tx/" + hash) {
                         Link("View payment receipt", destination: url)
                     }
                     Button("Back to Mate") { model.finishShopConversation(); model.sheet = nil }.buttonStyle(.borderedProminent)
@@ -94,7 +94,7 @@ struct ShopPurchaseSheet: View {
                 if checkout.canStartNew {
                     Button("Start a new order") { pin = ""; checkout.startNew() }.disabled(checkout.busy)
                 }
-                Text("Base Sepolia testnet · No real money · No physical delivery")
+                Text("Arc Testnet · No real money · No physical delivery")
                     .font(.footnote).foregroundStyle(.secondary)
             }.frame(maxWidth: 520, alignment: .leading).padding(24)
         }

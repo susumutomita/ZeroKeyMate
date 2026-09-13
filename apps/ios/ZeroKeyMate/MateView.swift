@@ -760,8 +760,8 @@ private struct ActivitySheet:View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Mate Lager · 0.10 test USDC").font(.headline)
                             Text(purchase.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale))).font(.subheadline).foregroundStyle(.secondary)
-                            Text("Recorded on Base Sepolia · No physical delivery").font(.footnote).foregroundStyle(.secondary)
-                            if let url=URL(string:"https://sepolia.basescan.org/tx/"+purchase.transaction) { Link("View payment receipt", destination:url) }
+                            Text("Recorded on Arc Testnet · No physical delivery").font(.footnote).foregroundStyle(.secondary)
+                            if let url=URL(string:"https://testnet.arcscan.app/tx/"+purchase.transaction) { Link("View payment receipt", destination:url) }
                         }.padding(.vertical,8)
                     }
                 }

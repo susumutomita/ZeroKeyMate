@@ -48,7 +48,7 @@ final class ShopProposalTests: XCTestCase {
         let domain=try XCTUnwrap(payload["domain"] as? [String:Any])
         XCTAssertEqual(domain["name"] as? String,"USDC")
         XCTAssertEqual(domain["version"] as? String,"2")
-        XCTAssertEqual(domain["chainId"] as? Int,84532)
+        XCTAssertEqual(domain["chainId"] as? Int,5042002)
         XCTAssertEqual(domain["verifyingContract"] as? String,AgeShopProtocol.token)
         XCTAssertEqual(payload["primaryType"] as? String,"TransferWithAuthorization")
         XCTAssertEqual(payload["message"] as? [String:String],message)

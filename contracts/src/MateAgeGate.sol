@@ -19,7 +19,7 @@ contract MateAgeGate {
     error InvalidVerifier();
 
     constructor(address verifier_, bytes32 expectedCodeHash) {
-        if (block.chainid != 84532 && block.chainid != 31337) revert UnsupportedChain();
+        if (block.chainid != 5042002 && block.chainid != 31337) revert UnsupportedChain();
         if (verifier_.code.length == 0 || expectedCodeHash == bytes32(0)
             || verifier_.codehash != expectedCodeHash) revert InvalidVerifier();
         verifier = verifier_;

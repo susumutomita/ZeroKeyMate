@@ -7112,19 +7112,19 @@
         }
       }
     },
-    "The store has checked the age proof. This approves only this order, recipient and amount on Base Sepolia.": {
+    "The store has checked the age proof. This approves only this order, recipient and amount on Arc Testnet.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The store has checked the age proof. This approves only this order, recipient and amount on Base Sepolia."
+            "value": "The store has checked the age proof. This approves only this order, recipient and amount on Arc Testnet."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "お店が年齢の証明を確認しました。この注文の支払先・金額に限り、Base Sepoliaでの支払いを承認します。"
+            "value": "お店が年齢の証明を確認しました。この注文の支払先・金額に限り、Arc Testnetでの支払いを承認します。"
           }
         }
       }
@@ -7299,19 +7299,19 @@
         }
       }
     },
-    "Base Sepolia testnet · No real money · No physical delivery": {
+    "Arc Testnet · No real money · No physical delivery": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Base Sepolia testnet · No real money · No physical delivery"
+            "value": "Arc Testnet · No real money · No physical delivery"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Base Sepoliaのテストネット・実際のお金や商品の配送はありません"
+            "value": "Arcのテストネット・実際のお金や商品の配送はありません"
           }
         }
       }
@@ -7656,19 +7656,19 @@
         }
       }
     },
-    "Recorded on Base Sepolia · No physical delivery": {
+    "Recorded on Arc Testnet · No physical delivery": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recorded on Base Sepolia · No physical delivery"
+            "value": "Recorded on Arc Testnet · No physical delivery"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Base Sepoliaの記録・商品の配送はありません"
+            "value": "Arc Testnetの記録・商品の配送はありません"
           }
         }
       }
@@ -7707,19 +7707,19 @@
         }
       }
     },
-    "Approve one Mate Lager for 0.10 test USDC on Base Sepolia": {
+    "Approve one Mate Lager for 0.10 test USDC on Arc Testnet": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Approve one Mate Lager for 0.10 test USDC on Base Sepolia"
+            "value": "Approve one Mate Lager for 0.10 test USDC on Arc Testnet"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Base SepoliaでMate Lager 1本に0.10テストUSDCを支払います"
+            "value": "Arc TestnetでMate Lager 1本に0.10テストUSDCを支払います"
           }
         }
       }

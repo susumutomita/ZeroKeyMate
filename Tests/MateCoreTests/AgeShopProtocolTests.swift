@@ -40,6 +40,10 @@ final class AgeShopProtocolTests: XCTestCase {
             XCTAssertThrowsError(try check(order, ref: ref), "Accepted changed \(key)")
         }
         XCTAssertThrowsError(try check(ref.order, ref: ref, now: ref.order.expiresAt))
+        // A previously saved Base testnet order is never an Arc authorization.
+        var baseOrder = original; baseOrder["chainId"] = 84532
+        XCTAssertThrowsError(try check(JSONDecoder().decode(AgeShopOrder.self,
+            from: JSONSerialization.data(withJSONObject: baseOrder)), ref: ref))
     }
     func testConnectionCannotCarryCredentialsOrSwitchToPlainHTTP() throws {
         let ref = try reference()

@@ -2,9 +2,9 @@ import {encodeAbiParameters, keccak256, stringToHex, isAddress} from 'viem';
 import {decodePaymentSignatureHeader} from '@x402/core/http';
 import {PaymentPayloadSchema} from '@x402/core/schemas';
 
-export const CHAIN_ID = 84532;
-export const NETWORK = 'eip155:84532';
-export const USDC = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+export const CHAIN_ID = 5042002;
+export const NETWORK = 'eip155:5042002';
+export const USDC = '0x3600000000000000000000000000000000000000';
 export const PRODUCTS = Object.freeze([{id:'mate-lager', name:'Mate Lager', description:'A crisp, bright lager. Chosen by you, ordered by Mate.', size:'330 ml · 5% ABV', amount:'100000', currency:'test USDC', minimumAge:20}]);
 export const nowSeconds = () => Math.floor(Date.now()/1000);
 export const hex32 = value => typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value);

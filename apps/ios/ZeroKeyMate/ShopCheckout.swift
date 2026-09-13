@@ -35,8 +35,8 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     @Published private(set) var canStart = false
     let reader = MyNumberNFCService()
     private let prover = AgeProofService()
-    private let storageKey = "base-sepolia-age-shop-order-v1"
-    private let creationKey = "base-sepolia-age-shop-creation-v1"
+    private let storageKey = "arc-testnet-age-shop-order-v1"
+    private let creationKey = "arc-testnet-age-shop-creation-v1"
     private var client: AgeShopClient?
     private var connection: AgeShopConnection?
     private var saved: SavedShopOrder?
@@ -44,12 +44,12 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     private var generation = UUID()
     var busy: Bool { operation != nil }
     static func hasSavedOrder() -> Bool {
-        (try? LocalSecrets.read(SavedShopOrder.self, key: "base-sepolia-age-shop-order-v1")) != nil ||
-        (try? LocalSecrets.read(PendingShopCreation.self, key: "base-sepolia-age-shop-creation-v1")) != nil
+        (try? LocalSecrets.read(SavedShopOrder.self, key: "arc-testnet-age-shop-order-v1")) != nil ||
+        (try? LocalSecrets.read(PendingShopCreation.self, key: "arc-testnet-age-shop-creation-v1")) != nil
     }
     static func completedPurchases() throws -> [ShopPurchaseRecord] {
-        var records = try LocalSecrets.read([SavedShopOrder].self, key: "base-sepolia-shop-history") ?? []
-        if let current = try LocalSecrets.read(SavedShopOrder.self, key: "base-sepolia-age-shop-order-v1") { records.append(current) }
+        var records = try LocalSecrets.read([SavedShopOrder].self, key: "arc-testnet-shop-history") ?? []
+        if let current = try LocalSecrets.read(SavedShopOrder.self, key: "arc-testnet-age-shop-order-v1") { records.append(current) }
         var seen = Set<String>()
         return records.reversed().compactMap { saved in
             guard saved.completed, saved.order.state == .complete, seen.insert(saved.order.id).inserted,
@@ -183,9 +183,9 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         if current.state == .complete {
             phase = .pending
             guard Self.hasLocalProof(current, marker: saved.locallyProvenOrderHash) else { throw AgeShopError.invalidOrder }
-            async let base = EthereumRPC(url: "https://sepolia.base.org", chainID: AgeShopProtocol.chainID).confirmShop(current)
-            async let independent = EthereumRPC(url: "https://base-sepolia-rpc.publicnode.com", chainID: AgeShopProtocol.chainID).confirmShop(current)
-            let hashes = try await (base, independent)
+            async let primary = EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID).confirmShop(current)
+            async let independent = EthereumRPC(url: "https://rpc.drpc.testnet.arc.io", chainID: AgeShopProtocol.chainID).confirmShop(current)
+            let hashes = try await (primary, independent)
             try check(ticket); guard hashes.0 == hashes.1 else { throw ProductError.invalidResponse }
             var complete = self.saved!; complete.paymentHeader = nil; complete.paymentExpiresAt = nil; complete.completed = true
             try LocalSecrets.write(complete, key: storageKey); self.saved = complete
@@ -198,13 +198,13 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             // Our saved signed deadline still permits a read-only unused check.
             guard let end = saved.paymentExpiresAt,
                   current.paymentValidBefore == nil || end == current.paymentValidBefore else { throw AgeShopError.invalidPayment }
-            let base = EthereumRPC(url: "https://sepolia.base.org", chainID: AgeShopProtocol.chainID)
-            let independent = EthereumRPC(url: "https://base-sepolia-rpc.publicnode.com", chainID: AgeShopProtocol.chainID)
-            async let firstHeight = base.finalizedShopHeight()
+            let primary = EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID)
+            let independent = EthereumRPC(url: "https://rpc.drpc.testnet.arc.io", chainID: AgeShopProtocol.chainID)
+            async let firstHeight = primary.finalizedShopHeight()
             async let secondHeight = independent.finalizedShopHeight()
             let heights = try await (firstHeight, secondHeight)
             let height = min(heights.0, heights.1)
-            async let first = base.confirmUnusedShop(current, validBefore: end, blockNumber: height)
+            async let first = primary.confirmUnusedShop(current, validBefore: end, blockNumber: height)
             async let second = independent.confirmUnusedShop(current, validBefore: end, blockNumber: height)
             let hashes = try await (first, second)
             try check(ticket); guard hashes.0 == hashes.1 else { throw ProductError.invalidResponse }
@@ -283,8 +283,8 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         guard canStartNew else { return }
         do {
             if let saved, saved.completed {
-                var history = try LocalSecrets.read([SavedShopOrder].self, key: "base-sepolia-shop-history") ?? []
-                history.append(saved); try LocalSecrets.write(Array(history.suffix(20)), key: "base-sepolia-shop-history")
+                var history = try LocalSecrets.read([SavedShopOrder].self, key: "arc-testnet-shop-history") ?? []
+                history.append(saved); try LocalSecrets.write(Array(history.suffix(20)), key: "arc-testnet-shop-history")
             }
             try LocalSecrets.delete(storageKey)
             try LocalSecrets.delete(creationKey)

@@ -47,10 +47,10 @@ public struct AgeShopOrder: Codable, Equatable, Sendable {
 }
 
 public enum AgeShopProtocol {
-    public static let chainID: UInt64 = 84532
-    public static let token = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"
+    public static let chainID: UInt64 = 5042002
+    public static let token = "0x3600000000000000000000000000000000000000"
     public static let amount = "100000"
-    public static let network = "eip155:84532"
+    public static let network = "eip155:5042002"
 
     /// No order status or model output is payment authority. The deterministic
     /// purchase UI must additionally approve this validated order and amount.
