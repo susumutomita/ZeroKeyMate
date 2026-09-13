@@ -1,6 +1,6 @@
 import Foundation
 
-enum ShopReadiness {
+@MainActor enum ShopReadiness {
     /// Read-only readiness only. Never reuse this loop for PINs or payments.
     /// Every successful attempt must independently satisfy the full checks.
     static func waitForAvailability(

@@ -1,7 +1,7 @@
 import XCTest
 @testable import ZeroKeyMate
 
-final class ShopReadinessTests: XCTestCase {
+@MainActor final class ShopReadinessTests: XCTestCase {
     func testTemporaryUnavailabilityRequiresAFreshSuccessfulCheck() async throws {
         var calls = 0
         let ready = try await ShopReadiness.waitForAvailability(check: {
