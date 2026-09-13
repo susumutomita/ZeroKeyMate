@@ -36,6 +36,7 @@ import XCTest
         let app = launch()
         let field = app.secureTextFields["shop-signature-pin"]
         field.tap(); field.typeText("ab1234") // Synthetic test input, never sent to NFC.
+        XCTAssertEqual((field.value as? String)?.count, 6, "Synthetic input must retain all six characters")
         let scan = app.buttons["shop-tap-card"]
         XCTAssertTrue(scan.isHittable)
         XCTAssertTrue(scan.isEnabled)
