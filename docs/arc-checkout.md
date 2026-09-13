@@ -32,8 +32,9 @@ sequenceDiagram
 ```
 
 The sponsor key belongs to a new testnet-only wallet, configured only after
-explicit approval as a Cloudflare Worker secret. The buyer key remains on the
-phone. Neither the local model nor the shop receives the card PIN, certificate,
+explicit approval as a Cloudflare Worker secret. The buyer signs through the iPhone's Privy embedded-wallet SDK; the merchant
+does not receive the buyer key. Privy wallet authentication/signing is a separate
+integration and is not claimed to work wholly offline. Neither the local model nor the shop receives the card PIN, certificate,
 signature, birth date, name or address. Public proof inputs and payment metadata
 are visible to the RPC providers. Certificate revocation remains unchecked; this
 is an experimental narrow JPKI profile, not a completed eKYC service.

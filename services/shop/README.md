@@ -174,8 +174,9 @@ USDC transfer.
 **new, separately approved, testnet-only** Worker secret whose derived address
 matches it. Never use an existing personal wallet key. No key is bundled,
 generated, read from disk, or uploaded by building/testing this code. Live
-configuration and funding require explicit owner approval. The buyer's key stays
-on the phone; the Worker sees only the exact signed 0.10 USDC authorization.
+configuration and funding require explicit owner approval. The buyer signs through the iPhone's Privy embedded-wallet SDK; the Worker sees
+only the exact signed 0.10 USDC authorization and never the buyer key. This does
+not claim that the wallet's authentication/signing works entirely offline.
 
 The sponsor can submit only `transferWithAuthorization` to Arc's official USDC
 address, with the configured merchant receiving exactly 100,000 atomic units
