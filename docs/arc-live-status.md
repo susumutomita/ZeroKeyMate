@@ -43,10 +43,12 @@ The x402 token transfer does not itself invoke the age gate: the Worker enforces
 the verification-before-fulfillment boundary. Both-provider agreement is an RPC
 trust assumption. See [the shop protocol](../services/shop/README.md).
 
-The signed device build currently requires an Apple Account in Xcode and an
-app-specific provisioning profile with NFC Tag Reading. The existing wildcard
-profile lacks that entitlement. Do not remove NFC or install a nonfunctional
-card flow to call this acceptance complete.
+The native app was built, installed and launched on the physical iPhone on
+2026-09-13. Its signed entitlements include NFC Tag Reading (`TAG`), and the
+installed bundle contains the live shop origin, merchant, age gate and pinned
+runtime hash shown above. This resolves the earlier Apple Account/provisioning
+blocker; actual card authentication, proving and purchase acceptance still
+require the user's interaction on that phone.
 
 ## Proving and prize claims
 
