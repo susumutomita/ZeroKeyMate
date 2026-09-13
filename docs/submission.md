@@ -1,8 +1,6 @@
-# ETHGlobal submission copy
+# ETHOnline 2026 submission draft
 
-**Historical specialist-flow copy:** the descriptions below were prepared on September 10 for the translation/policy-vault prototype. They are not the final copy for the September 13 beer-purchase flow. The [current live status](arc-live-status.md) records the published store, age contracts and remaining physical-card acceptance. Do not submit the older specialist description as the completed purchase experience.
-
-Updated 2026-09-10 against merged main through [PR #31](https://github.com/susumutomita/ZeroKeyMate/pull/31). This is reviewable submission copy, not a submitted entry. ETHOnline 2026 and Building from Scratch were previously recorded as selected in the entrant dashboard; final eligibility and the current form still require entrant review. Proposed prizes are Arc, Privy and The Graph. See the [requirements and evidence matrix](submission-evidence.md).
+Current story: the physical-card age proof and Arc test purchase. Updated September 13, 2026. **This is prepared copy, not a submitted entry.** The final video URL and dashboard receipt are still missing. Use [live evidence](arc-live-status.md), [the four-minute plan](demo.md), and [prize requirements](prize-strategy.md).
 
 ## Project name
 
@@ -10,74 +8,70 @@ ZeroKey Mate
 
 ## Short description
 
-A private iPhone companion that proves each paid AI request follows your rules.
+An iPhone companion that proves your age privately and pays on Arc.
 
-## Project description
+## Description
 
-AI companions can feel personal while still asking you to give up control of your conversations and your wallet. ZeroKey Mate explores a more deliberate relationship: conversation stays on your iPhone, and asking an external specialist for help becomes an explicit, bounded decision.
+ZeroKey Mate turns an iPhone into a companion that helps you act while keeping identity details private. Ask Mate for a beer. The on-device model proposes the supported order, while application code controls identity verification and payment.
 
-Mate is a native SwiftUI companion designed for an iPhone and a DockKit stand. Its current specialist tasks are Japanese-to-English translation and summarization. You review the exact text, provider, recipient and price before a request leaves the phone. An owner-approved mandate commits to a private budget and allowed services. A real ProveKit proof establishes that the concrete action complies with that policy without disclosing the policy's budget or salt.
+The phone authenticates a physical Japanese My Number card and creates an order-bound zero-knowledge proof that the cardholder is at least twenty. The shop receives the proof, not the card certificate, signature, name or date of birth. A deployed Age Gate contract verifies the proof before checkout proceeds. After the user's exact approval, a Privy embedded wallet signs a 0.10 test-USDC authorization and the shop settles through x402 on Arc Testnet.
 
-On Ethereum, MateVault checks the owner grant, agent signature, action binding, expiry, revocation and replay before transferring test USDC. The language model cannot grant itself payment authority. The specialist prepares a result, independently verifies the canonical payment event and then releases it. If the connection fails, an encrypted journal and the same signed request allow recovery without a second payment.
-
-The working local demonstration combines real cryptographic proofs, HTTP services, Solidity execution and an actual Ollama translation. Settlement runs on Anvil and discovery is a labeled fixture. Physical DockKit, mobile proof performance and live Privy/Circle/The Graph/public-Arc acceptance remain open. The proof is verified off chain by an attestor trusted by the vault; this prototype does not claim trustless on-chain ZK verification.
-
-Request invalidation before signing, foreground full-stack startup and validated runtime pairing are implemented. Arc settlement binding and a Circle Agent Wallet proof-attestation adapter are locally tested; live sponsor operation remains pending. Conversational rule proposals, explicit bounded delegation, typed listening/thinking/speaking activity and finite stand reactions are implemented; physical acceptance remains open. This submission describes the currently demonstrated local protocol and native UI, not completion of the entire [product backlog](validation.md#remaining-product-implementation).
-
-## Example use case
-
-A user wants to share a Japanese meeting note with an overseas teammate. They allow translation with a total limit of 5 test USDC until that evening, review only the text to disclose and the quoted price, and request the translation. The intended iPhone flow produces the policy proof locally and returns the result after verified payment. The current local demo validates the proof/payment/recovery protocol; it does not establish the complete mobile experience. Summarization is the other implemented specialist task. The stand supports the desk-companion experience but is optional for proof generation and payment.
+A user-operated physical-card purchase completed on September 13, with 12.0 seconds of local age-proof processing shown by the phone and a confirmed public Arc transaction. Voice opening checkout is also user-confirmed; the supplied device video combines successful recorded takes. This is testnet only, with no real money or delivery.
 
 ## How it is made
 
-The app uses SwiftUI, Foundation Models, on-device Speech, AVFoundation and DockKit. A shared Swift package defines the versioned mandate/action encoding and validates execution evidence. Sensor intent is separate from hardware state, so stopping during startup, backgrounding or detaching cannot silently restore capture.
+The native app uses SwiftUI, Apple Foundation Models, on-device Speech, AVFoundation, DockKit and CoreNFC. Camera capture stops before NFC begins. The model receives no card fields or signing interface. Deterministic code constrains the current purchase to one product, merchant, network and amount.
 
-A Noir circuit proves policy compliance using ProveKit. Its public action commitment binds the actual chain, vault, mandate, recipient, amount, service, expiry, replay nonce and disclosure hash. A Rust verifier checks the proof and extracts public inputs; the Node.js API compares them against the requested execution before signing an attestation. Solidity and OpenZeppelin enforce the owner/agent authority and settlement state.
+Swift authenticates the signed JPKI credential against pinned government roots and prepares the private witness. A Noir age circuit uses a pinned experimental ProveKit Groth16 backend and an EVM exporter. The proof binds the signed age condition to the specific order and nonce. Both circuit and Swift parser handle the mandatory critical signing-certificate policy; negative tests reject altered inputs, unsupported policies and invalid proofs.
 
-Privy is the implemented wallet/signing adapter. The Graph queries provider candidates, and ENSv2 resolution is used to check their named recipients; those paths still require live validation. The specialist calls an operator-selected Ollama model without tools. Approved text and prepared results use encrypted SQLite journals. Both the specialist and iPhone verify the exact payment event; a successful transaction alone is insufficient.
+A Cloudflare Worker, D1 database and Durable Object operate the store. The Worker verifies the age proof against the pinned Arc contract through two independent RPC providers before returning x402 payment requirements. Privy's iOS SDK signs the exact EIP-712 USDC authorization. The merchant sponsors gas and persists signed transaction bytes before broadcast. Receipt checks and recovery retain the original order rather than assuming a transaction hash means payment succeeded.
 
-Pinned dependency versions and public sources are recorded in [SOURCES](SOURCES.md). The code is Apache-2.0 with applicable dependency notices retained.
+Age verification is an eth_call enforced by the Worker, not an atomic age-check-and-transfer contract or a permission validator. The setup is experimental and single-party; certificate revocation is not checked. The phone's wallet authentication and payment still need network services.
 
-## Challenges addressed
+## Challenges solved
 
-- **Binding the proof to the action.** Swift, Noir, Node and Solidity agree on a versioned encoding. Tests reject modified proofs, changed disclosures and reuse for a different execution.
-- **Recovering without spending twice.** The app keeps the exact signed submission; the server persists requests and transaction bytes. A local test closes/reopens the API and SQLite, recovers the result and verifies that the balance only decreased once.
-- **Stopping real sensors predictably.** Capture intent and hardware state are separate. Late permission/startup completions cannot restore canceled consent, and OFF waits for the capture service to finish stopping.
-- **Keeping the demo honest.** Source-only builds disable proving; missing integrations report unavailable. Simulated settlement and discovery fixtures are explicitly identified.
+- A physical signing certificate exposed a mandatory critical extension missing from the original synthetic fixture. We reproduced the failure, corrected the circuit and parser, regenerated the matching setup/verifier, and completed a real-card purchase.
+- DockKit motor commands could delay camera shutdown and prevent NFC from starting. Camera lifetime now stops independently, and NFC activation has explicit deadlines and cancellation.
+- Uncertain proof/payment outcomes previously led to confusing retries. The app now distinguishes proof generation, age verification and payment completion, retaining the original order and exact authorization.
+- The purchase interface now has a direct English/Japanese switch, short stage-specific guidance and a transaction explorer link. A physical-phone readiness probe reproduced a transient store network failure; bounded public-read retries address it without retrying payments.
 
-## Integration evidence for partner applications
+## Partner application copy
 
-These are implementation notes, not assertions that a partner is sponsoring the selected event or that a prize requirement is met.
+### Privy — Best financial flow
 
-| Technology | Meaningful role | Evidence to show | Current gap |
-| --- | --- | --- | --- |
-| ProveKit / Noir | Proves the paid action satisfies a private policy | [`circuits`](../circuits), [`services/verifier`](../services/verifier), `npm run test:proofs` | Mobile runtime/performance acceptance |
-| Ethereum / test USDC | Enforces signed authority and prevents repeat spending | [`MateVault.sol`](../contracts/src/MateVault.sol), `make test-contracts`, local recovery demo | Public Arc contract/transaction links |
-| Privy | Owner and agent wallet roles, EIP-712 signing | [`WalletService.swift`](../apps/ios/ZeroKeyMate/WalletService.swift) | Actual login and signing session |
-| ENSv2 | Owner-held companion name and recipient address resolution | [`names.mjs`](../services/api/names.mjs), [`discovery.mjs`](../services/api/discovery.mjs) | Live registration and root resolution |
-| The Graph | Supplies provider records used in candidate selection | [`discovery.mjs`](../services/api/discovery.mjs) | Live query, schema and resulting provider decision |
+Privy's iOS SDK provides the buyer's embedded wallet and signs the exact EIP-712 authorization for a 0.10 test-USDC purchase. The user can connect through email within the order flow and does not need to import a seed phrase or switch to a separate wallet app. Privy is part of the actual completed payment, not a mock.
 
-Do not use local discovery fixtures as live integration evidence. Record the actual query/transaction and the resulting app behavior before selecting a prize that requires it.
+The app restricts the signing domain to Arc Testnet and its USDC contract, and binds recipient, amount and nonce. We validate the resulting receipt before showing completion. [Confirmed purchase](https://testnet.arcscan.app/tx/0xfe77313324c3438cfc935dd87c14efe56bc6f3a1a4a4150a9ee661c045856eb3).
 
-## AI assistance disclosure
+Feedback from this integration: a complete mobile EIP-712 example including the encoded domain would make token-authorization integration easier. Keeping email verification and wallet preparation inside the current order was important for the companion experience.
 
-Codex assisted with implementation, debugging, automated validation and this submission documentation. The repository contains the resulting source, tests, build instructions and public dependency references. The human supplied the project requirements and consent/security boundaries and requested completion, local verification and submission preparation. No independent human review, video narration or team contribution beyond what is documented is asserted. See [development history and scope](development-history.md#ai-assistance).
+### Arc — Best DeFi/Onchain Finance Application
 
-## Submission fields still requiring the entrant
+Mate implements an age-conditioned USDC payment on Arc Testnet. The phone creates a private age proof, the Worker checks a deployed verifier and government-root age gate, and an x402 exact authorization then settles a real 0.10 test-USDC transfer. The merchant sponsors network gas. Persistent order and transaction recovery prevent an uncertain response from becoming a new payment.
 
-| Field | Current value / next action |
+The working frontend/backend, architecture diagram and [public contract/receipt evidence](arc-live-status.md) show Arc and USDC as the actual execution path. This application targets the payment/conditional-flow category. It does not claim Circle Agent Stack integration in this checkout, or deployment on mainnet.
+
+Feedback from this integration: x402 protocol compatibility did not provide a ready Arc facilitator, so we implemented a tightly constrained merchant sponsor. Clear examples for Arc's native-USDC fees, ERC-20 event emitter and exact-authorization recovery were important to validate the receipt correctly.
+
+### The Graph — not ready to select
+
+The Arc purchase-history Subgraph is prepared and merged, but it is not deployed to Studio or used by Mate for a live decision. The intended use is to read indexed spending and decide whether a new purchase fits an explicitly set local allowance. Do not paste this plan as a completed sponsor integration. Select The Graph only after a live deployment, query and meaningful change in agent behavior are demonstrated.
+
+## AI and reused-work disclosure
+
+The human defined the companion experience, local-model requirement, privacy and authorization boundaries, supplied repeated physical-device feedback, operated the identity card and wallet approvals, and confirmed the real purchase. Codex assisted with implementation, debugging, regression tests, deployment preparation and documentation. ChatGPT assisted with public technical research; technical claims were checked against source code and primary documentation.
+
+The project reuses attributed public dependencies, including the MIT-licensed CircuitBreaker NFC module, ProveKit/Noir components, Privy, x402 and platform SDKs. Those components are not claimed as original hackathon inventions. See [development history](development-history.md), [sources](SOURCES.md) and [third-party notices](THIRD_PARTY_NOTICES.txt). Confirm the entrant's selected pool and admissible prior work in the dashboard before submitting; commit history and source licenses do not independently determine eligibility.
+
+## Remaining fields and final checks
+
+| Field | Current value / action |
 | --- | --- |
-| Event and deadline | ETHOnline 2026 confirmed in dashboard: September 13, 12:00 EDT / September 14, 01:00 JST. See the sourced [proposed schedule](schedule.md). |
-| Track and eligible new work | Building from Scratch was previously recorded in the dashboard; eligibility is not established. Map [existing commits](development-history.md) to the event's start/end window; disclose pre-existing work. |
-| Team members and contribution statements | Not supplied. Use each entrant's actual name, role and work. |
-| Repository | [ZeroKeyMate](https://github.com/susumutomita/ZeroKeyMate); use the exact final merged commit matching the recording and reproducibility check. Do not submit an unmerged implementation branch as completed main. |
-| Demo video | Not recorded/uploaded. [Three-minute script and capture plan](demo.md). |
-| App / deployment link | [Live test store](https://zerokeymate-arc-shop.oyster880.workers.dev/) and [deployed age contracts](arc-live-status.md) are available. Physical iPhone installation and a completed card-to-payment purchase remain unverified. The separate specialist vault is not covered by this deployment. |
-| Partner prizes and feedback | Proposed priorities: Arc/Circle Agent Stack, Privy financial flow, The Graph AI use case. Live evidence is pending; none selected in the form. See [strategy](prize-strategy.md). |
-| AI/spec workflow disclosure | This document and [development history](development-history.md); add any earlier prompts/specs actually used before final submission. |
+| Repository | https://github.com/susumutomita/ZeroKeyMate — use the final merged revision matching the take |
+| App / store | [Project LP](https://zerokeymate-arc-shop.oyster880.workers.dev/demo/) · https://zerokeymate-arc-shop.oyster880.workers.dev/ — native iPhone is required for the card flow |
+| Demo video | 58.5-second edited walkthrough prepared; final 2–4-minute human-narrated export and upload remain |
+| Selected prizes | Recommended: Privy financial flow and Arc DeFi/Onchain Finance; Graph remains incomplete |
+| Entrant / track / prior work | Verify current dashboard values and contribution statement |
+| Final submission receipt | Not submitted; reload-confirm the organizer's submitted state after the completed form is sent |
 
-## Official rules to check
-
-The [official ETHOnline 2026 guide](https://ethglobal.com/events/ethonline2026/info/details) was rechecked on 2026-09-10. The deadline is September 13 at 12:00 EDT / September 14 at 01:00 JST. Its requirements include a 2–4 minute video, at least 720p, human narration, transparent AI attribution and the appropriate treatment of pre-existing work. At most three partner prizes may be selected. The [evidence matrix](submission-evidence.md) maps the selected candidates to outstanding proof. Recheck the live form before submitting.
-
-This package has not been submitted to an organizer or Hacker Dashboard.
+The deadline is **September 14, 2026 at 01:00 JST** (September 13 at 12:00 EDT). Up to three partner prizes may be selected. Arc attaches a September 30 mainnet condition to part of its award; the current app, evidence and authorization are testnet only. [Official submission guide](https://ethglobal.com/events/ethonline2026/info/details).
