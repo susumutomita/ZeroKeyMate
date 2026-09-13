@@ -1,6 +1,6 @@
 # Development history and attribution
 
-This record distinguishes repository history, third-party dependencies and AI assistance. It does not certify eligibility for an event whose dates/track have not been supplied. Commit timestamps are evidence of recorded history, not independent proof of when every line was authored.
+This record distinguishes repository history, third-party dependencies and AI assistance. The entry is for ETHOnline 2026; the dashboard shows from-scratch project rules. This record does not independently certify track eligibility. Commit timestamps are evidence of recorded history, not independent proof of when every line was authored.
 
 ## Existing history
 
@@ -15,9 +15,11 @@ Times below are the recorded author times in JST (UTC+09:00). The history has be
 | [`cdfb6d0`](https://github.com/susumutomita/ZeroKeyMate/commit/cdfb6d0) | 2026-09-06 23:51 | Readable Japanese accessibility label for the brand |
 | [`5bbe0f6`](https://github.com/susumutomita/ZeroKeyMate/commit/5bbe0f6) | 2026-09-07 10:08 | Full icon-button hit regions and UI interaction checks |
 
-The submission materials and final validation update are subsequent changes in [PR #12](https://github.com/susumutomita/ZeroKeyMate/pull/12). Use its final commit when recording/submitting. The earlier import is visible in the history; this document does not turn it into a claim of development during an unconfirmed event.
+Later implementation continues in the preserved Git history. [PR #49](https://github.com/susumutomita/ZeroKeyMate/pull/49) adds the prepared Arc history Subgraph; [PR #50](https://github.com/susumutomita/ZeroKeyMate/pull/50) completes the physical-card age-proof checkout and English purchase controls. PR #50 merged as `ef2cd7b9922a23e9bd6a1ba4c8935c5a0c270759`. [PR #52](https://github.com/susumutomita/ZeroKeyMate/pull/52) records repeated payments, transient shop-readiness recovery and the current submission materials. Use its final merged revision once available; PR #12 is historical, not the current acceptance build.
 
-Once the event is known, record its official start/end times, selected track, baseline commit and the precise new work completed during that window. Obtain any required eligibility clarification from the event before claiming an applicable category. No history has been rewritten to fit a hackathon window.
+The human designed the companion use case and privacy/authorization constraints, repeatedly tested the real iPhone and stand, performed My Number card authentication and exact payment approvals, reported UX failures, confirmed purchases and supplied the demo footage and screenshots. Codex assisted with the corresponding implementation and fixes. Public CircuitBreaker NFC code is attributed as reused work, rather than claimed as a new invention. AI-generated logo and cover artwork are identified separately from actual app screenshots and transaction evidence.
+
+Commit dates and dependency licenses are not sufficient to establish from-scratch eligibility. Preserve and disclose the real baseline and any pre-existing project work; no history has been rewritten to fit the event.
 
 ## Public dependencies
 

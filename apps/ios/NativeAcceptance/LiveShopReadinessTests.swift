@@ -1,8 +1,34 @@
 import XCTest
 @testable import ZeroKeyMate
 
-/// Opt-in public network probe. No saved order, wallet, PIN or card is accessed.
+/// Explicit physical-phone probes: public catalog reads and separately opted-in
+/// saved-order recovery. No probe reads a PIN or card, or signs a payment.
 final class LiveShopReadinessTests: XCTestCase {
+    /// Runs the app's existing read-only recovery on the phone. The order
+    /// capability stays inside its Keychain/client; only a fixed answer leaves.
+    @MainActor func testSavedOrderRecoveryFromThePhysicalPhone() async throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Explicit physical-phone saved-order probe.")
+#else
+        guard ProcessInfo.processInfo.environment["MATE_SAVED_SHOP_PROBE"] == "1" else {
+            throw XCTSkip("Saved-order recovery probe was not explicitly selected.")
+        }
+        let answer = await ShopCheckout.savedOrderAnswer()
+        let allowed = Set([
+            ShopCheckout.Phase.complete.purchaseAnswer, ShopCheckout.Phase.pending.purchaseAnswer,
+            ShopCheckout.Phase.proofFailed.purchaseAnswer, ShopCheckout.Phase.verificationFailed.purchaseAnswer,
+            ShopCheckout.Phase.paymentApproval.purchaseAnswer, ShopCheckout.Phase.expired.purchaseAnswer,
+            ShopCheckout.Phase.card.purchaseAnswer, ShopCheckout.Phase.unavailable.purchaseAnswer,
+            "I couldn't check the saved order right now. I cannot confirm that the purchase is complete."
+        ])
+        XCTAssertTrue(allowed.contains(answer))
+        let report = ["savedOrderPresent": ShopCheckout.hasSavedOrder(), "answer": allowed.contains(answer) ? answer : "unclassified"] as [String: Any]
+        let attachment = XCTAttachment(data: try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]), uniformTypeIdentifier: "public.json")
+        attachment.name = "saved-order-fixed-status"; attachment.lifetime = .keepAlways
+        add(attachment)
+#endif
+    }
+
     func testPublicCatalogFromThePhysicalPhone() async throws {
 #if targetEnvironment(simulator)
         throw XCTSkip("Explicit physical-phone network probe.")

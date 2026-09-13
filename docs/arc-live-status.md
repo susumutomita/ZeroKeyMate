@@ -193,3 +193,13 @@ Those route tests inject RPC/facilitator responses and do not replace the live
 receipts above. `make test` also passes (90 Swift, 64 API, 21 launcher tests).
 The native build and opt-in physical probe passed; no card or saved order was
 accessed by the probe. Tests are not a guarantee of universal availability.
+
+## Latest saved-order recovery and submission assets
+
+The separately enabled physical-phone saved-order probe passed on September 13. It ran the app's normal status recovery and reported: “Yes. Your Mate Lager test purchase is complete, and the payment is confirmed on Arc Testnet.” The attachment contains only a fixed allowlisted answer and whether a saved order exists; no order capability or card data is exported. This establishes recovery of that saved order, not universal repeat-checkout reliability.
+
+The user subsequently supplied a **58.4584-second edited device walkthrough**, combining successful recorded takes. It replaces the shorter recording as presentation material, and must not be described as one uncut order. A light non-generative audio filter was applied; the compressed video stream has the same SHA-256 before and after (`173d531bf0b73b716b356a2a34271503dbf5e092d5993d304fe645bb99eb4091`). This preserves image frames, timing and speed. Audio playback quality still needs the speaker's final listening check.
+
+The [public project LP](https://zerokeymate-arc-shop.oyster880.workers.dev/demo/) was published with actual app screenshots, the edited walkthrough, an explanation of local proving and payment, and the store link. Worker version: `8ce02e99-e313-4840-ab8f-08ffb8504fb7`. Public reads after deployment returned the LP with HTTP 200 and the catalog with `checkoutAvailable: true`. No contract, payment, database schema or secret was changed by this static-asset publication. The browser loaded the video metadata as 58.4584 seconds with no media error.
+
+Later user-supplied screenshots show **12.2 seconds** for another local proof run and [this transaction](https://testnet.arcscan.app/tx/0xf784fa4affa64f2f1d9c4fd9b3991757889332bbf097828cd3865e6f071b83f0), at block 61900557. This screenshot evidence is distinct from the five two-RPC receipt checks above.
