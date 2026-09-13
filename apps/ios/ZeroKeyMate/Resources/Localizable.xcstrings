@@ -6193,66 +6193,66 @@
         }
       }
     },
-    "Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone.": {
+    "Ask Mate to buy a beer. Your iPhone proves you're 20 or older, while your name and birth date stay private.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ask Mate for help. Let it handle a paid translation within your rules, while your total budget stays on your iPhone."
+            "value": "Ask Mate to buy a beer. Your iPhone proves you're 20 or older, while your name and birth date stay private."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mateに頼んでみましょう。予算の総額をiPhoneに残したまま、決めたルールの範囲で有料の翻訳を任せられます。"
+            "value": "Mateにビールを頼んでみましょう。氏名や生年月日を明かさず、このiPhoneで20歳以上であることを証明します。"
           }
         }
       }
     },
-    "Try a translation request": {
+    "Try a beer purchase": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Try a translation request"
+            "value": "Try a beer purchase"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "翻訳の依頼を試す"
+            "value": "ビールの購入を試す"
           }
         }
       }
     },
-    "Translate this into Japanese: The meeting starts at ten.": {
+    "Buy me one beer.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Translate this into Japanese: The meeting starts at ten."
+            "value": "Buy me one beer."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「会議は10時に始まります。」を英語に翻訳して。"
+            "value": "ビールを1本買って。"
           }
         }
       }
     },
-    "Edit the example, then send it. External requests need a connected shop and approved spending rules.": {
+    "Send the request to open Mate's store. You'll tap your My Number card and approve 0.10 test USDC before payment. No physical delivery.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Edit the example, then send it. External requests need a connected shop and approved spending rules."
+            "value": "Send the request to open Mate's store. You'll tap your My Number card and approve 0.10 test USDC before payment. No physical delivery."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "例文を編集して送ってみましょう。外部への依頼には、店舗との接続と予算の承認が必要です。"
+            "value": "送信するとMateの店舗を開きます。マイナンバーカードをタッチし、0.10テストUSDCの支払いを承認して進みます。商品の配送はありません。"
           }
         }
       }
