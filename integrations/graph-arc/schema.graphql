@@ -1,0 +1,19 @@
+"Cumulative outflow since the manifest's start block, in six-decimal token units."
+type Account @entity(immutable: false) {
+  id: Bytes!
+  sent: BigInt!
+  transferCount: BigInt!
+  lastUpdatedBlock: BigInt!
+}
+
+"Public token transfer, not evidence that a merchant delivered an item."
+type Spend @entity(immutable: true) {
+  id: Bytes!
+  payer: Bytes!
+  recipient: Bytes!
+  amount: BigInt!
+  transactionHash: Bytes!
+  logIndex: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}

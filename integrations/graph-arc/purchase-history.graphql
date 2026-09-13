@@ -1,0 +1,15 @@
+# Supply a lower-case public address and a confirmed indexed block. This
+# query does not disclose the private budget or a card credential.
+query MatePurchaseHistory($payer: Bytes!, $block: Int!) {
+  _meta(block: {number: $block}) {
+    deployment
+    block { number hash timestamp }
+    hasIndexingErrors
+  }
+  accounts(first: 1, where: {id: $payer}, block: {number: $block}) {
+    id
+    sent
+    transferCount
+    lastUpdatedBlock
+  }
+}

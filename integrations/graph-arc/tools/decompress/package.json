@@ -1,0 +1,10 @@
+{
+  "name": "@zerokeymate/decompress-compat",
+  "private": true,
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "main": "index.cjs",
+  "peerDependencies": {
+    "@xhmikosr/decompress": "11.1.4"
+  }
+}
