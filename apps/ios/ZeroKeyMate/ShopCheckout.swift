@@ -353,7 +353,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     static func explanation(_ error: Error) -> String {
         if let card = error as? MyNumberCardError {
             switch card {
-            case .pinRejected(let attempts): return L10n.format("The signature PIN was rejected. %lld attempts remain. Mate did not retry.", Int64(attempts))
+            case .pinRejected(let attempts): return L10n.format("The signature password was rejected. %lld attempts remain. Mate did not retry.", Int64(attempts))
             case .pinBlocked: return "The card PIN is locked. Mate made no further attempt."
             case .requestExpired: return "This order expired. Mate stopped the card step. Start a new order."
             default: return "The card could not be read. No personal information was sent."
@@ -367,9 +367,9 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             switch error {
             case .unavailable: return "Physical card scanning is not available on this device."
             case .permissionMissing: return "This app's NFC permission is missing. The app must be reinstalled with card-reading support. No card PIN was checked."
-            case .busy: return "The iPhone could not start NFC while another operation was using it. Mate stopped its camera. Enter the signature PIN and tap Start card scan to try again."
+            case .busy: return "The iPhone could not start NFC while another operation was using it. Mate stopped its camera. Enter the signature password and tap Start card scan to try again."
             case .activationTimedOut: return "The card scanner did not open. Close Mate and reopen it, then try again. Your PIN was cleared without retrying."
-            case .timedOut: return "The card scan timed out. Enter the signature PIN and tap Start card scan when your card is ready."
+            case .timedOut: return "The card scan timed out. Enter the signature password and tap Start card scan when your card is ready."
             case .cancelled: return "Card scanning stopped. Your PIN was cleared. Enter it again and tap Start card scan when you're ready."
             default: return "The card scan did not finish. Your PIN was cleared. Enter it again and tap Start card scan to retry."
             }
@@ -387,7 +387,7 @@ extension ShopCheckout.Phase {
     var spokenGuide: String? {
         switch self {
         case .review: return "I’ll get one beer. First, let’s confirm your age."
-        case .card: return "Enter your card’s signature PIN, then tap Start card scan."
+        case .card: return "Enter your card’s signature password, then tap Start card scan."
         case .funding: return "Your wallet needs free test USDC before I can order."
         case .proving: return "Card read. I’m making your age proof on this iPhone."
         case .verifying: return "Your proof is ready. The store is checking it."

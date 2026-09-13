@@ -5,13 +5,12 @@ struct ShopPurchaseSheet: View {
     @ObservedObject var model: CompanionModel
     @ObservedObject var wallet: WalletService
     @StateObject private var checkout = ShopCheckout()
-    @State private var pin = ""
+    @StateObject private var pinEntry = SignaturePINEntry()
     @State private var automaticOrderStarted = false
     // Keep the destination across the temporary checking phase when the user
     // returns from Mail. The one-use code remains local to the child view.
     @State private var buyerEmail = ""
     @State private var buyerCodeSentTo: String?
-    @FocusState private var pinFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
 
     private var heading: String {
@@ -69,20 +68,7 @@ struct ShopPurchaseSheet: View {
                     Button("Check funds and start this order") { checkout.startOrder(wallet: wallet) }
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .card:
-                    Text("Signature PIN · 6–16 letters and numbers")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    SecureField("Signature PIN", text: $pin)
-                        // This card credential is entered for this operation;
-                        // it is not a website password to save or fill.
-                        .textContentType(.oneTimeCode).privacySensitive()
-                        .textInputAutocapitalization(.characters).autocorrectionDisabled().keyboardType(.asciiCapable)
-                        .focused($pinFocused).submitLabel(.go)
-                        .onSubmit { startCardRead() }
-                        .textFieldStyle(.roundedBorder).accessibilityIdentifier("shop-signature-pin")
-                    if !pin.isEmpty && !JPKICardReader.validSigningPIN(pin) {
-                        Text("Use uppercase A–Z and 0–9, including both letters and numbers.")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                    }
+                    SignaturePINField(entry: pinEntry, submit: startCardRead)
                 case .preparingCard,.readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
@@ -124,7 +110,7 @@ struct ShopPurchaseSheet: View {
                         .font(.subheadline).accessibilityIdentifier("shop-proof-duration")
                 }
                 if checkout.canStartNew {
-                    Button("Start a new order") { pin = ""; checkout.startNew() }.disabled(checkout.busy)
+                    Button("Start a new order") { pinEntry.clear(); checkout.startNew() }.disabled(checkout.busy)
                 }
                 DisclosureGroup("Purchase details") {
                     VStack(alignment: .leading, spacing: 12) {
@@ -132,7 +118,7 @@ struct ShopPurchaseSheet: View {
                             Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }
                         }
                         privacy
-                        Text("Use the signature PIN: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
+                        Text("Use the signature password: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
                         Text("Only this order is authorized. The store pays the network fee.")
                     }.font(.subheadline).padding(.top, 8)
                 }.font(.subheadline).foregroundStyle(.secondary)
@@ -143,20 +129,7 @@ struct ShopPurchaseSheet: View {
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
             if checkout.phase == .card {
-                Button("Start card scan") { startCardRead() }
-                    .buttonStyle(.borderedProminent)
-                    .frame(maxWidth: .infinity)
-                    .padding().background(.bar)
-                    .disabled(!JPKICardReader.validSigningPIN(pin) || checkout.busy)
-                    .accessibilityIdentifier("shop-tap-card")
-            }
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                if pinFocused {
-                    Spacer()
-                    Button("Done") { pinFocused = false }
-                }
+                SignaturePINScanButton(busy: checkout.busy, submit: startCardRead)
             }
         }
         .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
@@ -170,11 +143,11 @@ struct ShopPurchaseSheet: View {
         .onChange(of: wallet.ownerAddress) { _, _ in advanceVoiceOrder() }
         .onDisappear {
             let completed = checkout.phase == .complete
-            pin = ""; buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel()
+            pinEntry.clear(); buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel()
             if !completed { model.voice.stop() }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { pin = ""; checkout.cancel() }
+            if phase == .background { pinEntry.clear(); checkout.cancel() }
             else if phase == .active { checkout.load() }
         }
     }
@@ -188,11 +161,10 @@ struct ShopPurchaseSheet: View {
         checkout.startOrder(wallet: wallet)
     }
     private func startCardRead() {
-        guard JPKICardReader.validSigningPIN(pin), !checkout.busy, checkout.phase == .card else { return }
-        pinFocused = false
-        let oneUse = pin
-        pin = ""
-        checkout.readCard(pin: oneUse, sensors: model.sensors)
+        guard checkout.phase == .card else { return }
+        pinEntry.submit(busy: checkout.busy) { oneUse in
+            checkout.readCard(pin: oneUse, sensors: model.sensors)
+        }
     }
     private var privacy: some View {
         Label("Your name, address and birth date stay on this phone. The store receives the age proof, not your card.", systemImage: "lock.shield")

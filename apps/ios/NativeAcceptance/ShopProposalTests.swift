@@ -49,8 +49,8 @@ final class ShopProposalTests: XCTestCase {
         XCTAssertEqual(L10n.text("Approve the exact payment", language:.english), "Approve the exact payment")
         XCTAssertEqual(L10n.text("Approve the exact payment", language:.japanese), "この支払いを承認してください")
         XCTAssertNotEqual(L10n.text("Your phone is making the proof", language:.japanese), "Your phone is making the proof")
-        let template=L10n.text("The signature PIN was rejected. %lld attempts remain. Mate did not retry.", language:.japanese)
-        XCTAssertEqual(String(format:template,Int64(2)), "署名用暗証番号が違います。残り2回です。Mateは再試行していません。")
+        let template=L10n.text("The signature password was rejected. %lld attempts remain. Mate did not retry.", language:.japanese)
+        XCTAssertEqual(String(format:template,Int64(2)), "署名用パスワードが違います。残り2回です。Mateは再試行していません。")
         let timing = L10n.text("Age proof made on this phone · %.1f s", language: .japanese)
         XCTAssertEqual(String(format: timing, locale: Locale(identifier: "ja"), 12.5), "このスマホで年齢証明を作成・12.5秒")
     }
