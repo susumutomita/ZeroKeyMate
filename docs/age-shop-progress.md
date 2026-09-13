@@ -1,5 +1,12 @@
 # Physical-card age checkout: implementation checkpoint
 
+**Current public status:** PRs #45 and #46 are merged. The actual Arc verifier,
+age gate, funded merchant and Workers/D1 storefront are deployed; hosted catalog
+readiness passes. The NFC-capable physical build is blocked on Xcode Apple
+Account/provisioning setup. No real-card purchase or physical proving speed is
+claimed. See [live evidence and remaining acceptance](arc-live-status.md).
+The dated checkpoints below record earlier states and do not override that page.
+
 Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
 project finished from unit tests, a simulator, a catalog page or a configured URL.
 
