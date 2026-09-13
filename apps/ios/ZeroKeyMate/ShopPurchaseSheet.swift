@@ -10,6 +10,7 @@ struct ShopPurchaseSheet: View {
     // returns from Mail. The one-use code remains local to the child view.
     @State private var buyerEmail = ""
     @State private var buyerCodeSentTo: String?
+    @FocusState private var pinFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
 
     private var heading: String {
@@ -18,6 +19,7 @@ struct ShopPurchaseSheet: View {
         case .review: return "Let Mate get your beer"
         case .funding: return "Add free test USDC"
         case .card: return "Confirm you're 20 or older"
+        case .preparingCard: return "Preparing the card scanner"
         case .readingCard: return "Hold your card to the phone"
         case .proving: return "Your phone is making the proof"
         case .verifying: return "The store is checking your proof"
@@ -72,14 +74,19 @@ struct ShopPurchaseSheet: View {
                 case .card:
                     Text("Use the signature PIN: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
                     SecureField("Signature PIN", text: $pin)
+                        // This card credential is entered for this operation;
+                        // it is not a website password to save or fill.
+                        .textContentType(.oneTimeCode).privacySensitive()
                         .textInputAutocapitalization(.characters).autocorrectionDisabled().keyboardType(.asciiCapable)
+                        .focused($pinFocused).submitLabel(.go)
+                        .onSubmit { startCardRead() }
                         .textFieldStyle(.roundedBorder).accessibilityIdentifier("shop-signature-pin")
-                    Button("Tap card and continue") {
-                        let oneUse = pin; pin = ""; checkout.readCard(pin: oneUse)
-                    }.buttonStyle(.borderedProminent).disabled(!JPKICardReader.validSigningPIN(pin) || checkout.busy)
-                        .accessibilityIdentifier("shop-tap-card")
+                    if !pin.isEmpty && !JPKICardReader.validSigningPIN(pin) {
+                        Text("Use 6–16 characters: uppercase A–Z and 0–9. Then tap Start card scan.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
                     privacy
-                case .readingCard,.proving,.verifying,.paying,.checking,.initial:
+                case .preparingCard,.readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
                     if checkout.phase == .proving, let start = checkout.proofStartedAt {
@@ -126,6 +133,25 @@ struct ShopPurchaseSheet: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }.frame(maxWidth: 520, alignment: .leading).padding(24)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            if checkout.phase == .card {
+                Button("Start card scan") { startCardRead() }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+                    .padding().background(.bar)
+                    .disabled(!JPKICardReader.validSigningPIN(pin) || checkout.busy)
+                    .accessibilityIdentifier("shop-tap-card")
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if pinFocused {
+                    Spacer()
+                    Button("Done") { pinFocused = false }
+                }
+            }
+        }
         .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
         .controlSize(.large)
         .task { checkout.load() }
@@ -135,12 +161,20 @@ struct ShopPurchaseSheet: View {
             else if phase == .active { checkout.load() }
         }
     }
+    private func startCardRead() {
+        guard JPKICardReader.validSigningPIN(pin), !checkout.busy, checkout.phase == .card else { return }
+        pinFocused = false
+        let oneUse = pin
+        pin = ""
+        checkout.readCard(pin: oneUse, sensors: model.sensors)
+    }
     private var privacy: some View {
         Label("Your name, address and birth date stay on this phone. The store receives the age proof, not your card.", systemImage: "lock.shield")
             .font(.subheadline).foregroundStyle(.secondary)
     }
     private var progressDetail: String {
         switch checkout.phase {
+        case .preparingCard: return "Stopping the camera before opening the card scanner."
         case .readingCard: return "Keep the card against the top of your iPhone. Mate won't retry a rejected PIN."
         case .proving: return "The signed card data is being processed locally. Keep Mate open."
         case .verifying: return "Only the public proof is sent to the store."
@@ -159,6 +193,8 @@ private struct ShopWalletConnection: View {
     @Binding var sentTo: String?
     @State private var message: String?
     @State private var operation: Task<Void, Never>?
+    private enum Field { case email, code }
+    @FocusState private var focusedField: Field?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -169,21 +205,33 @@ private struct ShopWalletConnection: View {
                 Button("Prepare buyer wallet") { run { try await wallet.prepareShopWallet() } }
                     .buttonStyle(.borderedProminent)
             } else if let sentTo {
-                SecureField("Verification code", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+                TextField("Verification code", text: $code)
+                    .keyboardType(.asciiCapableNumberPad).textContentType(.oneTimeCode)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .privacySensitive().focused($focusedField, equals: .code)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("shop-login-code")
+                    .onChange(of: code) { _, value in
+                        let digits = String(value.filter { $0.isASCII && $0.isNumber }.prefix(6))
+                        if code != digits { code = digits }
+                        if digits.count == 6 { focusedField = nil }
+                    }
                 Button("Sign in and prepare buyer wallet") {
+                    focusedField = nil
                     let oneUse = code; code = ""
                     run {
                         try await wallet.login(email: sentTo, code: oneUse)
                         try Task.checkCancellation()
                         try await wallet.prepareShopWallet()
                     }
-                }.buttonStyle(.borderedProminent).disabled(code.isEmpty)
+                }.buttonStyle(.borderedProminent).disabled(code.count != 6)
                 Button("Use a different email") { self.sentTo = nil; code = ""; message = nil }
             } else {
                 TextField("Email address", text: $email).keyboardType(.emailAddress)
+                    .focused($focusedField, equals: .email)
                     .textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder)
                 Button("Send verification code") {
+                    focusedField = nil
                     let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
                     run { try await wallet.sendCode(email: address); try Task.checkCancellation(); sentTo = address }
                 }.buttonStyle(.borderedProminent).disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -192,6 +240,14 @@ private struct ShopWalletConnection: View {
             if let message { Text(L10n.text(message)).foregroundStyle(.secondary) }
         }
         .disabled(operation != nil || wallet.busy)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedField != nil {
+                    Spacer()
+                    Button("Done") { focusedField = nil }
+                }
+            }
+        }
         .onDisappear { operation?.cancel(); code = "" }
     }
     private func run(_ body: @escaping @MainActor () async throws -> Void) {

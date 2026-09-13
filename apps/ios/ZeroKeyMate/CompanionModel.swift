@@ -50,9 +50,9 @@ final class CompanionModel:ObservableObject {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
             if sheet == .shop {
-                // A purchase pauses speech input before a PIN can be entered.
-                // Existing explicit camera consent remains under sensor control.
-                stopVoice(); cancelConversation(); requestGeneration = UUID(); sleeping = false
+                // Release capture before the card reader needs the phone's
+                // hardware. Checkout also awaits the actual stop before NFC.
+                stopVoice(); sensors.stopCapture(); cancelConversation(); requestGeneration = UUID(); sleeping = false
             } else if let sheet,sheet != .conversation && sheet != .controls {
                 rest()
                 // Opening an explicit request screen is a new user interaction, not

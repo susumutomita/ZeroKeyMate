@@ -7961,6 +7961,193 @@
           }
         }
       }
+    },
+    "Done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完了"
+          }
+        }
+      }
+    },
+    "Start card scan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start card scan"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの読み取りを開始"
+          }
+        }
+      }
+    },
+    "Use 6–16 characters: uppercase A–Z and 0–9. Then tap Start card scan.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use 6–16 characters: uppercase A–Z and 0–9. Then tap Start card scan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大文字の英字（A〜Z）と数字（0〜9）の6〜16文字を入力し、「カードの読み取りを開始」を押してください。"
+          }
+        }
+      }
+    },
+    "Preparing the card scanner": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the card scanner"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの読み取りを準備しています"
+          }
+        }
+      }
+    },
+    "Stopping the camera before opening the card scanner.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopping the camera before opening the card scanner."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラを停止してから、カードの読み取り画面を開きます。"
+          }
+        }
+      }
+    },
+    "This app's NFC permission is missing. The app must be reinstalled with card-reading support. No card PIN was checked.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This app's NFC permission is missing. The app must be reinstalled with card-reading support. No card PIN was checked."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリのNFC読み取り権限がありません。カード読み取りに対応したアプリの再インストールが必要です。暗証番号の照合は行っていません。"
+          }
+        }
+      }
+    },
+    "The iPhone could not start NFC while another operation was using it. Mate stopped its camera. Enter the signature PIN and tap Start card scan to try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The iPhone could not start NFC while another operation was using it. Mate stopped its camera. Enter the signature PIN and tap Start card scan to try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかの処理と競合し、NFCを開始できませんでした。Mateのカメラは停止しました。署名用暗証番号を入力し、「カードの読み取りを開始」を押してください。"
+          }
+        }
+      }
+    },
+    "The card scan timed out. Enter the signature PIN and tap Start card scan when your card is ready.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The card scan timed out. Enter the signature PIN and tap Start card scan when your card is ready."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの読み取りが時間切れになりました。カードを準備し、署名用暗証番号を入力して「カードの読み取りを開始」を押してください。"
+          }
+        }
+      }
+    },
+    "Card scanning stopped. Your PIN was cleared. Enter it again and tap Start card scan when you're ready.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card scanning stopped. Your PIN was cleared. Enter it again and tap Start card scan when you're ready."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み取りを停止し、暗証番号を消去しました。準備ができたら暗証番号を入力し、「カードの読み取りを開始」を押してください。"
+          }
+        }
+      }
+    },
+    "The card scan did not finish. Your PIN was cleared. Enter it again and tap Start card scan to retry.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The card scan did not finish. Your PIN was cleared. Enter it again and tap Start card scan to retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの読み取りが完了しなかったため、暗証番号を消去しました。再試行する場合は入力し直して「カードの読み取りを開始」を押してください。"
+          }
+        }
+      }
+    },
+    "The stand could not stop for input. Lift the phone off the stand to continue.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The stand could not stop for input. Lift the phone off the stand to continue."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタンドを停止できませんでした。スマホをスタンドから取り外して操作してください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

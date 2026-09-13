@@ -28,7 +28,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
 }
 
 @MainActor final class ShopCheckout: ObservableObject {
-    enum Phase: Equatable { case initial, checking, review, funding, card, readingCard, proving, verifying, paymentApproval, paying, pending, complete, expired, unavailable }
+    enum Phase: Equatable { case initial, checking, review, funding, card, preparingCard, readingCard, proving, verifying, paymentApproval, paying, pending, complete, expired, unavailable }
     @Published private(set) var phase = Phase.initial
     @Published private(set) var order: AgeShopOrder?
     @Published private(set) var message: String?
@@ -138,11 +138,14 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         phase = recoverablePhase
     }
 
-    func readCard(pin: String) {
+    func readCard(pin: String, sensors: MateModel) {
         guard !busy, phase == .card, let saved, let client, JPKICardReader.validSigningPIN(pin) else { return }
         message = nil
-        phase = .readingCard
+        phase = .preparingCard
         run { ticket in
+            try await sensors.stopCaptureAndWait()
+            try self.check(ticket)
+            self.phase = .readingCard
             let order = saved.order
             let challenge = try JPKIChallenge(orderHash: CanonicalBytes.hex(order.orderHash, count: 32),
                                                nonce: CanonicalBytes.hex(order.paymentNonce, count: 32))
@@ -306,6 +309,9 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         try Task.checkCancellation(); guard generation == ticket else { throw CancellationError() }
     }
     func cancel() {
+        if [.card, .preparingCard, .readingCard].contains(phase) {
+            message = Self.explanation(CardScanError.cancelled)
+        }
         generation = UUID(); operation?.cancel(); operation = nil; reader.cancel()
         proofStartedAt = nil
         // Saved payment state intentionally survives closing/backgrounding.
@@ -355,8 +361,14 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             return "This card could not be authenticated for this order on the phone. No card information was sent."
         }
         if let error = error as? CardScanError {
-            if error == .unavailable { return "Physical card scanning is not available on this device." }
-            return "The card scan did not finish. Enter the signature PIN again only when you want to retry."
+            switch error {
+            case .unavailable: return "Physical card scanning is not available on this device."
+            case .permissionMissing: return "This app's NFC permission is missing. The app must be reinstalled with card-reading support. No card PIN was checked."
+            case .busy: return "The iPhone could not start NFC while another operation was using it. Mate stopped its camera. Enter the signature PIN and tap Start card scan to try again."
+            case .timedOut: return "The card scan timed out. Enter the signature PIN and tap Start card scan when your card is ready."
+            case .cancelled: return "Card scanning stopped. Your PIN was cleared. Enter it again and tap Start card scan when you're ready."
+            default: return "The card scan did not finish. Your PIN was cleared. Enter it again and tap Start card scan to retry."
+            }
         }
         if error is AgeShopError { return "The order or payment details could not be verified. No new payment was authorized." }
         if let error = error as? ProductError { return error.localizedDescription }

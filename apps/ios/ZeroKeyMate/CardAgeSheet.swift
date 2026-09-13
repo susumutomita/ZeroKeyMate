@@ -8,6 +8,7 @@ struct CardAgeSheet: View {
     @State private var pin = ""
     @State private var message: String?
     @State private var task: Task<Void, Never>?
+    @FocusState private var pinFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -17,10 +18,12 @@ struct CardAgeSheet: View {
                     .font(.title3.weight(.semibold))
                 Text("Enter the four-digit card input-assistance PIN, then hold your card against the top of this iPhone. The PIN is used only for this read.")
                 SecureField("Four-digit card PIN", text: $pin)
-                    .keyboardType(.numberPad).textContentType(.none)
+                    .keyboardType(.asciiCapableNumberPad).textContentType(.oneTimeCode).privacySensitive()
+                    .focused($pinFocused)
                     .accessibilityIdentifier("card-pin")
                     .disabled(reader.scanning)
                 Button(reader.scanning ? "Reading card…" : "Read my card") {
+                    pinFocused = false
                     message = nil
                     let submittedPIN = pin
                     pin = ""
@@ -52,6 +55,15 @@ struct CardAgeSheet: View {
             }
         }
         .navigationTitle("Age verification")
+        .scrollDismissesKeyboard(.interactively)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if pinFocused {
+                    Spacer()
+                    Button("Done") { pinFocused = false }
+                }
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear { stop() }
         .onChange(of: scenePhase) { _, phase in if phase == .background { stop() } }

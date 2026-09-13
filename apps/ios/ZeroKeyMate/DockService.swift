@@ -71,6 +71,12 @@ final class DockService {
         try await DockAccessoryManager.shared.setSystemTrackingEnabled(enabled)
     }
 
+    func stopMotionForInput() async throws {
+        guard let accessory else { return }
+        // Stop at the current pose instead of issuing a home/down orientation.
+        try await accessory.setAngularVelocity(Vector3D(x: 0, y: 0, z: 0))
+    }
+
     /// Called only from the same reconciliation task that disables tracking.
     /// False means unsupported/no fresh stationary telemetry, never motor success.
     func performReaction(_ outcome:CompanionOutcome,mayContinue:()->Bool) async throws -> Bool {
@@ -164,6 +170,7 @@ final class DockService {
         guard !enabled else { throw DockUnavailable.unsupported }
         // Disabling absent hardware is a no-op; enabling is never a success.
     }
+    func stopMotionForInput() async throws { }
     func performReaction(_ outcome:CompanionOutcome,mayContinue:()->Bool) async throws -> Bool {
         throw DockUnavailable.unsupported
     }

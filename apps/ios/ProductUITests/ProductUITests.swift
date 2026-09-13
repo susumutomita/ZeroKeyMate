@@ -104,6 +104,10 @@ final class ProductUITests: XCTestCase {
         XCTAssertFalse(app.buttons["read-card"].isEnabled)
         XCTAssertFalse(app.staticTexts["card-read-status"].exists)
         pin.tap();pin.typeText("1234") // Synthetic digits, never a user's card PIN.
+        let done = app.buttons["Done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 3))
+        done.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["card-read-status"].exists)
         capture("card-read-explicit-start")
         closeSheet(app)

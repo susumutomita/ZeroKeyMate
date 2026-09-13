@@ -3,7 +3,7 @@ import Combine
 @preconcurrency import CoreNFC
 import MateCore
 
-enum CardScanError: Error, Equatable { case unavailable, busy, cancelled, multipleCards, wrongCard, connectionFailed }
+enum CardScanError: Error, Equatable { case unavailable, busy, cancelled, timedOut, permissionMissing, multipleCards, wrongCard, connectionFailed }
 
 /// Owns one explicitly started NFC session. No persistence, network, logging or
 /// automatic retries; invalidation resolves the caller rather than hanging it.
@@ -98,7 +98,20 @@ final class MyNumberNFCService: NSObject, ObservableObject, @preconcurrency NFCT
         // CoreNFC delegates use the explicitly supplied .main queue. Keep the
         // non-Sendable tag/session objects on that actor, including callbacks.
         guard self.session === session else { return }
-        self.finish(.failure(CardScanError.cancelled))
+        self.finish(.failure(Self.scanFailure(error)))
+    }
+
+    static func scanFailure(_ error: Error) -> CardScanError {
+        // Classify only system error codes; never expose underlying card data.
+        guard let error = error as? NFCReaderError else { return .connectionFailed }
+        switch error.code {
+        case .readerErrorUnsupportedFeature, .readerErrorRadioDisabled: return .unavailable
+        case .readerErrorSecurityViolation: return .permissionMissing
+        case .readerSessionInvalidationErrorSystemIsBusy: return .busy
+        case .readerSessionInvalidationErrorUserCanceled: return .cancelled
+        case .readerSessionInvalidationErrorSessionTimeout: return .timedOut
+        default: return .connectionFailed
+        }
     }
 
     func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {

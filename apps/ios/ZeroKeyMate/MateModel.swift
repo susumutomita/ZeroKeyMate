@@ -25,6 +25,7 @@ final class MateModel:ObservableObject {
     @Published private(set) var reactionRunning=false
     private var reactionGate=DockReactionGate()
     private var approvalPending=false
+    private var inputStandStopped=false
     private var trackingRetryAt=Date.distantPast
     var onDetach:(()->Void)?
     var onInterruption:(()->Void)?
@@ -122,6 +123,12 @@ final class MateModel:ObservableObject {
         return cameraPhase == .on && captureRequested
     }
     func stopCapture(){intent.requestStop();scheduleReconciliation()}
+    func stopCaptureAndWait() async throws {
+        stopCapture()
+        if let reconciliationTask { await reconciliationTask.value }
+        try Task.checkCancellation()
+        guard !captureRequested, !cameraRunning, cameraPhase == .off else { throw CameraError.unavailable }
+    }
     private func scheduleReconciliation() {
         revision &+= 1;captureRequested=intent.shouldCapture
         reactionGate.update(allowed:reactionAllowed)
@@ -136,6 +143,19 @@ final class MateModel:ObservableObject {
         var processedRevision:UInt64
         repeat {
             processedRevision=revision
+            if !approvalPending || !dock.isConnected { inputStandStopped=false }
+            if approvalPending, dock.isConnected, !inputStandStopped {
+                do {
+                    // Disable tracking and stop residual motion before camera
+                    // shutdown so the stand holds its pose during card input.
+                    try await dock.setTrackingEnabled(false)
+                    try await dock.stopMotionForInput()
+                    lastTrackingRequest=false; trackingEnabled=false
+                    inputStandStopped=true
+                } catch {
+                    dockMessage="The stand could not stop for input. Lift the phone off the stand to continue."
+                }
+            }
             if intent.shouldCapture && !cameraRunning {
                 cameraPhase = .starting
                 let allowed=await CameraService.requestPermission()

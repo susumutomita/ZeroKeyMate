@@ -1,8 +1,26 @@
 import XCTest
 import MateCore
+import CoreNFC
 @testable import ZeroKeyMate
 
 final class ShopProposalTests: XCTestCase {
+    @MainActor func testNFCFailuresKeepActionableReasonsWithoutUnderlyingCardData() {
+        let cases: [(NFCReaderError.Code, CardScanError)] = [
+            (.readerErrorSecurityViolation, .permissionMissing),
+            (.readerSessionInvalidationErrorSystemIsBusy, .busy),
+            (.readerSessionInvalidationErrorSessionTimeout, .timedOut),
+            (.readerSessionInvalidationErrorUserCanceled, .cancelled)
+        ]
+        for (code, expected) in cases {
+            let system = NSError(domain: NFCErrorDomain, code: code.rawValue,
+                                 userInfo: [NSLocalizedDescriptionKey: "synthetic-private-card-data"])
+            let classified = MyNumberNFCService.scanFailure(system)
+            XCTAssertEqual(classified, expected)
+            let explanation = ShopCheckout.explanation(classified)
+            XCTAssertFalse(explanation.contains("synthetic-private-card-data"))
+            XCTAssertNotEqual(L10n.text(explanation, language: .japanese), explanation)
+        }
+    }
     func testPastHypotheticalQuotedAndNegatedSpeechCannotProposeShopping() {
         for text in ["I bought a beer yesterday.","If I asked you to buy beer, what would happen?", "Could Mate buy beer someday?", "昨日ビールを買いました。", "ビールは買わないで。"] {
             XCTAssertFalse(ShopPlanner.isCurrentPurchaseRequest(text), text)
