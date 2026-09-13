@@ -2,7 +2,7 @@ import {before, after, test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {spawn} from 'node:child_process';
-import {createPublicClient, createWalletClient, http, hashTypedData, encodeAbiParameters, parseAbiParameters, parseSignature, keccak256, toHex} from 'viem';
+import {createPublicClient, createWalletClient, http, hashTypedData, encodeAbiParameters, parseAbiParameters, parseSignature, keccak256, toHex, toFunctionSelector} from 'viem';
 import {foundry} from 'viem/chains';
 import {mnemonicToAccount} from 'viem/accounts';
 
@@ -178,7 +178,7 @@ test('permission signatures bind every delegation field and the factory domain',
         {validUntil:(await client.getBlock()).timestamp+86401n}]) {
         const p={...f.p,...changes};
         const signature=await owner.signTypedData({domain:f.domain,types,primaryType:'PurchasePermission',message:p});
-        await assert.rejects(()=>call(f.factory,factoryABI,'create',[p,signature]),/InvalidPermission/);
+        await assert.rejects(()=>call(f.factory,factoryABI,'create',[p,signature]),new RegExp('InvalidPermission|'+toFunctionSelector('InvalidPermission()')));
     }
 });
 
