@@ -104,6 +104,10 @@ final class ProductUITests: XCTestCase {
         XCTAssertFalse(app.buttons["read-card"].isEnabled)
         XCTAssertFalse(app.staticTexts["card-read-status"].exists)
         pin.tap();pin.typeText("1234") // Synthetic digits, never a user's card PIN.
+        let done = app.buttons["Done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 3))
+        done.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["card-read-status"].exists)
         capture("card-read-explicit-start")
         closeSheet(app)
@@ -342,6 +346,48 @@ final class ProductUITests: XCTestCase {
 #else
         throw XCTSkip("Native proof memory requires the real bundled prover.")
 #endif
+    }
+
+    func testPurchaseLanguageMenuSwitchesInPlaceAndPersistsForSpeech() {
+        let app = launch()
+        app.buttons["open-shop"].tap()
+        XCTAssertTrue(app.staticTexts["shop-phase"].waitForExistence(timeout: 15))
+        let settled = NSPredicate { _, _ in
+            let label = app.staticTexts["shop-phase"].label
+            return !label.isEmpty && label != "Opening the store"
+        }
+        expectation(for: settled, evaluatedWith: nil)
+        waitForExpectations(timeout: 30)
+        let originalPhase = app.staticTexts["shop-phase"].label
+        let originalMessage = app.staticTexts["shop-message"].exists ? app.staticTexts["shop-message"].label : nil
+
+        app.buttons["language-menu"].tap()
+        app.buttons["choose-language-ja"].tap()
+        XCTAssertTrue(app.navigationBars["Mateの注文"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["1本・330 ml"].exists)
+        XCTAssertNotEqual(app.staticTexts["shop-phase"].label, originalPhase)
+        if let originalMessage { XCTAssertNotEqual(app.staticTexts["shop-message"].label, originalMessage) }
+        capture("purchase-language-japanese")
+
+        app.buttons["language-menu"].tap()
+        app.buttons["choose-language-en"].tap()
+        XCTAssertTrue(app.navigationBars["Mate's order"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["One bottle · 330 ml"].exists)
+        XCTAssertEqual(app.staticTexts["shop-phase"].label, originalPhase)
+        if let originalMessage { XCTAssertEqual(app.staticTexts["shop-message"].label, originalMessage) }
+        XCTAssertFalse(app.navigationBars["Settings"].exists)
+        capture("purchase-language-english")
+
+        closeSheet(app)
+        XCTAssertTrue(app.staticTexts["Camera off"].exists)
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.buttons["companion-face"].waitForExistence(timeout: 15))
+        if app.buttons["open-controls"].exists { app.buttons["open-controls"].tap() }
+        else { app.buttons["companion-face"].swipeUp() }
+        app.buttons["open-settings"].tap()
+        XCTAssertTrue(app.segmentedControls["app-language"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.segmentedControls["app-language"].buttons["English"].isSelected)
+        XCTAssertTrue(app.segmentedControls["spoken-language"].buttons["English"].isSelected)
     }
 
     func testLanguageSwitchPersistsAndLocalProofRefusalIsTranslated() {

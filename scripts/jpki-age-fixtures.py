@@ -41,7 +41,7 @@ def fixtures(out):
 
     valid = values("card")
     cases = {"valid": valid}
-    for name in ["underage", "unknown-date", "duplicate-date"]:
+    for name in ["underage", "unknown-date", "duplicate-date", "missing-policy", "wrong-policy", "unknown-critical"]:
         cases[name] = values(name)
     for name, mutate in [
         ("changed-order", lambda d: d.update(order_high=d["order_high"] ^ 1)),

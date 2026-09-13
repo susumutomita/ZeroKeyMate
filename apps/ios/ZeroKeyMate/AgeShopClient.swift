@@ -39,8 +39,9 @@ actor AgeShopClient {
         let response = try await request(["api", "catalog"])
         struct Catalog: Decodable { let checkoutAvailable: Bool, chainId: UInt64, testnet: Bool, shipsPhysicalGoods: Bool }
         let catalog = try JSONDecoder().decode(Catalog.self, from: response.data)
-        return response.code == 200 && catalog.checkoutAvailable && catalog.chainId == AgeShopProtocol.chainID
-            && catalog.testnet && !catalog.shipsPhysicalGoods
+        guard response.code == 200 && catalog.chainId == AgeShopProtocol.chainID
+            && catalog.testnet && !catalog.shipsPhysicalGoods else { throw ProductError.invalidResponse }
+        return catalog.checkoutAvailable
     }
     func create(payer: String, key: String) async throws -> AgeShopOrder {
         let data = try JSONSerialization.data(withJSONObject: ["productId": "mate-lager", "quantity": 1, "payer": payer])

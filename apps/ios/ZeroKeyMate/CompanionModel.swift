@@ -50,9 +50,9 @@ final class CompanionModel:ObservableObject {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
             if sheet == .shop {
-                // A purchase pauses speech input before a PIN can be entered.
-                // Existing explicit camera consent remains under sensor control.
-                stopVoice(); cancelConversation(); requestGeneration = UUID(); sleeping = false
+                // Release capture before the card reader needs the phone's
+                // hardware. Checkout also awaits the actual stop before NFC.
+                stopVoice(); sensors.stopCapture(); cancelConversation(); requestGeneration = UUID(); sleeping = false
             } else if let sheet,sheet != .conversation && sheet != .controls {
                 rest()
                 // Opening an explicit request screen is a new user interaction, not
@@ -134,6 +134,7 @@ final class CompanionModel:ObservableObject {
     private let planner:any AgentPlanning
     private let shopPlanner = ShopPlanner()
     private var shopReplyLanguage = AppLanguage.english
+    private(set) var shopStartsFromVoice = false
     private var agentOffer:AgentOffer? {didSet{updateStandApproval()}}
     private let conversation:any ConversationResponding
     // A single actor serializes native work across payment and offline screens.
@@ -347,16 +348,16 @@ final class CompanionModel:ObservableObject {
                 }
             }
             do {
-                let control=input.lowercased().filter{!$0.isWhitespace && !$0.isPunctuation}
-                if ["注文を確認して","注文どうなった","注文の状況を教えて","checkmyorder","checktheorder","orderstatus"].contains(control) {
+                if ShopOrderQuestion.matches(input) {
                     self.agentOffer=nil;self.revokeOffer=nil
                     guard self.stateLoaded else {
                         self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
                         return
                     }
                     if self.pendingExecution == nil && ShopCheckout.hasSavedOrder() {
-                        self.openShop(language: replyLanguage)
-                        self.agentSay(replyLanguage == .japanese ? "保存したビールの注文を確認します。新しく支払いはしません。" : "I'll check your saved beer order. This won't create a new payment.", language: replyLanguage)
+                        let answer = await ShopCheckout.savedOrderAnswer()
+                        guard self.foreground, self.conversationGeneration == generation else { return }
+                        self.agentSay(L10n.text(answer, language: replyLanguage), language: replyLanguage)
                     } else if self.pendingExecution != nil {
                         self.executionStatus=replyLanguage == .japanese ? "同じ注文の結果を確認しています" : "Checking the existing order"
                         await self.recoverExecution()
@@ -466,10 +467,7 @@ final class CompanionModel:ObservableObject {
                             self.agentSay(replyLanguage == .japanese ? "今の店舗は1本ずつの注文に対応しています。1本を注文する場合は、そう話しかけてください。" : "The store currently accepts one bottle per order. Ask me for one bottle if that's what you'd like.", language: replyLanguage)
                             return
                         }
-                        self.openShop(language: replyLanguage)
-                        self.agentSay(replyLanguage == .japanese
-                            ? "Mate Lagerを1本、0.10テストUSDCで注文できます。内容を確認したら、カードをタッチしてください。生年月日はiPhoneに残したまま証明します。"
-                            : "I can order one Mate Lager for 0.10 test USDC. Review the order, then tap your card. Your birth date stays on this iPhone.", language: replyLanguage)
+                        self.openShop(language: replyLanguage, startsFromVoice: true)
                         return
                     case .unsupportedPurchase:
                         self.agentSay(replyLanguage == .japanese ? "今つながっている店舗で買えるのはMate Lagerです。Amazonやほかの商品はまだ注文できません。" : "The connected store sells Mate Lager. Amazon and other products aren't connected yet.", language: replyLanguage)
@@ -505,7 +503,27 @@ final class CompanionModel:ObservableObject {
         let language = shopReplyLanguage
         agentSay(language == .japanese ? "Mate Lagerのテスト購入が完了しました。カードの情報はこのiPhoneに残したままです。" : "Your Mate Lager test purchase is complete. Your card details stayed on this iPhone.", language: language)
     }
-    func openShop(language: AppLanguage = .english) { shopReplyLanguage = language; sheet = .shop }
+    func openShop(language: AppLanguage? = nil, startsFromVoice: Bool = false) {
+        shopReplyLanguage = language ?? L10n.language
+        shopStartsFromVoice = startsFromVoice
+        sheet = .shop
+    }
+    func languagePreferencesChanged() {
+        if sheet == .shop {
+            // A language choice changes narration, never the current order,
+            // its authorization or the card/proof operation in progress.
+            shopReplyLanguage = L10n.language
+            voice.stop()
+        } else {
+            rest()
+        }
+        errorMessage = nil
+    }
+    func guideShop(_ phase: ShopCheckout.Phase) {
+        guard sheet == .shop, foreground, let text = phase.spokenGuide else { return }
+        // No microphone is started in checkout; never dictate or transcribe PINs.
+        agentSay(L10n.text(text, language: shopReplyLanguage), language: shopReplyLanguage)
+    }
     private func reportAgentResult(language:AppLanguage) {
         if let message=errorMessage {
             errorMessage=nil

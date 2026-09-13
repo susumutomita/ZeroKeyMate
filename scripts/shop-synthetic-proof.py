@@ -29,6 +29,7 @@ cert=(x509.CertificateBuilder().subject_name(x509.Name([x509.NameAttribute(NameO
  .issuer_name(root_name).public_key(card_key.public_key()).serial_number(2)
  .not_valid_before(datetime(2025,1,1,tzinfo=timezone.utc)).not_valid_after(datetime(2030,1,1,tzinfo=timezone.utc))
  .add_extension(x509.KeyUsage(True,True,False,False,False,False,False,False,False),critical=True)
+ .add_extension(x509.CertificatePolicies([x509.PolicyInformation(ObjectIdentifier('1.2.392.200149.8.5.1.1.20'),['http://www.jpki.go.jp/cps.html'])]),critical=True)
  .add_extension(x509.SubjectAlternativeName([x509.OtherName(ObjectIdentifier('1.2.392.200149.8.5.5.4'),b'\x0c\x09419900102')]),False)
  .sign(root_key,hashes.SHA256()))
 tbs=cert.tbs_certificate_bytes

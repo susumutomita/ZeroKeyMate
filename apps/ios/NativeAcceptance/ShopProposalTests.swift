@@ -1,8 +1,26 @@
 import XCTest
 import MateCore
+import CoreNFC
 @testable import ZeroKeyMate
 
 final class ShopProposalTests: XCTestCase {
+    @MainActor func testNFCFailuresKeepActionableReasonsWithoutUnderlyingCardData() {
+        let cases: [(NFCReaderError.Code, CardScanError)] = [
+            (.readerErrorSecurityViolation, .permissionMissing),
+            (.readerSessionInvalidationErrorSystemIsBusy, .busy),
+            (.readerSessionInvalidationErrorSessionTimeout, .timedOut),
+            (.readerSessionInvalidationErrorUserCanceled, .cancelled)
+        ]
+        for (code, expected) in cases {
+            let system = NSError(domain: NFCErrorDomain, code: code.rawValue,
+                                 userInfo: [NSLocalizedDescriptionKey: "synthetic-private-card-data"])
+            let classified = MyNumberNFCService.scanFailure(system)
+            XCTAssertEqual(classified, expected)
+            let explanation = ShopCheckout.explanation(classified)
+            XCTAssertFalse(explanation.contains("synthetic-private-card-data"))
+            XCTAssertNotEqual(L10n.text(explanation, language: .japanese), explanation)
+        }
+    }
     func testPastHypotheticalQuotedAndNegatedSpeechCannotProposeShopping() {
         for text in ["I bought a beer yesterday.","If I asked you to buy beer, what would happen?", "Could Mate buy beer someday?", "昨日ビールを買いました。", "ビールは買わないで。"] {
             XCTAssertFalse(ShopPlanner.isCurrentPurchaseRequest(text), text)
@@ -31,8 +49,8 @@ final class ShopProposalTests: XCTestCase {
         XCTAssertEqual(L10n.text("Approve the exact payment", language:.english), "Approve the exact payment")
         XCTAssertEqual(L10n.text("Approve the exact payment", language:.japanese), "この支払いを承認してください")
         XCTAssertNotEqual(L10n.text("Your phone is making the proof", language:.japanese), "Your phone is making the proof")
-        let template=L10n.text("The signature PIN was rejected. %lld attempts remain. Mate did not retry.", language:.japanese)
-        XCTAssertEqual(String(format:template,Int64(2)), "署名用暗証番号が違います。残り2回です。Mateは再試行していません。")
+        let template=L10n.text("The signature password was rejected. %lld attempts remain. Mate did not retry.", language:.japanese)
+        XCTAssertEqual(String(format:template,Int64(2)), "署名用パスワードが違います。残り2回です。Mateは再試行していません。")
         let timing = L10n.text("Age proof made on this phone · %.1f s", language: .japanese)
         XCTAssertEqual(String(format: timing, locale: Locale(identifier: "ja"), 12.5), "このスマホで年齢証明を作成・12.5秒")
     }

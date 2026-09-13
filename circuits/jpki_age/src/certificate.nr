@@ -34,7 +34,7 @@ pub fn fields(bytes: [u8; 2048], length: u32, reference_time: u64, expires_at: u
     let card_key = take::<256>(bytes,modulus.content+1,modulus.end);
     let extensions = expect(bytes,spki.end,outer.end,163); assert(extensions.end == outer.end);
     let sequence = expect(bytes,extensions.content,extensions.end,48); assert(sequence.end == extensions.end);
-    let mut cursor = sequence.content; let mut found_san = false; let mut found_usage = false;
+    let mut cursor = sequence.content; let mut found_san = false; let mut found_usage = false; let mut found_policy = false;
     let mut birth_date: [u8;8] = [0;8];
     let mut seen_oid: [u128;24] = [0;24];
     let mut seen_length: [u32;24] = [0;24];
@@ -62,13 +62,33 @@ pub fn fields(bytes: [u8; 2048], length: u32, reference_time: u64, expires_at: u
             } else if same(bytes,oid,[85,29,15]) {
                 assert(!found_usage, "Duplicate key usage"); found_usage = true;
                 assert(critical); assert(same(bytes,value,[3,2,6,192]), "Signing key usage required");
+            } else if same(bytes,oid,[85,29,32]) {
+                assert(!found_policy); found_policy = true;
+                assert(critical, "Critical signing policy required");
+                signing_policy(bytes,value);
             } else {assert(!critical, "Unknown critical extension");}
             cursor = extension.end;
         }
     }
     assert(cursor == sequence.end, "Too many extensions");
-    assert(found_san & found_usage, "Missing age or key usage");
+    assert(found_san & found_usage & found_policy, "Missing age, key usage or signing policy");
     (card_key,birth_date)
+}
+
+// J-LIS profile 3.2, physical signing certificate, printed page 10.
+// Process the mandatory critical extension; never ignore unknown critical OIDs
+// or accept the mobile/authentication certificate policy in its place.
+fn signing_policy(bytes: [u8;2048], extension: Node) {
+    let policies = expect(bytes,extension.content,extension.end,48); assert(policies.end == extension.end);
+    let policy = expect(bytes,policies.content,policies.end,48); assert(policy.end == policies.end);
+    let oid = expect(bytes,policy.content,policy.end,6);
+    assert(same(bytes,oid,[42,131,8,140,155,85,8,5,1,1,20]), "Physical signing policy required");
+    let qualifiers = expect(bytes,oid.end,policy.end,48); assert(qualifiers.end == policy.end);
+    let qualifier = expect(bytes,qualifiers.content,qualifiers.end,48); assert(qualifier.end == qualifiers.end);
+    let kind = expect(bytes,qualifier.content,qualifier.end,6);
+    assert(same(bytes,kind,[43,6,1,5,5,7,2,1]), "CPS qualifier required");
+    let url = expect(bytes,kind.end,qualifier.end,22); assert(url.end == qualifier.end);
+    assert(same(bytes,url,[104,116,116,112,58,47,47,119,119,119,46,106,112,107,105,46,103,111,46,106,112,47,99,112,115,46,104,116,109,108]), "JPKI CPS required");
 }
 
 fn san(bytes: [u8;2048], extension: Node) -> [u8;8] {

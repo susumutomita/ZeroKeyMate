@@ -5,12 +5,14 @@ struct ShopPurchaseSheet: View {
     @ObservedObject var model: CompanionModel
     @ObservedObject var wallet: WalletService
     @StateObject private var checkout = ShopCheckout()
-    @State private var pin = ""
+    @StateObject private var pinEntry = SignaturePINEntry()
+    @State private var automaticOrderStarted = false
     // Keep the destination across the temporary checking phase when the user
     // returns from Mail. The one-use code remains local to the child view.
     @State private var buyerEmail = ""
     @State private var buyerCodeSentTo: String?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.locale) private var locale
 
     private var heading: String {
         switch checkout.phase {
@@ -18,9 +20,12 @@ struct ShopPurchaseSheet: View {
         case .review: return "Let Mate get your beer"
         case .funding: return "Add free test USDC"
         case .card: return "Confirm you're 20 or older"
+        case .preparingCard: return "Preparing the card scanner"
         case .readingCard: return "Hold your card to the phone"
         case .proving: return "Your phone is making the proof"
+        case .proofFailed: return "Age proof could not be completed"
         case .verifying: return "The store is checking your proof"
+        case .verificationFailed: return "Waiting for age verification"
         case .paymentApproval: return "Approve the exact payment"
         case .paying: return "Mate is paying the store"
         case .pending: return "Checking your payment"
@@ -30,8 +35,11 @@ struct ShopPurchaseSheet: View {
         }
     }
     var body: some View {
+        // Dynamic phase/error strings use L10n; observe the locale so they
+        // refresh alongside SwiftUI's static text in the existing checkout.
+        let _ = locale.identifier
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .center, spacing: 20) {
                     Image(systemName: checkout.phase == .complete ? "checkmark.seal.fill" : "mug.fill")
                         .font(.system(size: 48)).foregroundStyle(checkout.phase == .complete ? Color.green : Color.orange)
@@ -43,16 +51,12 @@ struct ShopPurchaseSheet: View {
                     }
                 }
                 Text(L10n.text(heading)).font(.title2.bold()).accessibilityIdentifier("shop-phase")
-                if let url = checkout.storeURL {
-                    Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }.font(.subheadline)
-                }
                 if let message = checkout.message {
                     Text(L10n.text(message)).foregroundStyle(.secondary).accessibilityIdentifier("shop-message")
                 }
                 switch checkout.phase {
                 case .review:
-                    Text("Mate will place this order, ask you to tap your My Number card, and prove your age on this phone. You'll approve the exact test payment with Face ID or your device passcode.")
-                    privacy
+                    Text("I’ll get one beer. First, let’s confirm your age.")
                     if wallet.ownerAddress == nil {
                         ShopWalletConnection(wallet: wallet, email: $buyerEmail, sentTo: $buyerCodeSentTo)
                     } else {
@@ -70,16 +74,23 @@ struct ShopPurchaseSheet: View {
                     Button("Check funds and start this order") { checkout.startOrder(wallet: wallet) }
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .card:
-                    Text("Use the signature PIN: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
-                    SecureField("Signature PIN", text: $pin)
-                        .textInputAutocapitalization(.characters).autocorrectionDisabled().keyboardType(.asciiCapable)
-                        .textFieldStyle(.roundedBorder).accessibilityIdentifier("shop-signature-pin")
-                    Button("Tap card and continue") {
-                        let oneUse = pin; pin = ""; checkout.readCard(pin: oneUse)
-                    }.buttonStyle(.borderedProminent).disabled(!JPKICardReader.validSigningPIN(pin) || checkout.busy)
-                        .accessibilityIdentifier("shop-tap-card")
-                    privacy
-                case .readingCard,.proving,.verifying,.paying,.checking,.initial:
+                    SignaturePINField(entry: pinEntry, submit: startCardRead)
+                case .proofFailed:
+                    if checkout.canRetryAgeProof {
+                        Button("Retry proof without scanning") { checkout.retryAgeProof() }
+                            .buttonStyle(.borderedProminent).disabled(checkout.busy)
+                    } else {
+                        Button("Read the card again") { checkout.restartCardRead() }.disabled(checkout.busy)
+                    }
+                    Button("Back to Mate") { model.sheet = nil }
+                case .verificationFailed:
+                    if checkout.canRetryAgeSubmission {
+                        Button("Send the same proof again") { checkout.retryAgeSubmission() }
+                            .buttonStyle(.borderedProminent).disabled(checkout.busy)
+                    }
+                    Button("Check the same order") { checkout.checkOrder() }.disabled(checkout.busy)
+                    Button("Back to Mate") { model.sheet = nil }
+                case .preparingCard,.readingCard,.proving,.verifying,.paying,.checking,.initial:
                     ProgressView().controlSize(.large)
                     Text(L10n.text(progressDetail)).foregroundStyle(.secondary)
                     if checkout.phase == .proving, let start = checkout.proofStartedAt {
@@ -91,7 +102,7 @@ struct ShopPurchaseSheet: View {
                         }
                     }
                 case .paymentApproval:
-                    Text("The store has checked the age proof. This approves only this order, recipient and amount on Arc Testnet.")
+                    Text("Age verified. Approve this one purchase.")
                     Button("Approve 0.10 test USDC") { checkout.continuePayment(wallet: wallet) }
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .pending:
@@ -102,12 +113,11 @@ struct ShopPurchaseSheet: View {
                         Button("Retry the original payment") { checkout.retryOriginalPayment() }.disabled(checkout.busy)
                     }
                 case .complete:
-                    Text("The store recorded your order and the test USDC payment was confirmed. Your card details stayed on this phone.")
-                    if let hash = checkout.order?.paymentTransaction,
-                       let url = URL(string: "https://testnet.arcscan.app/tx/" + hash) {
-                        Link("View payment receipt", destination: url)
+                    Text("Paid. Your birth date stayed on your iPhone.")
+                    if let hash = checkout.order?.paymentTransaction {
+                        ArcPaymentReceiptView(transaction: hash)
                     }
-                    Button("Back to Mate") { model.finishShopConversation(); model.sheet = nil }.buttonStyle(.borderedProminent)
+                    Button("Back to Mate") { model.sheet = nil }.buttonStyle(.borderedProminent)
                 case .unavailable:
                     Text("You can close this screen. Mate hasn't completed a purchase.").foregroundStyle(.secondary)
                     Button("Check again") { checkout.retryAvailability() }.buttonStyle(.borderedProminent).disabled(checkout.busy)
@@ -120,19 +130,71 @@ struct ShopPurchaseSheet: View {
                         .font(.subheadline).accessibilityIdentifier("shop-proof-duration")
                 }
                 if checkout.canStartNew {
-                    Button("Start a new order") { pin = ""; checkout.startNew() }.disabled(checkout.busy)
+                    Button("Start a new order") { pinEntry.clear(); checkout.startNew() }.disabled(checkout.busy)
                 }
+                DisclosureGroup("Purchase details") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let code = checkout.proofFailureCode {
+                            Text(code).font(.footnote.monospaced()).textSelection(.enabled)
+                                .accessibilityIdentifier("shop-proof-failure-code")
+                        }
+                        if let url = checkout.storeURL {
+                            Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }
+                        }
+                        privacy
+                        Text("Use the signature password: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
+                        Text("Only this order is authorized. The store pays the network fee.")
+                    }.font(.subheadline).padding(.top, 8)
+                }.font(.subheadline).foregroundStyle(.secondary)
                 Text("Arc Testnet · No real money · No physical delivery")
                     .font(.footnote).foregroundStyle(.secondary)
             }.frame(maxWidth: 520, alignment: .leading).padding(24)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            if checkout.phase == .card {
+                SignaturePINScanButton(busy: checkout.busy, submit: startCardRead)
+            }
+        }
         .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
         .controlSize(.large)
         .task { checkout.load() }
-        .onDisappear { pin = ""; buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel() }
+        .onChange(of: checkout.phase) { _, phase in
+            // A fresh voice request may first recover a completed/expired old
+            // order. Its terminal phase is not the result of the new request.
+            let replacingOldOrder = model.shopStartsFromVoice && !automaticOrderStarted && checkout.canStartNew
+            advanceVoiceOrder()
+            if !replacingOldOrder && checkout.phase == phase { model.guideShop(phase) }
+        }
+        .onChange(of: checkout.busy) { _, _ in advanceVoiceOrder() }
+        .onChange(of: wallet.ownerAddress) { _, _ in advanceVoiceOrder() }
+        .onDisappear {
+            let completed = checkout.phase == .complete
+            pinEntry.clear(); buyerEmail = ""; buyerCodeSentTo = nil; checkout.cancel()
+            if !completed { model.voice.stop() }
+        }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { pin = ""; checkout.cancel() }
+            if phase == .background { pinEntry.clear(); checkout.cancel() }
             else if phase == .active { checkout.load() }
+        }
+    }
+    private func advanceVoiceOrder() {
+        // A current, explicit one-beer voice request may create its order after
+        // readiness/funds checks. It does not authorize a payment signature.
+        guard model.shopStartsFromVoice, !automaticOrderStarted,
+              !checkout.busy,
+              wallet.ownerAddress != nil else { return }
+        // A fresh, explicit voice order may replace a safely terminal order.
+        // An uncertain payment never satisfies canStartNew and remains intact.
+        if checkout.canStartNew { pinEntry.clear(); checkout.startNew(); return }
+        guard checkout.phase == .review, checkout.canStart else { return }
+        automaticOrderStarted = true
+        checkout.startOrder(wallet: wallet)
+    }
+    private func startCardRead() {
+        guard checkout.phase == .card else { return }
+        pinEntry.submit(busy: checkout.busy) { oneUse in
+            checkout.readCard(pin: oneUse, sensors: model.sensors)
         }
     }
     private var privacy: some View {
@@ -141,11 +203,12 @@ struct ShopPurchaseSheet: View {
     }
     private var progressDetail: String {
         switch checkout.phase {
-        case .readingCard: return "Keep the card against the top of your iPhone. Mate won't retry a rejected PIN."
-        case .proving: return "The signed card data is being processed locally. Keep Mate open."
+        case .preparingCard: return "Keep Mate open. The scanner will appear shortly."
+        case .readingCard: return "Hold the card against the top of your iPhone."
+        case .proving: return "Keep Mate open. Your birth date stays here."
         case .verifying: return "Only the public proof is sent to the store."
-        case .paying: return "Sending the approved authorization once, then checking the receipt."
-        default: return "Checking the store and the on-device proof runtime."
+        case .paying: return "Waiting for the payment receipt."
+        default: return "One moment."
         }
     }
 }
@@ -159,31 +222,45 @@ private struct ShopWalletConnection: View {
     @Binding var sentTo: String?
     @State private var message: String?
     @State private var operation: Task<Void, Never>?
+    private enum Field { case email, code }
+    @FocusState private var focusedField: Field?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connect with Privy").font(.headline)
-            Text("Use your email to prepare a buyer wallet for this test purchase. Your card information is not shared with Privy.")
+            Text("First time only: sign in with your email.")
                 .font(.subheadline).foregroundStyle(.secondary)
             if wallet.isAuthenticated {
                 Button("Prepare buyer wallet") { run { try await wallet.prepareShopWallet() } }
                     .buttonStyle(.borderedProminent)
             } else if let sentTo {
-                SecureField("Verification code", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+                TextField("Verification code", text: $code)
+                    .keyboardType(.asciiCapableNumberPad).textContentType(.oneTimeCode)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .privacySensitive().focused($focusedField, equals: .code)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("shop-login-code")
+                    .onChange(of: code) { _, value in
+                        let digits = String(value.filter { $0.isASCII && $0.isNumber }.prefix(6))
+                        if code != digits { code = digits }
+                        if digits.count == 6 { focusedField = nil }
+                    }
                 Button("Sign in and prepare buyer wallet") {
+                    focusedField = nil
                     let oneUse = code; code = ""
                     run {
                         try await wallet.login(email: sentTo, code: oneUse)
                         try Task.checkCancellation()
                         try await wallet.prepareShopWallet()
                     }
-                }.buttonStyle(.borderedProminent).disabled(code.isEmpty)
+                }.buttonStyle(.borderedProminent).disabled(code.count != 6)
                 Button("Use a different email") { self.sentTo = nil; code = ""; message = nil }
             } else {
                 TextField("Email address", text: $email).keyboardType(.emailAddress)
+                    .focused($focusedField, equals: .email)
                     .textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder)
                 Button("Send verification code") {
+                    focusedField = nil
                     let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
                     run { try await wallet.sendCode(email: address); try Task.checkCancellation(); sentTo = address }
                 }.buttonStyle(.borderedProminent).disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -192,6 +269,14 @@ private struct ShopWalletConnection: View {
             if let message { Text(L10n.text(message)).foregroundStyle(.secondary) }
         }
         .disabled(operation != nil || wallet.busy)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedField != nil {
+                    Spacer()
+                    Button("Done") { focusedField = nil }
+                }
+            }
+        }
         .onDisappear { operation?.cancel(); code = "" }
     }
     private func run(_ body: @escaping @MainActor () async throws -> Void) {

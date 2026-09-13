@@ -1,10 +1,36 @@
 import XCTest
 import Foundation
 import MateAgeProof
-import MateCore
+@testable import MateCore
 @testable import ZeroKeyMate
 
 final class AgeProofTests: XCTestCase {
+    func testSwiftCardWitnessReachesTheActualNativeAgeProver() async throws {
+        guard MateAgeNative.available else { throw XCTSkip("Build the real age runtime before native acceptance.") }
+        let bundle = Bundle(for: Self.self)
+        func fixture(_ name: String, _ ext: String) throws -> Data {
+            try Data(contentsOf: XCTUnwrap(bundle.url(forResource: name, withExtension: ext)))
+        }
+        // Public repository fixtures only. Test-only issuer injection remains
+        // internal to MateCore; the app's trust roots cannot be substituted.
+        let authentication = UnverifiedJPKIAuthentication(certificate: try fixture("card", "der"),
+                                                         signature: try fixture("card-signature", "bin"))
+        let witness = try JPKIAgeWitness.prepare(authentication: authentication,
+            orderHash: Data(repeating: 1, count: 32), nonce: Data(repeating: 2, count: 32),
+            referenceTime: 1_800_000_000, expiresAt: 1_800_000_900,
+            now: Date(timeIntervalSince1970: 1_800_000_100), roots: [try fixture("root", "der")])
+        let prover = try XCTUnwrap(Bundle.main.url(forResource: "age", withExtension: "pkp"))
+        let verifier = try XCTUnwrap(Bundle.main.url(forResource: "age", withExtension: "pkv"))
+        // Exercise the same background execution boundary as AgeProofService;
+        // synchronous XCTest methods otherwise block the phone's main thread.
+        let proof = try await Task.detached {
+            try witness.withLocalProverInput {
+                try MateAgeNative.prove(proverPath: prover.path, verifierPath: verifier.path, input: $0)
+            }
+        }.value
+        XCTAssertEqual(proof.proof.count, 384)
+        XCTAssertEqual(proof.publicInputs.count, 8)
+    }
     func testNativeKeccakAndCompleteOrderCommitment() throws {
         guard MateAgeNative.available else { throw XCTSkip("Build the real age runtime before native acceptance.") }
         XCTAssertEqual(try CanonicalBytes.hexString(MateAgeNative.keccak256(Data())),

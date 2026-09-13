@@ -1,8 +1,14 @@
 @preconcurrency import AVFoundation
 import Foundation
 
+protocol CameraCapturing: Sendable {
+    func setObserver(_ observer:@escaping @Sendable (FrameObservation)->Void) async
+    func start() async throws
+    func stop() async
+}
+
 /// All capture-session mutation is serialized away from the main actor.
-actor CameraService {
+actor CameraService:CameraCapturing {
     private let session=AVCaptureSession()
     private let analyzer=FrameAnalyzer()
     private var configured=false
@@ -70,10 +76,11 @@ actor CameraService {
     }
 }
 
-enum CameraError:Error,LocalizedError {
-    case noFrontCamera,unavailable
+enum CameraError:Error,LocalizedError,Equatable {
+    case noFrontCamera,unavailable,stopTimedOut
     var errorDescription:String? {
         switch self {
+        case .stopTimedOut:return "The camera has not stopped yet. Close Mate and reopen it before scanning your card."
         case .noFrontCamera:return "The front camera is unavailable. Try a physical iPhone."
         case .unavailable:return "Could not start the camera. Check whether another app is using it and try again."
         }

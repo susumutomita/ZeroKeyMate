@@ -1,6 +1,16 @@
 import Foundation
 import MateCore
 
+@MainActor protocol DockControlling:AnyObject {
+    var isConnected:Bool {get}
+    var trackingButtonEnabled:Bool {get}
+    var onTrackingSubjects:((Int)->Void)? {get set}
+    func observe(onChange:@escaping @MainActor (String?)->Void)
+    func setTrackingEnabled(_ enabled:Bool) async throws
+    func stopMotionForInput() async throws
+    func performReaction(_ outcome:CompanionOutcome,mayContinue:()->Bool) async throws -> Bool
+}
+
 #if canImport(DockKit) && !targetEnvironment(simulator)
 import DockKit
 import Spatial
@@ -8,7 +18,7 @@ import Spatial
 /// All DockKit writes are called by MateModel's single reconciliation task.
 /// Docking alone does not authorize camera capture.
 @MainActor
-final class DockService {
+final class DockService:DockControlling {
     private var observationTask: Task<Void, Never>?
     private var accessory: DockAccessory?
     private var trackingTask:Task<Void,Never>?
@@ -69,6 +79,12 @@ final class DockService {
 
     func setTrackingEnabled(_ enabled: Bool) async throws {
         try await DockAccessoryManager.shared.setSystemTrackingEnabled(enabled)
+    }
+
+    func stopMotionForInput() async throws {
+        guard let accessory else { return }
+        // Stop at the current pose instead of issuing a home/down orientation.
+        try await accessory.setAngularVelocity(Vector3D(x: 0, y: 0, z: 0))
     }
 
     /// Called only from the same reconciliation task that disables tracking.
@@ -151,7 +167,7 @@ final class DockService {
 /// DockKit is absent from the simulator SDK. Report that limitation explicitly;
 /// this adapter must never report a connection or fake an enabled motor.
 @MainActor
-final class DockService {
+final class DockService:DockControlling {
     var onTrackingSubjects:((Int)->Void)?
     let isConnected = false
     let trackingButtonEnabled = false
@@ -164,6 +180,7 @@ final class DockService {
         guard !enabled else { throw DockUnavailable.unsupported }
         // Disabling absent hardware is a no-op; enabling is never a success.
     }
+    func stopMotionForInput() async throws { }
     func performReaction(_ outcome:CompanionOutcome,mayContinue:()->Bool) async throws -> Bool {
         throw DockUnavailable.unsupported
     }
