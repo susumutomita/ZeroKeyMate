@@ -26,7 +26,7 @@ private final class ShopTestRPC: URLProtocol, @unchecked Sendable {
             let parts = request.url!.pathComponents, mode = parts[1], end = UInt64(parts[2])!
             let method = body["method"] as! String
             let result: Any
-            if method == "eth_chainId" { result = mode == "wrong-chain" ? "0x2105" : "0x14a34" }
+            if method == "eth_chainId" { result = mode == "wrong-chain" ? "0x14a34" : "0x4cef52" }
             else if method == "eth_getBlockByNumber" {
                 result = ["number": "0x64", "hash": "0x" + String(repeating: "bb", count: 32),
                           "timestamp": "0x" + String(mode == "early" ? end - 1 : end + 1, radix: 16)]
