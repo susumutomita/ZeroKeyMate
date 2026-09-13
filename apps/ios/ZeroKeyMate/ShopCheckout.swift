@@ -72,6 +72,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
                 // A saved success is rechecked against both providers before
                 // being presented as success after a restart.
                 try await self.recover(ticket)
+                try await self.followPayment(ticket)
                 return
             }
             if let pending = try LocalSecrets.read(PendingShopCreation.self, key: self.creationKey) {
@@ -170,12 +171,31 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         } catch {
             try check(ticket); phase = .pending
             message = "The payment result is not confirmed yet. Check this same order; do not create another payment."
+            try await followPayment(ticket)
             return
         }
         try await recover(ticket)
+        try await followPayment(ticket)
     }
 
-    func checkOrder() { guard saved != nil, !busy else { return }; phase = .checking; run { try await self.recover($0) } }
+    func checkOrder() {
+        guard saved != nil, !busy else { return }
+        phase = .checking
+        run { ticket in try await self.recover(ticket); try await self.followPayment(ticket) }
+    }
+    private func followPayment(_ ticket: UUID) async throws {
+        guard phase == .pending else { return }
+        message = "Checking the original payment. Its order and nonce are preserved."
+        let leftPending = try await ShopConfirmation.observe(check: {
+            try self.check(ticket)
+            try await self.recover(ticket)
+            return self.phase != .pending
+        })
+        try check(ticket)
+        if !leftPending && phase == .pending {
+            message = "The payment result is not confirmed yet. Check this same order; do not create another payment."
+        }
+    }
     private func recover(_ ticket: UUID) async throws {
         guard let client, let saved else { throw ProductError.invalidResponse }
         let current = try await client.status(order: saved.order, key: saved.key)
@@ -227,6 +247,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         run { ticket in
             let next = try await client.pay(order: saved.order, key: saved.key, header: header)
             try self.check(ticket); try self.store(next); try await self.recover(ticket)
+            try await self.followPayment(ticket)
         }
     }
     var canRetryOriginal: Bool {
@@ -249,6 +270,10 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
                 guard self.generation == ticket else { return }
                 self.message = Self.explanation(error)
                 self.phase = self.recoverablePhase
+                // Restoring/checking can lose its first response too. Only
+                // an outstanding payment receives bounded read-only follow-up;
+                // PIN entry and payment approval are never retried here.
+                if self.phase == .pending { try? await self.followPayment(ticket) }
             }
         }
     }
