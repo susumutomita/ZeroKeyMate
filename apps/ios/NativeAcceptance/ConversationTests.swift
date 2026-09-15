@@ -16,8 +16,66 @@ private actor SuspendedConversation:ConversationResponding {
     func complete() {continuation?.resume(returning:ConversationReply(text:"test reply",service:nil,disclosure:""));continuation=nil}
 }
 
+private actor StreamingConversation:ConversationResponding {
+    private var continuation:CheckedContinuation<ConversationReply,Error>?
+    private var partial:(@Sendable (String) async -> Void)?
+    func availability()->String?{nil}
+    func reply(to text:String,history:String,observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
+        try await streamReply(to:text,history:history,observations:observations,notes:notes,replyLanguage:replyLanguage,onPartial:{_ in})
+    }
+    func streamReply(to text:String,history:String,observations:String,notes:String,replyLanguage:String,
+                     onPartial:@escaping @Sendable (String) async -> Void) async throws -> ConversationReply {
+        partial=onPartial
+        return try await withCheckedThrowingContinuation{continuation=$0}
+    }
+    var waiting:Bool{continuation != nil}
+    func emit(_ text:String) async {await partial?(text)}
+    func complete(){continuation?.resume(returning:ConversationReply(text:"Hello. How are you?",service:nil,disclosure:""));continuation=nil}
+}
+
 @MainActor
 final class ConversationTests:XCTestCase {
+    func testPartialReplyAppearsBeforeCompletionAndCommitsOnlyOnce() async throws {
+        let service=StreamingConversation()
+        let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
+        model.readAloud=false
+        model.send("hello")
+        try await waitUntil{await service.waiting}
+        await service.emit("Hello.")
+        XCTAssertTrue(model.thinking)
+        XCTAssertEqual(model.streamingReply,"Hello.")
+        XCTAssertEqual(model.messages.count,1)
+        await service.emit("Hello. How are you?")
+        await service.complete()
+        try await waitUntil{!model.thinking}
+        XCTAssertEqual(model.messages.map(\.text),["hello","Hello. How are you?"])
+        XCTAssertTrue(model.streamingReply.isEmpty)
+        XCTAssertNil(model.draft)
+        model.rest()
+    }
+    func testInterruptedStreamCannotSpeakDisplayOrResumeFromLateChunks() async throws {
+        for stop in 0..<3 {
+            let service=StreamingConversation()
+            let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
+            model.readAloud=false
+            model.send("hello")
+            try await waitUntil{await service.waiting}
+            await service.emit("Hello.")
+            if stop==0{_ = model.interruptReply()}
+            else if stop==1{model.setForeground(false)}
+            else{model.sheet = .settings}
+            await service.emit("Hello. How are you?")
+            await service.complete()
+            try await Task.sleep(for:.milliseconds(30))
+            XCTAssertTrue(model.streamingReply.isEmpty)
+            XCTAssertEqual(model.messages.count,1)
+            XCTAssertFalse(model.thinking)
+            XCTAssertFalse(model.voice.speaking)
+            XCTAssertFalse(model.voiceSessionActive)
+            XCTAssertFalse(model.sensors.captureRequested)
+            model.rest()
+        }
+    }
     func testStandMovementOffAndOutcomeDoNotStartSensors() {
         let model=CompanionModel(planner:ChatOnlyPlanner())
         let previous=model.sensors.standMovementEnabled

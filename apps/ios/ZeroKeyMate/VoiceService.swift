@@ -23,7 +23,9 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
     private var generation:UInt64=0
     private var turn:VoiceTurn?
     private var deadlineTask:Task<Void,Never>?
-    private var currentUtterance:AVSpeechUtterance?
+    private var pendingUtterances=Set<ObjectIdentifier>()
+    private var receivingResponse=false
+    private var spokenText=SpokenTextBuffer()
     override init(){super.init();synthesizer.delegate=self}
 
     func start(locale:String? = nil) async {
@@ -106,24 +108,55 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
         try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
     }
     func speak(_ text:String,locale:String? = nil){
-        stopListening();synthesizer.stopSpeaking(at:.immediate)
+        stop()
+        enqueue(text,locale:locale)
+    }
+    /// Snapshots are cumulative; only complete sentences enter the speech queue.
+    /// The audio session stays active between sentences until generation ends.
+    func stream(_ snapshot:String,locale:String? = nil) {
+        if !receivingResponse {stop();receivingResponse=true}
+        for sentence in spokenText.consume(snapshot) {
+            guard receivingResponse else{return}
+            enqueue(sentence,locale:locale)
+        }
+    }
+    func finishStream(_ text:String,locale:String? = nil) {
+        if !receivingResponse {speak(text,locale:locale);return}
+        for sentence in spokenText.consume(text,final:true) {
+            guard receivingResponse else{return}
+            enqueue(sentence,locale:locale)
+        }
+        receivingResponse=false
+        finishPlaybackIfReady()
+    }
+    private func enqueue(_ text:String,locale:String?) {
         guard !text.isEmpty else{return}
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback,mode:.spokenAudio)
-            try AVAudioSession.sharedInstance().setActive(true)
+            if pendingUtterances.isEmpty {
+                try AVAudioSession.sharedInstance().setCategory(.playback,mode:.spokenAudio)
+                try AVAudioSession.sharedInstance().setActive(true)
+            }
             let utterance=AVSpeechUtterance(string:text)
             utterance.voice=AVSpeechSynthesisVoice(language:locale ?? L10n.speechLanguage.speechLocale);utterance.rate=0.49
-            currentUtterance=utterance;speaking=true;synthesizer.speak(utterance)
-        }catch{currentUtterance=nil;speaking=false;errorMessage="Could not start reading aloud.";onInputInterrupted?()}
+            pendingUtterances.insert(ObjectIdentifier(utterance));speaking=true;synthesizer.speak(utterance)
+        }catch{stop();errorMessage="Could not start reading aloud.";onInputInterrupted?()}
     }
-    func stop(){stopListening();synthesizer.stopSpeaking(at:.immediate);currentUtterance=nil;speaking=false}
+    private func finishPlaybackIfReady() {
+        guard pendingUtterances.isEmpty else{return}
+        speaking=false
+        guard !receivingResponse else{return}
+        try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
+        onPlaybackFinished?()
+    }
+    func stop(){
+        pendingUtterances.removeAll();receivingResponse=false;spokenText=SpokenTextBuffer()
+        stopListening();synthesizer.stopSpeaking(at:.immediate);speaking=false
+    }
     nonisolated func speechSynthesizer(_ synthesizer:AVSpeechSynthesizer,didFinish utterance:AVSpeechUtterance){
         let identifier = ObjectIdentifier(utterance)
         Task{@MainActor [weak self] in
-            guard let self, let current = self.currentUtterance, ObjectIdentifier(current) == identifier else{return}
-            self.currentUtterance=nil;self.speaking=false
-            try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
-            self.onPlaybackFinished?()
+            guard let self,self.pendingUtterances.remove(identifier) != nil else{return}
+            self.finishPlaybackIfReady()
         }
     }
 }

@@ -65,6 +65,7 @@ final class CompanionModel:ObservableObject {
     @Published var errorMessage:String? { didSet { if errorMessage != nil { stopVoice() } } }
     @Published private(set) var messages:[ConversationMessage]=[]
     @Published private(set) var thinking=false
+    @Published private(set) var streamingReply=""
     @Published private(set) var financialBusy=false
     @Published private(set) var executionStatus:String? {didSet{if executionStatus == nil{executionActivity=nil}}}
     @Published private(set) var executionActivity:CompanionActivity? {didSet{updateStandApproval()}}
@@ -252,7 +253,7 @@ final class CompanionModel:ObservableObject {
     private func cancelConversation() {
         agentOffer=nil;revokeOffer=nil
         conversationGeneration &+= 1
-        conversationTask?.cancel();conversationTask=nil;thinking=false
+        conversationTask?.cancel();conversationTask=nil;thinking=false;streamingReply=""
     }
     func clearRuleDraft() { ruleDraft=nil }
     func setForeground(_ active:Bool) {
@@ -331,7 +332,7 @@ final class CompanionModel:ObservableObject {
         guard !thinking,!financialBusy,!input.isEmpty,foreground else{return}
         guard input.count<=2_200 else{errorMessage="Keep each message within 2,200 characters.";return}
         errorMessage=nil
-        sleeping=false;voice.stop();thinking=true
+        sleeping=false;voice.stop();thinking=true;streamingReply=""
         conversationGeneration &+= 1
         let generation=conversationGeneration
         let history=messages.suffix(8).map{($0.isUser ? "User: ":"Mate: ")+$0.text}.joined(separator:"\n")
@@ -343,7 +344,7 @@ final class CompanionModel:ObservableObject {
             guard let self else{return}
             defer{
                 if self.conversationGeneration==generation {
-                    self.thinking=false
+                    self.thinking=false;self.streamingReply=""
                     if !self.voice.speaking{self.resumeListening()}
                 }
             }
@@ -481,19 +482,27 @@ final class CompanionModel:ObservableObject {
                     await self.prepareAgent(request,language:replyLanguage,generation:generation)
                     return
                 }
-                let response=try await self.conversation.reply(to:input,history:history,
-                    observations:self.sensors.currentObservation,notes:notes,replyLanguage:replyLanguage.name)
+                let response=try await self.conversation.streamReply(to:input,history:history,
+                    observations:self.sensors.currentObservation,notes:notes,replyLanguage:replyLanguage.name,
+                    onPartial:{[weak self] partial in
+                        await self?.receiveConversationPartial(partial,generation:generation,language:replyLanguage)
+                    })
                 try Task.checkCancellation()
                 guard self.foreground,self.conversationGeneration==generation else{return}
                 self.messages.append(ConversationMessage(isUser:false,text:response.text))
                 if let service=response.service,!response.disclosure.isEmpty {
                     self.draft=DisclosureDraft(service:service,text:response.disclosure)
                 }
-                if self.readAloud{self.voice.speak(response.text,locale:replyLanguage.speechLocale)}
+                if self.readAloud{self.voice.finishStream(response.text,locale:replyLanguage.speechLocale)}
             }catch is CancellationError{}catch{
                 if self.conversationGeneration==generation{self.rest();self.errorMessage=error.localizedDescription}
             }
         }
+    }
+    private func receiveConversationPartial(_ text:String,generation:UInt64,language:AppLanguage) {
+        guard foreground,conversationGeneration==generation,!Task.isCancelled else{return}
+        streamingReply=text
+        if readAloud{voice.stream(text,locale:language.speechLocale)}
     }
     private func agentSay(_ text:String,language:AppLanguage) {
         messages.append(ConversationMessage(isUser:false,text:text));messages=Array(messages.suffix(40))
@@ -631,6 +640,9 @@ final class CompanionModel:ObservableObject {
         guard voiceGeneration==ticket,foreground else{return}
         modelUnavailable=unavailable
         if let unavailable {errorMessage=unavailable;return}
+        let language=recognitionLocale == "ja-JP" ? AppLanguage.japanese : recognitionLocale == "en-US" ? .english : L10n.speechLanguage
+        await conversation.prepare(replyLanguage:language.name,notes:localNotes)
+        guard voiceGeneration==ticket,foreground else{return}
         continuousConversation=true
         await voice.start(locale:recognitionLocale)
         guard voiceGeneration==ticket,foreground else{return}
@@ -649,6 +661,9 @@ final class CompanionModel:ObservableObject {
         sleeping=false;errorMessage=nil;continuousConversation=true
         listeningSession.begin()
         let ticket=voiceGeneration
+        let language=recognitionLocale == "ja-JP" ? AppLanguage.japanese : recognitionLocale == "en-US" ? .english : L10n.speechLanguage
+        await conversation.prepare(replyLanguage:language.name,notes:localNotes)
+        guard ticket==voiceGeneration,foreground else{return}
         await voice.start(locale:recognitionLocale)
         guard ticket==voiceGeneration,foreground else{return}
         if !voice.listening {

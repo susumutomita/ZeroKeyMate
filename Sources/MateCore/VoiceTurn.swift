@@ -18,7 +18,7 @@ public struct VoiceTurn: Sendable {
     public mutating func poll(now: TimeInterval, final: Bool = false) -> Outcome {
         guard !ended else { return .waiting }
         let complete = final || now - startedAt >= 60 ||
-            (text.isEmpty ? now - startedAt >= 15 : now - changedAt >= 2)
+            (text.isEmpty ? now - startedAt >= 15 : now - changedAt >= 1.2)
         guard complete else { return .waiting }
         ended = true
         return text.isEmpty ? .silence : .submit(text)
