@@ -34,6 +34,7 @@ private struct PlannedRequest {
 /// The local model proposes a task, never an authorization, endpoint or payment.
 actor AgentPlanner: AgentPlanning {
     func request(from input: String) async throws -> AgentRequest? {
+        guard AgentTaskIntent.needsPlanning(input) else { return nil }
         let session = LanguageModelSession(instructions: """
         Identify a concrete translation or summary task requested by the user now.
         The translation shop supports English to Japanese and Japanese to English only.

@@ -375,9 +375,16 @@ private struct ConversationSheet:View {
                                 Text(message.text).font(.system(size:17)).lineSpacing(5).textSelection(.enabled)
                             }.frame(maxWidth:.infinity,alignment:.leading).id(message.id)
                         }
+                        if !model.streamingReply.isEmpty {
+                            VStack(alignment:.leading,spacing:8) {
+                                Text("Mate").font(.system(size:11,weight:.semibold)).foregroundStyle(Finish.secondary)
+                                Text(model.streamingReply).font(.system(size:17)).lineSpacing(5)
+                            }.frame(maxWidth:.infinity,alignment:.leading)
+                                .accessibilityIdentifier("streaming-reply")
+                        }
                         if let status=model.executionStatus {
                             ProgressView(L10n.text(status)).font(.footnote).accessibilityIdentifier("request-progress")
-                        } else if model.thinking{ProgressView("Thinking").font(.footnote)}
+                        } else if model.thinking && model.streamingReply.isEmpty{ProgressView("Thinking").font(.footnote)}
                         if model.pendingExecution != nil {
                             Text("The result is not confirmed yet. Check the existing request before paying again.").font(.footnote)
                             Button("Check result"){model.sheet = .activity}.disabled(model.financialBusy || model.thinking)
@@ -398,6 +405,7 @@ private struct ConversationSheet:View {
                         Color.clear.frame(height:1).id("request-bottom")
                     }.padding(26)
                 }.onChange(of:model.messages.count){_,_ in withAnimation{proxy.scrollTo("request-bottom",anchor:.bottom)}}
+                    .onChange(of:model.streamingReply){_,_ in proxy.scrollTo("request-bottom",anchor:.bottom)}
                     .onChange(of:model.executionStatus){_,_ in withAnimation{proxy.scrollTo("request-bottom",anchor:.bottom)}}
             }
             Divider().overlay(Finish.rule)

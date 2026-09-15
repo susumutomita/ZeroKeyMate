@@ -2,6 +2,15 @@ import XCTest
 @testable import MateCore
 
 final class VoiceTurnTests: XCTestCase {
+    func testReplyCanStartAfterShortPauseButContinuingSpeechResetsDeadline() {
+        var turn=VoiceTurn(now:0)
+        XCTAssertEqual(turn.update("Hello",now:1),.waiting)
+        XCTAssertEqual(turn.poll(now:2.1),.waiting)
+        XCTAssertEqual(turn.update("Hello Mate",now:2.1),.waiting)
+        XCTAssertEqual(turn.poll(now:3.2),.waiting)
+        XCTAssertEqual(turn.poll(now:3.4),.submit("Hello Mate"))
+        XCTAssertEqual(turn.update("late final",now:4,final:true),.waiting)
+    }
     func testSilenceEndsAndDoesNotSubmitEmptyInput() {
         var turn = VoiceTurn(now: 100)
         XCTAssertEqual(turn.poll(now: 114), .waiting)

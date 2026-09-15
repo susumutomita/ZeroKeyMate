@@ -4,6 +4,13 @@ import MateCore
 @testable import ZeroKeyMate
 
 final class AgentPlannerTests: XCTestCase {
+    func testCasualConversationDoesNotNeedAnAvailableTaskModel() async throws {
+        let planner=AgentPlanner()
+        for input in ["こんにちは、元気？","今日は疲れた","Hello, how are you?"] {
+            let request=try await planner.request(from:input)
+            XCTAssertNil(request)
+        }
+    }
     @MainActor
     func testUnconfiguredTaskSurvivesSetupWithoutSendingOrStartingSensors() async throws {
         let model=CompanionModel(planner:ConcreteTaskPlanner())
