@@ -34,7 +34,8 @@ import MateCore
         for input in ["ab1234", "aB1234", "AB1234"] {
             let entry = SignaturePINEntry()
             entry.pin = input
-            XCTAssertEqual(entry.pin, "AB1234")
+            XCTAssertEqual(entry.pin, input, "Do not replace SecureField text while it is being edited")
+            XCTAssertNil(SignaturePINEntry.problem(input))
             var received = false
             entry.submit(busy: false) { pin in
                 XCTAssertEqual(pin, "AB1234")
