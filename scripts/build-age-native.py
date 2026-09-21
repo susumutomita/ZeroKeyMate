@@ -21,7 +21,8 @@ NATIVE = ROOT / "native/age-proof"
 args = argparse.ArgumentParser()
 args.add_argument("--ios", action="store_true")
 options = args.parse_args()
-assert platform.system() in ("Darwin", "Linux"), "macOS or Linux build host required"
+assert (platform.system(), platform.machine()) in [("Darwin", "arm64"), ("Linux", "x86_64")], \
+    "Apple Silicon macOS or x86_64 Linux build host required"
 if options.ios:
     assert platform.system() == "Darwin" and platform.machine() == "arm64", "Apple Silicon required for --ios"
 record = json.loads((BASE / "artifacts/provenance.json").read_text())

@@ -9402,16 +9402,6 @@
         }
       }
     },
-    "Prover key loading": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "証明用鍵の読み込み"
-          }
-        }
-      }
-    },
     "Input preparation": {
       "localizations": {
         "ja": {
@@ -9462,22 +9452,32 @@
         }
       }
     },
-    "Groth16 · 2 threads · Measured locally. Witness construction and proving are measured together.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Groth16・2スレッド・端末内で計測。証拠データの構築と証明生成は合算です。"
-          }
-        }
-      }
-    },
     "%.1f ms": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
             "value": "%.1f ms"
+          }
+        }
+      }
+    },
+    "Prover setup": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明用の準備"
+          }
+        }
+      }
+    },
+    "Groth16 · 2 threads. Witness/proof time includes key pages loaded on demand.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groth16・2スレッド。証拠データの構築と証明には、必要時の鍵データ読み込みも含みます。"
           }
         }
       }

@@ -26,6 +26,9 @@ class Metrics(ctypes.Structure):
         'witness_and_proof_us', 'verifier_load_us', 'verify_us', 'encode_us']]
 
 
+assert ctypes.sizeof(Metrics) == 72, 'Unexpected measured ABI size'
+
+
 legacy = runtime.mate_age_prove
 legacy.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t]
 legacy.restype = ctypes.c_int32

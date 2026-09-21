@@ -153,13 +153,13 @@ struct ShopPurchaseSheet: View {
                             DisclosureGroup("Proof timing") {
                                 VStack(alignment: .leading, spacing: 8) {
                                     LabeledContent("Total on this phone", value: L10n.format("%lld ms", timing.totalMilliseconds))
-                                    LabeledContent("Prover key loading", value: proofDuration(phases.proverLoadMicroseconds))
+                                    LabeledContent("Prover setup", value: proofDuration(phases.proverLoadMicroseconds))
                                     LabeledContent("Input preparation", value: proofDuration(phases.inputParseMicroseconds))
                                     LabeledContent("Witness and proof", value: proofDuration(phases.witnessAndProofMicroseconds))
                                     LabeledContent("Verifier key loading", value: proofDuration(phases.verifierLoadMicroseconds))
                                     LabeledContent("Local verification", value: proofDuration(phases.verificationMicroseconds))
                                     LabeledContent("Proof encoding", value: proofDuration(phases.encodingMicroseconds))
-                                    Text("Groth16 · 2 threads · Measured locally. Witness construction and proving are measured together.")
+                                    Text("Groth16 · 2 threads. Witness/proof time includes key pages loaded on demand.")
                                         .font(.caption)
                                 }.padding(.top, 8)
                             }.accessibilityIdentifier("shop-proof-timing")
