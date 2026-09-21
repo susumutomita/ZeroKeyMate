@@ -79,6 +79,15 @@ private final class ReconciliationHTTP:URLProtocol,@unchecked Sendable {
                 let number=tag=="finalized" ? (secondary ? "0xb":"0xc"):tag!
                 var block=ReconciliationFixture.block(number)
                 if mode=="finalized-hash-disagreement" && secondary && tag=="finalized"{block["hash"]=ReconciliationFixture.blockHash}
+                if tag=="finalized" && reads>2 {
+                    if mode=="finalized-regression" && secondary{block=ReconciliationFixture.block("0xa")}
+                    if mode=="primary-finalized-regression" && !secondary{block=ReconciliationFixture.block("0xb")}
+                    if mode=="finalized-replaced" && secondary{block["hash"]=ReconciliationFixture.blockHash}
+                    if mode=="finalized-new-head-disagreement"{
+                        block=ReconciliationFixture.block("0xd")
+                        if secondary{block["hash"]=ReconciliationFixture.blockHash}
+                    }
+                }
                 if mode=="checkpoint-disagreement" && secondary && number=="0xb"{block["hash"]=ReconciliationFixture.blockHash}
                 if mode=="checkpoint-changed" && reads>2 && number=="0xb"{block["hash"]=ReconciliationFixture.blockHash}
                 if mode=="reorg" && number=="0xa"{block["hash"]=ReconciliationFixture.checkpointHash}
@@ -139,7 +148,7 @@ final class PaymentReconciliationTests:XCTestCase {
         XCTAssertEqual(evidence.transaction,ReconciliationFixture.transaction)
         XCTAssertEqual(evidence.blockNumber,10);XCTAssertEqual(evidence.checkpointNumber,11)
         let retained=await journal.load();XCTAssertEqual(retained,pending,"Evidence alone never releases the journal")
-        let requests=ReconciliationHTTP.trace.snapshot();XCTAssertEqual(requests.count,12)
+        let requests=ReconciliationHTTP.trace.snapshot();XCTAssertEqual(requests.count,14)
         XCTAssertEqual(Set(requests.compactMap{$0.url?.host}),["rpc.testnet.arc.io","rpc.drpc.testnet.arc.io"])
         for request in requests {
             XCTAssertEqual(request.httpMethod,"POST")
@@ -148,7 +157,8 @@ final class PaymentReconciliationTests:XCTestCase {
     }
     func testContradictoryIncompleteAndNoncanonicalEvidenceNeverMeansUnpaid() async throws {
         let pending=try ReconciliationFixture.payment(),claim=try ReconciliationFixture.claim(pending)
-        for mode in ["wrong-chain","checkpoint-disagreement","finalized-hash-disagreement","checkpoint-changed","reorg","absent-transaction",
+        for mode in ["wrong-chain","checkpoint-disagreement","finalized-hash-disagreement","checkpoint-changed",
+                     "finalized-regression","primary-finalized-regression","finalized-replaced","finalized-new-head-disagreement","reorg","absent-transaction",
                      "expired-before-mining","wrong-number","malformed-quantity","future-receipt","reverted","wrong-hash",
                      "receipt-disagreement","null-receipt"] {
             let result=try await checker(mode).reconcile(pending,claim:claim,now:2000)

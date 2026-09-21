@@ -66,6 +66,15 @@ actor ExternalPaymentReconciliation {
             let finalPrimary=try await primary.block(tag)
             let finalSecondary=try await secondary.block(tag)
             guard finalPrimary==checkpoint,finalSecondary==checkpoint else{return .unresolved}
+            let finalFirstHead=try await primary.block("finalized")
+            let finalSecondHead=try await secondary.block("finalized")
+            let finalFirstHeight=try finalFirstHead.height(),finalSecondHeight=try finalSecondHead.height()
+            let firstHeight=try firstHead.height(),secondHeight=try secondHead.height()
+            guard finalFirstHeight>=firstHeight,finalSecondHeight>=secondHeight,
+                  finalFirstHeight != firstHeight || finalFirstHead==firstHead,
+                  finalSecondHeight != secondHeight || finalSecondHead==secondHead,
+                  finalFirstHeight != finalSecondHeight || finalFirstHead==finalSecondHead
+            else{return .unresolved}
             try Task.checkCancellation()
             return .confirmed(Evidence(transaction:hash,blockHash:block.hash.lowercased(),
                 checkpointHash:checkpoint.hash.lowercased(),blockNumber:try block.height(),checkpointNumber:height))

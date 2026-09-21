@@ -70,7 +70,9 @@ transaction list. Both receipts must agree, report success, and refer to the
 same canonical block at or below that checkpoint. The transaction must occupy
 its claimed index in that block. Log metadata, ordering, token, payer, recipient,
 amount and nonce are checked; the block must fall within the signed time window.
-The common checkpoint is reread before returning evidence. Malformed, missing,
+The checkpoint is bound to the initially reported finalized block. The common
+checkpoint and both finalized heads are reread before returning evidence;
+regression, replacement or conflicting equal-height heads are rejected. Malformed, missing,
 reverted, oversized, redirected or contradictory results remain **unresolved**.
 
 The RPC transport is bounded to 1 MiB per response, 256 receipt logs and 8,192
