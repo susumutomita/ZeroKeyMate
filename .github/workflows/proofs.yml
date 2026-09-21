@@ -36,6 +36,7 @@ jobs:
       - run: python scripts/build-age-evm.py
       - run: python scripts/test-age-invalid.py
       - run: node scripts/test-age-evm.mjs .build/age-proof-engine/artifacts
+      - run: node scripts/test-catalog-age.mjs .build/age-proof-engine/artifacts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,6 +46,7 @@ jobs:
             .build/age-proof-engine/artifacts/local-acceptance.json
             .build/age-proof-engine/artifacts/invalid-acceptance.json
             .build/age-proof-engine/*.log
+            .build/catalog-age-*/result.json
           include-hidden-files: true
   proofs:
     runs-on: ubuntu-24.04
