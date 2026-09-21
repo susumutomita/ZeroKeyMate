@@ -98,7 +98,7 @@ public protocol ExternalPaymentSigner: Sendable {
     func sign(_ approval: PaymentApproval) async throws -> String
 }
 public protocol ExternalPaymentSignatureVerifier: Sendable {
-    func verify(_ signature: String, approval: PaymentApproval) async throws
+    func verify(_ signature: String, approval: PaymentApproval) throws
 }
 
 public actor PaymentApprovalCoordinator {
@@ -134,8 +134,15 @@ public actor PaymentApprovalCoordinator {
         // signed window rather than constructing a fresh authorization or dropping it.
         let pending = try PendingPayment(request: terms.request, authorization: terms.authorization,
                                          signature: signature, now: terms.createdAt)
-        try await verifier.verify(signature, approval: terms)
-        try await journal.finishSigning(pending, approval: terms)
+        // A local verifier may check task cancellation itself. Complete this
+        // bounded, non-network recovery/write in an uncanceled task so an already
+        // returned signature is retained before reporting caller cancellation.
+        // This task cannot approve, sign or transmit another payment.
+        let journal = self.journal
+        try await Task.detached {
+            try verifier.verify(signature, approval: terms)
+            try await journal.finishSigning(pending, approval: terms)
+        }.value
         try Task.checkCancellation()
         return pending
     }

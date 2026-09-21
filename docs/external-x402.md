@@ -53,8 +53,10 @@ or other process may write that Keychain item.
 A denied, canceled or expired approval may release only its own `approving`
 reservation, before any signer invocation. Once `signing` is persisted, provider
 failure, cancellation, process death and expiry remain unresolved. A late valid
-signature keeps its original authorization deadline and is retained even if
-its caller has canceled; it cannot be retried after that deadline. Neither a
+signature keeps its original authorization deadline. After a signature is
+returned, bounded local verification and persistence finish in an uncanceled
+task before the caller receives cancellation; verification/storage failures
+still retain the unresolved signing barrier. An expired signature cannot be retried. Neither a
 `signing` entry nor a signed payment has a cancellation/reset convenience API.
 A crash during approval also stays locked until a separate recovery path is
 implemented; this conservative behavior is not enabled in the user flow yet.
