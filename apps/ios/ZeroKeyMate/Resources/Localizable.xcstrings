@@ -9371,6 +9371,16 @@
           }
         }
       }
+    },
+    "The on-device model does not support this conversation language yet.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末のモデルは、選択された会話の言語にまだ対応していません。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
