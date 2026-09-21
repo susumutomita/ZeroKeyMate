@@ -25,8 +25,9 @@ enabled in the app. All of this is pre-Tokyo work.
 
 [External x402 infrastructure](docs/external-x402.md) now validates a restricted
 Arc/USDC profile and preserves unresolved signatures across network failure.
-It is not connected to a wallet or purchase UI yet; independent settlement and
-service-delivery recovery still need integration before it can be enabled.
+Its read-only settlement checker corroborates receipts through two fixed RPC
+endpoints. Wallet/approval UI, journal release and service-delivery recovery are
+not connected, so external purchases remain disabled.
 
 ## The experience
 

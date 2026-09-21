@@ -77,11 +77,17 @@ actor DevicePaymentJournal:PaymentJournal {
 
 /// The signature is saved before network transmission. A timeout, cancellation,
 /// restart, malformed receipt or expired deadline never clears it or permits a
-/// new signature. Until independent reconciliation is integrated, it stays locked.
+/// new signature. Reconciliation only returns evidence; the journal stays locked.
 actor ExternalPaymentRecovery {
     private let journal:any PaymentJournal
     private var busy=false
     init(journal:any PaymentJournal){self.journal=journal}
+    func reconcile(using checker:ExternalPaymentReconciliation,claim:PaymentReceipt?,now:UInt64) async throws -> ExternalPaymentReconciliation.Outcome {
+        guard !busy else{throw ExternalPaymentError.unresolvedPayment}
+        busy=true;defer{busy=false}
+        guard let pending=try await journal.load() else{throw ExternalPaymentError.unresolvedPayment}
+        return try await checker.reconcile(pending,claim:claim,now:now)
+    }
     func submit(_ pending:PendingPayment,through client:ExternalPaymentClient,now:UInt64) async throws -> ExternalPaymentClient.Response {
         guard !busy else{throw ExternalPaymentError.unresolvedPayment}
         busy=true;defer{busy=false}

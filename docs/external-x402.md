@@ -48,24 +48,57 @@ signing, then still use the atomic journal gate before transmission. The current
 and match the approved payer locally before persisting the signature.
 
 `PaymentReceipt` is only a server settlement claim. Both reported success and
-`settlement_pending` can supply a transaction for independent reconciliation.
-`validateTransfer` requires the expected USDC Transfer and AuthorizationUsed
-events in the same transaction. Its caller must first establish the exact
+`settlement_pending` can supply a transaction for reconciliation outside the
+merchant HTTP channel. `validateTransfer` requires the expected USDC
+AuthorizationUsed followed by the matching Transfer in the token's event stream,
+with no duplicate use or cancellation of that nonce. This follows Circle's
+EIP-3009 event ordering and cannot combine unrelated transfers in a batch.
+Its caller must first establish the exact
 transaction hash, correct chain, successful status, canonical block and
-confirmation through trusted independent RPCs. The presence of a server header
+confirmation through trusted RPCs. The presence of a server header
 or `authorizationState == true` alone does not establish a successful transfer.
 HTTP status and settlement are separate observations: a failing HTTP response
 can arrive after a real transfer. A receipt claim on that response may be used
 for reconciliation, never to claim successful resource delivery. Conversely a
 200 response without verified settlement does not establish a paid purchase.
 
+`ExternalPaymentReconciliation` implements that read-only check. It pins
+`https://rpc.testnet.arc.io` and `https://rpc.drpc.testnet.arc.io`; neither the
+merchant nor the model can supply an RPC URL. Both must report Arc Testnet and
+agree on the smaller finalized height's block hash, number, timestamp and
+transaction list. Both receipts must agree, report success, and refer to the
+same canonical block at or below that checkpoint. The transaction must occupy
+its claimed index in that block. Log metadata, ordering, token, payer, recipient,
+amount and nonce are checked; the block must fall within the signed time window.
+The common checkpoint is reread before returning evidence. Malformed, missing,
+reverted, oversized, redirected or contradictory results remain **unresolved**.
+
+The RPC transport is bounded to 1 MiB per response, 256 receipt logs and 8,192
+block transactions, with no cookies, shared credentials, additional caller
+headers, redirects or write RPC methods. An oversized legitimate block can
+therefore leave this intentionally restricted client unresolved.
+`ExternalPaymentRecovery.reconcile` reads the original journal entry and returns
+only the evidence; it never changes the signature, clears the journal or marks
+the resource delivered. A settled payment remains settled after its deadline.
+Cancellation propagates without becoming an unpaid result.
+
+**Trust boundary:** two URLs are not proof of two independent operators. dRPC
+states that its infrastructure powers Arc public endpoints. This is a
+two-endpoint consistency check with an RPC trust assumption, not light-client
+verification or a cryptographic receipt-inclusion proof. Arc provides
+deterministic finality; this implementation still requires both endpoints to
+support `finalized` and fails closed on errors. It does not use `eth_call`,
+`authorizationState` or rely on unconfirmed EIP-1898 support. A separately
+operated node/provider and its trust policy remain release work.
+
 ## Not yet connected
 
 - Native service registration/review and exact-payment approval UX.
 - A `PaymentProvider` that checks the approved snapshot again around Face ID
   and signing; the model must never receive this provider.
-- Independent chain reconciliation and a carefully checked journal-release
-  path. The current journal deliberately has no delete/reset convenience API.
+- User-facing reconciliation, transaction discovery when the server supplies no
+  locator, and a carefully checked journal-release path. The current journal
+  deliberately has no delete/reset convenience API.
 - Recovery of resource delivery after settlement: a service may reject a used
   nonce instead of returning the original result. Identical authorization
   prevents a second transfer, **not** guaranteed idempotent HTTP fulfillment.
@@ -75,7 +108,7 @@ for reconciliation, never to claim successful resource delivery. Conversely a
 Do not connect this infrastructure to a purchase button until those paths are
 implemented and tested. In particular, a deadline passing does not authorize
 a replacement payment: the original could already have settled. A new signature
-requires independent reconciliation, an explicit new approval and service-level
+requires chain reconciliation, an explicit new approval and service-level
 duplicate-fulfillment handling.
 
 Ordinary EIP-3009 authorizes payer, recipient, amount, nonce and time window in
@@ -91,9 +124,17 @@ ambiguous offers, unsupported extensions, invalid URLs, expiry, corrupted saved
 data, exact retry bytes and separate transfer/authorization evidence. iOS
 URLProtocol tests cover cookie/credential exclusion, redirects, body bounds,
 timeout/restart retry, storage failure and concurrent journal reservation.
+Reconciliation tests additionally cover provider lag, checkpoint changes,
+receipt/chain disagreement, missing transactions, cancellation, removed or
+misbound logs, expired-but-settled payments, response limits and retained journals.
 Those are controlled tests, not an external purchase or financial audit.
 
 The implementation is independent Swift code based on the official public
 [x402 v2 specification](https://github.com/x402-foundation/x402/blob/6323ec74c85607e706e0722dd294365a7fb57768/specs/x402-specification-v2.md)
 and [exact EVM scheme](https://github.com/x402-foundation/x402/blob/6323ec74c85607e706e0722dd294365a7fb57768/specs/schemes/exact/scheme_exact_evm.md),
 reviewed September 21, 2026. No new third-party runtime dependency is added.
+
+Additional primary sources: [ERC-3009](https://eips.ethereum.org/EIPS/eip-3009),
+[Circle's public implementation](https://github.com/circlefin/stablecoin-evm/blob/master/contracts/v2/EIP3009.sol),
+[Arc finality and event semantics](https://docs.arc.io/integrate/infrastructure/indexing-events),
+and [dRPC's public endpoint infrastructure disclosure](https://blog.drpc.org/blog-arc-rpc-endpoint-live-on-nodecloud/).
