@@ -472,7 +472,7 @@ final class CompanionModel:ObservableObject {
                         self.openShop(language: replyLanguage, startsFromVoice: true, selection: selection)
                         return
                     case .unsupportedPurchase:
-                        self.agentSay(replyLanguage == .japanese ? "今はMate Lagerと炭酸水を1種類ずつ注文できます。どちらにしますか？" : "The connected store sells Mate Lager and sparkling water, one product per order. Which would you like?", language: replyLanguage)
+                        self.agentSay(replyLanguage == .japanese ? "今はビールか炭酸水を1種類、1〜5本で注文できます。商品と本数を教えてください。" : "The connected store sells beer or sparkling water, one to five bottles of one product per order. Please tell me which product and how many.", language: replyLanguage)
                         return
                     case .chat: break
                     }

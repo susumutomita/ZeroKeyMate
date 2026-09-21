@@ -46,6 +46,11 @@ actor ShopPlanner {
         // Classifying the speech act precedes product extraction. A mention of
         // beer inside another task is not a shopping request.
         if plan.intent != .purchaseNow { plan.operation = .chat }
+        switch plan.operation {
+        case .buyBeer, .buyWater:
+            if (try? Self.selection(for: plan, input: text)) == nil { plan.operation = .unsupportedPurchase }
+        default: break
+        }
         return plan
     }
     static func selection(for plan: ShopPlan, input: String) throws -> ShopSelection {
