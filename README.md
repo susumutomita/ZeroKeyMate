@@ -13,8 +13,10 @@ The submitted film combines the creator's own recorded voice, English subtitles,
 **Development after submission (September 21, 2026):** the public store now offers
 beer and sparkling water, one to five bottles of a single product. Water costs
 0.05 test USDC per bottle and needs no card scan; beer retains its age check.
-The updated catalogue and bilingual conversation code are installed as iPhone
-build 11. The new catalogue still needs a fresh physical-device purchase check;
+The updated catalogue and bilingual conversation code are included in iPhone
+build 12, together with the native age prover and local timing details. The
+launcher now rejects shop bundles missing that runtime or its pinned setup.
+The new catalogue still needs a fresh physical-device purchase check;
 the successful transactions above are evidence for the earlier beer flow.
 The [atomic catalogue budget](docs/catalogue-budget.md) is separate local-chain
 research with real synthetic-credential ZK acceptance, not unattended payments

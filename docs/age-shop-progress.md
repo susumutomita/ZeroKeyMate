@@ -3,8 +3,8 @@
 **Historical implementation notes:** the earlier provisioning and purchase
 blockers below were subsequently resolved. Physical-card purchases completed on
 September 13; see [live evidence](arc-live-status.md) and the [current README](../README.md).
-The September 21 catalogue/voice update is installed as build 11; fresh physical
-acceptance for that update remains pending. The dated checkpoints below are not
+The September 21 catalogue/voice update and complete age runtime are included in
+build 12; fresh physical acceptance remains pending. The dated checkpoints below are not
 the current status and do not override those evidence pages.
 
 Updated 2026-09-13. This is **not a completed purchase flow**. Do not mark the
