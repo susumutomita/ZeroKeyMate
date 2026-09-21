@@ -89,19 +89,25 @@ test('count cap holds with excess funds, a different agent and later top-ups',as
   await rejects(f,await signed(f,await order(f),agentB),'PurchaseCountExceeded');
   assert.equal(await state(f,'purchaseCount'),1);assert.equal(await state(f,'spent'),50000n);
 });
-test('same-block purchases cannot jointly exceed the shared budget',async()=>{
-  const f=await fixture({total:250000n,perPurchase:250000n});
-  const args=[await signed(f,await order(f,{quantity:3})),await signed(f,await order(f,{quantity:3}),agentB)];
-  await client.request({method:'evm_setAutomine',params:[false]});
-  try {
-    const hashes=await Promise.all(args.map((value,i)=>wallets[5+i].writeContract({address:f.budget,abi:budgetABI.abi,functionName:'execute',args:value,gas:1000000n})));
-    await client.request({method:'evm_mine',params:[]});
-    const receipts=await Promise.all(hashes.map(hash=>client.waitForTransactionReceipt({hash})));
-    assert.equal(receipts[0].blockNumber,receipts[1].blockNumber);
-    assert.deepEqual(receipts.map(r=>r.status).sort(),['reverted','success']);
-    assert.equal(await state(f,'spent'),150000n);assert.equal(await state(f,'purchaseCount'),1);
-    assert.equal(await balance(f,merchant.address),150000n);
-  } finally {await client.request({method:'evm_setAutomine',params:[true]});}
+test('same-block agents cannot exceed budget/count or duplicate an order',async()=>{
+  for(const scenario of ['budget','count','duplicate']) {
+    const f=await fixture(scenario==='budget'?{total:250000n,perPurchase:250000n}:scenario==='count'?{purchases:1}:{});
+    const first=await order(f,{quantity:3});
+    const second=await order(f,{quantity:3,...(scenario==='duplicate'?{id:first.id}:{})});
+    const args=[await signed(f,first),await signed(f,second,agentB)];
+    // Both are individually acceptable before either transaction is mined.
+    for(const value of args) await client.simulateContract({address:f.budget,abi:budgetABI.abi,functionName:'execute',args:value,account:relayerA});
+    await client.request({method:'evm_setAutomine',params:[false]});
+    try {
+      const hashes=await Promise.all(args.map((value,i)=>wallets[5+i].writeContract({address:f.budget,abi:budgetABI.abi,functionName:'execute',args:value,gas:1000000n})));
+      await client.request({method:'evm_mine',params:[]});
+      const receipts=await Promise.all(hashes.map(hash=>client.waitForTransactionReceipt({hash})));
+      assert.equal(receipts[0].blockNumber,receipts[1].blockNumber);
+      assert.deepEqual(receipts.map(r=>r.status).sort(),['reverted','success'],scenario);
+      assert.equal(await state(f,'spent'),150000n);assert.equal(await state(f,'purchaseCount'),1);
+      assert.equal(await balance(f,merchant.address),150000n);
+    } finally {await client.request({method:'evm_setAutomine',params:[true]});}
+  }
 });
 test('unknown SKU, bad quantity, disallowed product and merchant fail closed',async()=>{
   const f=await fixture({products:2});const original=await signed(f,await order(f));
