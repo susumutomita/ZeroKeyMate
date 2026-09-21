@@ -4,12 +4,10 @@ import MateCore
 /// Ephemeral form state only. Invalid input never reaches CoreNFC; a valid PIN
 /// is handed off once and immediately removed from the editable form.
 @MainActor final class SignaturePINEntry: ObservableObject {
-    @Published var pin = "" {
-        didSet {
-            let uppercase = Self.uppercaseASCII(pin)
-            if pin != uppercase { pin = uppercase }
-        }
-    }
+    // Rewriting SecureField's binding during an edit can overwrite an in-flight
+    // keystroke. Preserve the editable text; normalize only for validation and
+    // the one-use handoff to the card.
+    @Published var pin = ""
     // The card uses uppercase ASCII. Convert only a-z; never trim, transliterate
     // Unicode, drop characters, or change digits in a credential.
     static func uppercaseASCII(_ input: String) -> String {
@@ -18,7 +16,8 @@ import MateCore
     @Published var feedback: String?
     @Published var focusRequested = false
 
-    static func problem(_ pin: String) -> String? {
+    static func problem(_ input: String) -> String? {
+        let pin = uppercaseASCII(input)
         if pin.isEmpty { return "Enter your signature password to start the scan." }
         if pin.count == 4, pin.utf8.allSatisfy({ (48...57).contains($0) }) {
             return "Use the 6–16 character signature password, not the four-digit PIN."
@@ -38,7 +37,7 @@ import MateCore
             feedback = problem; focusRequested = true
             return
         }
-        let oneUse = pin
+        let oneUse = Self.uppercaseASCII(pin)
         clear()
         ready(oneUse)
     }
