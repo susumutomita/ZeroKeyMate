@@ -130,7 +130,11 @@ test('insufficient funds leave the slot unused; authorization and permission exp
     await assert.rejects(()=>call(f.token,tokenABI,'transferWithAuthorization',p.args),/ERC20InsufficientBalance/);
     assert.equal(await read(f.token,tokenABI,'authorizationState',[f.account,p.p.nonce]),false);
     await call(f.token,tokenABI,'mint',[f.account,100000n]);
-    const tooLong=await payment(f,0,{validBefore:p.p.validAfter+302n});
+    // Cross a block-time boundary deliberately: both endpoints must use the
+    // same origin or a slow runner can shrink a 302-second window to 301.
+    await client.request({method:'evm_increaseTime',params:[2]});
+    await client.request({method:'evm_mine'});
+    const tooLong=await payment(f,0,{validAfter:p.p.validAfter,validBefore:p.p.validAfter+302n});
     assert.equal(await read(f.account,accountABI,'isValidSignature',[tooLong.hash,tooLong.blob]),'0xffffffff');
     await call(f.token,tokenABI,'transferWithAuthorization',p.args);
     await client.request({method:'evm_increaseTime',params:[3601]});
