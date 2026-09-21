@@ -101,7 +101,8 @@ contract MateCatalogBudget is EIP712, ReentrancyGuard {
         }
         for (uint256 i; i<merchants_.length; ++i) {
             address m=merchants_[i];
-            if(m==address(0)||m==address(this)||merchants[m]) revert InvalidPolicy();
+            // A configured agent must not also attest its own merchant quote.
+            if(m==address(0)||m==address(this)||merchants[m]||agents[m]) revert InvalidPolicy();
             merchants[m]=true;
         }
     }

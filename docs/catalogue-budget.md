@@ -29,6 +29,10 @@ nonces prevent replay across agents. The spent/count/used markers and exact
 token transfer succeed or roll back together. Extra funding never replenishes
 authorization. There is no generic execution, allowance or ERC-1271 fallback.
 
+Agent and merchant address sets must be disjoint, preventing a configuration
+that lets the same address sign both sides. This cannot prove that distinct
+addresses belong to independent people; the owner still chooses trusted roles.
+
 Only the owner can stop every agent or withdraw back to the owner; withdrawal
 also stops the budget. Revocation is effective when mined. This is a personal
 allowance, **not a campaign allocation with locked withdrawals**. A merchant
@@ -42,10 +46,10 @@ python3 scripts/build-age-evm.py
 node scripts/test-catalog-age.mjs .build/age-proof-engine/artifacts
 ```
 
-The first command includes the ten catalogue-policy tests: canonical pricing,
+The first command includes the eleven catalogue-policy tests: canonical pricing,
 cross-agent replay, excess-funded count and budget caps, same-block competing
 purchases, disallowed products/merchants, signature/quote/domain tampering,
-failed age checks, failed-transfer rollback, owner stop/withdrawal and expiry.
+failed age checks, mined failed-transfer rollback, callback reentrancy, owner stop/withdrawal and expiry.
 Its rejection-only verifier cannot fabricate a passing age proof.
 
 The cryptographic acceptance command goes further. It creates a fresh synthetic
@@ -56,8 +60,8 @@ issuer. A corrupted proof and a different order must fail before money moves;
 the valid proof must atomically transfer 100,000 test-token units, increment
 the count/spend, and reject replay. No private keys are saved or printed.
 
-Observed locally on 2026-09-21: all 46 contract tests passed. The real-proof
-synthetic-issuer purchase passed, with 538,837 local gas and a 15,905 ms host
+Observed locally on 2026-09-21: all 47 contract tests passed. The real-proof
+synthetic-issuer purchase passed, with 538,957 local gas and an 11,205 ms host
 proof run using two threads. This is **not an iPhone speed comparison or an Arc
 purchase**. CI repeats the cryptographic test and saves `.build/catalog-age-*/result.json`.
 

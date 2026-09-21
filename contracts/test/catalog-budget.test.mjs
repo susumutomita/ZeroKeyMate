@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { randomBytes } from 'node:crypto';
-import { createPublicClient, createWalletClient, http, keccak256, encodeAbiParameters, toFunctionSelector } from 'viem';
+import { createPublicClient, createWalletClient, http, keccak256, encodeAbiParameters, encodeFunctionData, toFunctionSelector } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { foundry } from 'viem/chains';
 
@@ -39,7 +39,7 @@ async function call(address,a,functionName,args=[],wallet=wallets[0]) {
   const {request}=await client.simulateContract({address,abi:a.abi,functionName,args,account:wallet.account});
   return mined(await wallet.writeContract(request));
 }
-async function fixture(changes={}) {
+async function fixture(changes={},merchantAddresses=[merchant.address]) {
   const token=await deploy(tokenABI);
   // Rejection-only verifier fixture: it CANNOT manufacture an accepted proof.
   const reject=await deploy({abi:[],bytecode:'0x6005600c60003960056000f360006000fd'});
@@ -47,7 +47,7 @@ async function fixture(changes={}) {
   const now=(await client.getBlock()).timestamp;
   const limits={total:500000n,perPurchase:300000n,purchases:3,expiresAt:now+3600n,products:3,...changes};
   const gateHash=keccak256(await client.getCode({address:gate}));
-  const args=[token,gate,gateHash,[agentA.address,agentB.address],[merchant.address],limits];
+  const args=[token,gate,gateHash,[agentA.address,agentB.address],merchantAddresses,limits];
   const budget=await deploy(budgetABI,args);
   await call(token,tokenABI,'mint',[budget,2000000n]);
   return {token,gate,gateHash,budget,limits,args,
@@ -116,12 +116,17 @@ test('unknown SKU, bad quantity, disallowed product and merchant fail closed',as
   await rejects(f,await signed(f,await order(f,{merchant:stranger.address})),'MerchantNotAllowed');
 });
 test('tampered quote fields, forged signatures and chain/account domains are rejected',async()=>{
-  const f=await fixture();const args=await signed(f,await order(f));
-  for(const change of [{quantity:2},{id:fresh()},{paymentNonce:fresh()},{expiresAt:args[0].expiresAt-1n}]) await rejects(f,[{...args[0],...change},...args.slice(1)],'InvalidQuote');
+  const f=await fixture({},[merchant.address,relayerB.address]);const args=await signed(f,await order(f));
+  for(const change of [{quantity:2},{product:1},{merchant:relayerB.address},{id:fresh()},{paymentNonce:fresh()},{expiresAt:args[0].expiresAt-1n}]) await rejects(f,[{...args[0],...change},...args.slice(1)],'InvalidQuote');
   await rejects(f,[args[0],args[1],'0x1234',...args.slice(3)],'InvalidAgentSignature');
   await rejects(f,[...args.slice(0,3),'0x1234',...args.slice(4)],'InvalidQuote');
   await rejects(f,await signed(f,args[0],stranger),'InvalidAgent');
-  for(const domain of [{...f.domain,chainId:5042002},{...f.domain,verifyingContract:merchant.address}]) await rejects(f,await signed(f,args[0],agentA,domain),'InvalidQuote');
+  await rejects(f,[args[0],agentB.address,...args.slice(2)],'InvalidAgentSignature');
+  for(const domain of [{...f.domain,chainId:5042002},{...f.domain,verifyingContract:merchant.address}]) {
+    const wrong=await signed(f,args[0],agentA,domain);
+    await rejects(f,wrong,'InvalidQuote');
+    await rejects(f,[...args.slice(0,2),wrong[2],...args.slice(3)],'InvalidAgentSignature');
+  }
 });
 test('beer never settles without a valid order-bound age proof from the pinned gate',async()=>{
   const f=await fixture();const args=await signed(f,await order(f,{product:1}));
@@ -135,12 +140,25 @@ test('beer never settles without a valid order-bound age proof from the pinned g
 });
 test('transfer failure rolls back nonce, order, count and spend; retry can then succeed',async()=>{
   const f=await fixture();const args=await signed(f,await order(f));
-  await call(f.token,tokenABI,'configure',[true,false]);await rejects(f,args,'TransfersPaused');
-  await call(f.token,tokenABI,'configure',[false,true]);await rejects(f,args,'UnsupportedTokenBehavior');
+  for(const [config,error] of [[[true,false],'TransfersPaused'],[[false,true],'UnsupportedTokenBehavior']]) {
+    await call(f.token,tokenABI,'configure',config);await rejects(f,args,error);
+    // Also mine an actual reverting transaction; a simulation alone is insufficient.
+    await mined(await wallets[5].writeContract({address:f.budget,abi:budgetABI.abi,functionName:'execute',args,gas:1000000n}),'reverted');
+  }
   assert.equal(await state(f,'spent'),0n);assert.equal(await state(f,'purchaseCount'),0);
   assert.equal(await state(f,'usedOrders',[args[0].id]),false);assert.equal(await state(f,'usedNonces',[args[0].paymentNonce]),false);
   assert.equal(await balance(f,merchant.address),0n);
   await call(f.token,tokenABI,'configure',[false,false]);await execute(f,args);
+});
+test('token callback cannot execute a second otherwise-valid agent order',async()=>{
+  const f=await fixture();const first=await signed(f,await order(f));const second=await signed(f,await order(f),agentB);
+  await client.simulateContract({address:f.budget,abi:budgetABI.abi,functionName:'execute',args:second,account:relayerA});
+  await call(f.token,tokenABI,'configureCallback',[f.budget,encodeFunctionData({abi:budgetABI.abi,functionName:'execute',args:second})]);
+  await execute(f,first);
+  assert.equal(await read(f.token,tokenABI,'callbackRejected'),true);
+  assert.equal(await state(f,'spent'),50000n);assert.equal(await state(f,'purchaseCount'),1);
+  assert.equal(await state(f,'usedOrders',[second[0].id]),false);
+  assert.equal(await balance(f,merchant.address),50000n);
 });
 test('owner stop invalidates both agents existing signatures and withdrawal only returns to owner',async()=>{
   const f=await fixture();const a=await signed(f,await order(f));const b=await signed(f,await order(f),agentB);
@@ -165,4 +183,6 @@ test('invalid authorization terms and changed gate hash cannot deploy',async()=>
   for(const changes of [{total:0n},{perPurchase:600000n},{purchases:0},{purchases:101},{products:0},{products:4},{expiresAt:1n}])
     await assert.rejects(()=>deploy(budgetABI,[...f.args.slice(0,5),{...f.limits,...changes}]),new RegExp(toFunctionSelector('InvalidPolicy()')));
   await assert.rejects(()=>deploy(budgetABI,[f.token,f.gate,fresh(),...f.args.slice(3)]),new RegExp(toFunctionSelector('InvalidPolicy()')));
+  await assert.rejects(()=>deploy(budgetABI,[...f.args.slice(0,4),[agentA.address],f.limits]),new RegExp(toFunctionSelector('InvalidPolicy()')));
+  await assert.rejects(()=>deploy(budgetABI,[...f.args.slice(0,4),[merchant.address,agentB.address],f.limits]),new RegExp(toFunctionSelector('InvalidPolicy()')));
 });
