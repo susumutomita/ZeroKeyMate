@@ -227,8 +227,9 @@ actor EthereumRPC {
         guard matches.count==1 else{throw ProductError.invalidResponse}
     }
     func confirmShop(_ order: AgeShopOrder) async throws -> String {
+        _ = try ShopSelection(order: order)
         guard chainID == AgeShopProtocol.chainID, order.chainId == chainID,
-              order.token.lowercased() == AgeShopProtocol.token, order.amount == AgeShopProtocol.amount,
+              order.token.lowercased() == AgeShopProtocol.token,
               let transaction = order.paymentTransaction else { throw AgeShopError.invalidPayment }
         let receipt = try await confirm(hash: transaction)
         try AgeShopReceipt.validate(order: order, logs: receipt.logs.map { .init(address: $0.address, topics: $0.topics, data: $0.data) })

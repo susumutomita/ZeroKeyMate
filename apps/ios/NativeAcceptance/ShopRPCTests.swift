@@ -27,6 +27,22 @@ private final class ShopTestRPC: URLProtocol, @unchecked Sendable {
             let method = body["method"] as! String
             let result: Any
             if method == "eth_chainId" { result = mode == "wrong-chain" ? "0x14a34" : "0x4cef52" }
+            else if method == "eth_blockNumber" { result = "0x65" }
+            else if method == "eth_getTransactionReceipt", mode.hasPrefix("receipt-") {
+                let from = "0x" + String(repeating:"0",count:24) + String(repeating:"33",count:20)
+                let to = "0x" + String(repeating:"0",count:24) + String(repeating:"22",count:20)
+                let amount = CanonicalBytes.hexString(Data(repeating:0,count:24) + CanonicalBytes.u64(end))
+                let nonce = "0xa7c746b0a7295cade278c2a890146b1329faf251427d574762a7f6a231961000"
+                var logs:[[String:Any]] = [["address":AgeShopProtocol.token,
+                    "topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",from,to],"data":amount]]
+                if mode != "receipt-no-authorization" {
+                    logs.append(["address":AgeShopProtocol.token,
+                        "topics":["0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5",from,nonce],"data":"0x"])
+                }
+                result = ["transactionHash":"0x" + String(repeating:"aa",count:32),
+                    "blockNumber":"0x64","blockHash":"0x" + String(repeating:"bb",count:32),
+                    "status":mode == "receipt-reverted" ? "0x0":"0x1","logs":logs]
+            }
             else if method == "eth_getBlockByNumber" {
                 result = ["number": mode == "funds-wrong-block" ? "0x65" : "0x64", "hash": "0x" + String(repeating: "bb", count: 32),
                           "timestamp": "0x" + String(mode == "early" ? end - 1 : end + 1, radix: 16)]
@@ -59,6 +75,37 @@ private final class ShopTestRPC: URLProtocol, @unchecked Sendable {
 }
 
 final class ShopRPCTests: XCTestCase {
+    func testEveryCatalogueQuantityCanConfirmItsExactPaymentReceipt() async throws {
+        for product in [ShopProduct.lager, .sparklingWater] {
+            for quantity in 1...5 {
+                let selection = try ShopSelection(product:product,quantity:quantity)
+                let order = try completedOrder(selection)
+                let hash = try await rpc("receipt-valid",end:selection.amount).confirmShop(order)
+                XCTAssertEqual(hash,"0x" + String(repeating:"bb",count:32))
+            }
+        }
+    }
+    func testCatalogueReceiptStillRejectsWrongAmountMissingNonceAndReverts() async throws {
+        let water = try completedOrder(ShopSelection(product:.sparklingWater,quantity:3))
+        for (mode, amount) in [("receipt-valid",UInt64(100_000)),("receipt-no-authorization",150_000),("receipt-reverted",150_000)] {
+            do { _ = try await rpc(mode,end:amount).confirmShop(water);XCTFail("Accepted \(mode) / \(amount)") }
+            catch {}
+        }
+        var changed = try JSONSerialization.jsonObject(with:JSONEncoder().encode(water)) as! [String:Any]
+        changed["amount"] = "100000"
+        let invalid = try JSONDecoder().decode(AgeShopOrder.self,from:JSONSerialization.data(withJSONObject:changed))
+        do { _ = try await rpc("receipt-valid",end:100_000).confirmShop(invalid);XCTFail("Accepted a noncanonical catalogue price") }
+        catch { XCTAssertEqual(error as? AgeShopError,.invalidOrder) }
+    }
+    private func completedOrder(_ selection:ShopSelection) throws -> AgeShopOrder {
+        var data = try JSONSerialization.jsonObject(with:JSONEncoder().encode(order())) as! [String:Any]
+        data["productId"]=selection.product.rawValue;data["quantity"]=selection.quantity
+        data["amount"]=String(selection.amount);data["minimumAge"]=selection.product.minimumAge
+        data["state"]="complete";data["paymentTransaction"]="0x" + String(repeating:"aa",count:32)
+        // This fixture isolates receipt confirmation. Order commitments are
+        // checked by AgeShopClient before this boundary and have separate tests.
+        return try JSONDecoder().decode(AgeShopOrder.self,from:JSONSerialization.data(withJSONObject:data))
+    }
     func testBuyerFundsUseExactSixDecimalTokenBalanceBeforeCardRead() async throws {
         let payer = "0x" + String(repeating: "11", count: 20)
         for (mode, expected) in [("funds-zero", false), ("funds-low", false), ("funds-exact", true), ("funds-large", true)] {
