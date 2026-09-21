@@ -111,7 +111,14 @@ final class ExternalPaymentTests:XCTestCase {
         XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[],now:2000))
         XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[transfer],now:2000))
         XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[used],now:2000))
-        XCTAssertNoThrow(try r.validateTransfer(pending:p,logs:[transfer,used],now:2000))
+        XCTAssertNoThrow(try r.validateTransfer(pending:p,logs:[used,transfer],now:2000))
+        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[transfer,used],now:2000))
+        let wrong=AgeShopReceipt.Log(address:AgeShopProtocol.token,topics:transfer.topics,data:"0x"+String(repeating:"0",count:64))
+        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[used,wrong,transfer],now:2000),"Do not pair a nonce with an unrelated later transfer")
+        let canceled=AgeShopReceipt.Log(address:AgeShopProtocol.token,
+            topics:["0x1cdd46ff242716cdaa72d159d339a485b3438398348d68f09d7c8c0a59353d81",from,nonce],data:"0x")
+        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[used,transfer,canceled],now:2000))
+        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[used,transfer,used,transfer],now:2000))
         var pendingClaim=wire;pendingClaim["success"]=false;pendingClaim["errorReason"]="settlement_pending"
         XCTAssertFalse(try PaymentReceipt.parse(header:header(pendingClaim),pending:p,now:2000).success)
         pendingClaim["success"]=true

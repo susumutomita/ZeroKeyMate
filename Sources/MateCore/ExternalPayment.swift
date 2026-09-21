@@ -158,25 +158,36 @@ public struct PaymentReceipt: Codable, Equatable, Sendable {
         try pending.validate(now:now,allowExpired:true)
         guard header.utf8.count<=16_384,let data=Data(base64Encoded:header) else{throw ExternalPaymentError.invalidReceipt}
         let receipt=try JSONDecoder().decode(Self.self,from:data)
-        guard receipt.network==AgeShopProtocol.network,
-              receipt.payer?.lowercased()==pending.authorization.from.lowercased(),
-              (try? CanonicalBytes.hex(receipt.transaction,count:32).contains(where:{$0 != 0}))==true,
-              (receipt.success && receipt.errorReason==nil) || (!receipt.success && receipt.errorReason=="settlement_pending")
-        else{throw ExternalPaymentError.invalidReceipt}
+        try receipt.validate(pending:pending,now:now)
         return receipt
+    }
+    public func validate(pending:PendingPayment,now:UInt64) throws {
+        try pending.validate(now:now,allowExpired:true)
+        guard network==AgeShopProtocol.network,
+              payer?.lowercased()==pending.authorization.from.lowercased(),
+              (try? CanonicalBytes.hex(transaction,count:32).contains(where:{$0 != 0}))==true,
+              (success && errorReason==nil) || (!success && errorReason=="settlement_pending")
+        else{throw ExternalPaymentError.invalidReceipt}
     }
     /// Call only with logs from a successful, canonical confirmed transaction
     /// at `transaction` on the configured chain, obtained independently of HTTP.
     public func validateTransfer(pending:PendingPayment,logs:[AgeShopReceipt.Log],now:UInt64) throws {
-        try pending.validate(now:now,allowExpired:true)
+        try validate(pending:pending,now:now)
         guard network==AgeShopProtocol.network,payer?.lowercased()==pending.authorization.from.lowercased(),
               let amount=UInt64(pending.authorization.value) else{throw ExternalPaymentError.invalidReceipt}
         let from=try CanonicalBytes.hexString(Data(repeating:0,count:12)+CanonicalBytes.hex(pending.authorization.from,count:20))
         let to=try CanonicalBytes.hexString(Data(repeating:0,count:12)+CanonicalBytes.hex(pending.authorization.to,count:20))
         let value=CanonicalBytes.hexString(Data(repeating:0,count:24)+CanonicalBytes.u64(amount))
         let own=logs.filter{$0.address.lowercased()==AgeShopProtocol.token}
-        guard own.contains(where:{$0.topics.map{$0.lowercased()}==["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",from,to] && $0.data.lowercased()==value}),
-              own.contains(where:{$0.topics.map{$0.lowercased()}==["0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5",from,pending.authorization.nonce.lowercased()] && $0.data=="0x"})
+        let used=["0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5",from,pending.authorization.nonce.lowercased()]
+        let canceled=["0x1cdd46ff242716cdaa72d159d339a485b3438398348d68f09d7c8c0a59353d81",from,pending.authorization.nonce.lowercased()]
+        let indices=own.indices.filter{own[$0].topics.map{$0.lowercased()}==used && own[$0].data=="0x"}
+        // Circle's EIP-3009 consumes the nonce immediately before the transfer.
+        // Pair adjacent token events; don't combine unrelated transfers in a batch.
+        guard !own.contains(where:{$0.topics.map{$0.lowercased()}==canceled}),
+              indices.count==1,let index=indices.first,index+1<own.count,
+              own[index+1].topics.map({$0.lowercased()})==["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",from,to],
+              own[index+1].data.lowercased()==value
         else{throw ExternalPaymentError.invalidReceipt}
     }
 }
