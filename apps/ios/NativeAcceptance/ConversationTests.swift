@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 import XCTest
 @testable import ZeroKeyMate
 
@@ -31,10 +32,73 @@ private actor StreamingConversation:ConversationResponding {
     var waiting:Bool{continuation != nil}
     func emit(_ text:String) async {await partial?(text)}
     func complete(){continuation?.resume(returning:ConversationReply(text:"Hello. How are you?",service:nil,disclosure:""));continuation=nil}
+    func block(){continuation?.resume(throwing:ConversationFailure.responseBlocked);continuation=nil}
+}
+
+private actor BlockedThenSuccessfulConversation:ConversationResponding {
+    private(set) var calls=0
+    func availability()->String?{nil}
+    func reply(to text:String,history:String,observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
+        calls += 1
+        if calls==1{throw ConversationFailure.responseBlocked}
+        return ConversationReply(text:"Let's talk about your day.",service:nil,disclosure:"")
+    }
 }
 
 @MainActor
 final class ConversationTests:XCTestCase {
+    func testOnlyTheGuardrailErrorGetsTheRephraseRecovery() {
+        let context=LanguageModelSession.GenerationError.Context(debugDescription:"Synthetic test context")
+        XCTAssertEqual(ConversationFailure(modelError:LanguageModelSession.GenerationError.guardrailViolation(context)),.responseBlocked)
+        XCTAssertNil(ConversationFailure(modelError:LanguageModelSession.GenerationError.exceededContextWindowSize(context)))
+        XCTAssertNil(ConversationFailure(modelError:CancellationError()))
+        XCTAssertNil(ConversationFailure(modelError:ProductError.invalidResponse))
+    }
+    func testBlockedReplyKeepsMateAwakeAndWaitsForANewUserTurn() async throws {
+        for (input,expected) in [("Hello.","Could you say it another way?"),("こんにちは。","別の言い方")] {
+            let service=BlockedThenSuccessfulConversation()
+            let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
+            model.readAloud=false
+            model.send(input)
+            try await waitUntil{!model.thinking}
+            XCTAssertFalse(model.sleeping)
+            XCTAssertNil(model.errorMessage)
+            XCTAssertTrue(model.messages.last?.text.contains(expected)==true)
+            XCTAssertTrue(model.streamingReply.isEmpty)
+            XCTAssertFalse(model.voice.listening)
+            XCTAssertFalse(model.sensors.captureRequested)
+            XCTAssertNil(model.draft)
+            let calls=await service.calls
+            XCTAssertEqual(calls,1,"A blocked input must never be retried automatically")
+            model.send("Let's talk about my day.")
+            try await waitUntil{!model.thinking}
+            XCTAssertEqual(model.messages.last?.text,"Let's talk about your day.")
+            XCTAssertFalse(model.sleeping)
+            model.rest()
+        }
+    }
+    func testBlockedLateStreamCannotWakeMateOrRevivePartialText() async throws {
+        for stop in 0..<3 {
+            let service=StreamingConversation()
+            let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
+            model.readAloud=false
+            model.send("Hello.")
+            try await waitUntil{await service.waiting}
+            await service.emit("An unfinished response")
+            if stop==0{model.rest()}
+            else if stop==1{model.setForeground(false)}
+            else{model.sheet = .settings}
+            await service.block()
+            try await Task.sleep(for:.milliseconds(40))
+            XCTAssertEqual(model.messages.count,1)
+            XCTAssertTrue(model.streamingReply.isEmpty)
+            XCTAssertFalse(model.thinking)
+            XCTAssertFalse(model.voice.speaking)
+            XCTAssertFalse(model.voice.listening)
+            XCTAssertFalse(model.sensors.captureRequested)
+            model.rest()
+        }
+    }
     func testConversationCannotInventTheResultOfAnExplicitPurchase() async throws {
         // This boundary also works when the system model is unavailable.
         // Real catalogue purchases are handled before this chat-only service.
