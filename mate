@@ -79,6 +79,7 @@ if [[ -n "$DEVICE" ]]; then
     -packageCachePath "$ROOT/.build/PackageCache" -disablePackageRepositoryCache "${extra[@]}" \
     "DEVELOPMENT_TEAM=$MATE_DEVELOPMENT_TEAM" -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
   APP="$ROOT/.build/NativeDevice/Build/Products/Debug-iphoneos/ZeroKeyMate.app"
+  python3 scripts/validate-shop-app.py "$APP"
   echo 'Installing on iPhone.'
   xcrun devicectl --timeout 120 device install app --device "$DEVICE" "$APP"
   echo 'Launching Mate on iPhone.'
@@ -89,6 +90,7 @@ else
   if ! xcrun simctl list devices booted | grep -Fq "$ID"; then xcrun simctl boot "$ID";fi
   xcrun simctl bootstatus "$ID" -b
   APP="$ROOT/DerivedData/Build/Products/Debug-iphonesimulator/ZeroKeyMate.app"
+  python3 scripts/validate-shop-app.py "$APP"
   xcrun simctl install "$ID" "$APP"
   xcrun simctl launch "$ID" com.zerokeymate.companion
   if [[ "${CI:-}" != true ]]; then open -a Simulator --args -CurrentDeviceUDID "$ID";fi

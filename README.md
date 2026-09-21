@@ -4,7 +4,7 @@
 
 An iPhone companion that helps you buy something without giving the store your identity document. Ask Mate for a beer. Your phone authenticates a physical Japanese My Number card, proves locally that you are at least 20, and sends the proof to the store. After verification and your exact payment approval, a Privy wallet pays **0.10 test USDC through x402 on Arc Testnet**.
 
-**A physical-card test purchase completed on September 13, 2026.** The iPhone showed **12.0 seconds** of local age-proof processing. Both configured Arc RPC providers confirmed the payment. The 12.0-second timing is one observation, not a general benchmark. Further purchases completed; five separate transfers were verified through both configured RPC providers. Checkout reliability is still being improved.
+**A physical-card test purchase completed on September 13, 2026.** The iPhone showed **12.0 seconds** of local age-proof processing. Both configured Arc RPC providers confirmed the payment. The 12.0-second timing is one observation, not a general benchmark. Further purchases completed; five separate transfers were verified through both configured RPC providers. Checkout reliability is still being improved. The current source adds [local proof timing details](docs/age-proof-timing.md) to distinguish setup, witness/proof processing and verification; this does not claim a speedup or WHIR support.
 
 [Project demo and walkthrough](https://zerokeymate-arc-shop.oyster880.workers.dev/demo/) · [Open the store](https://zerokeymate-arc-shop.oyster880.workers.dev/) · [View the confirmed purchase](https://testnet.arcscan.app/tx/0xfe77313324c3438cfc935dd87c14efe56bc6f3a1a4a4150a9ee661c045856eb3) · [Deployment and evidence](docs/arc-live-status.md) · [Watch the 3:27 film](services/shop/public/demo/assets/submission.mp4) · [Pitch deck PDF](docs/presentation/ZeroKeyMate-pitch.pdf) · [Narration and editing notes](docs/demo.md) · [Submission copy](docs/submission.md)
 
@@ -13,8 +13,10 @@ The submitted film combines the creator's own recorded voice, English subtitles,
 **Development after submission (September 21, 2026):** the public store now offers
 beer and sparkling water, one to five bottles of a single product. Water costs
 0.05 test USDC per bottle and needs no card scan; beer retains its age check.
-The updated catalogue and bilingual conversation code are installed as iPhone
-build 11. The new catalogue still needs a fresh physical-device purchase check;
+The updated catalogue and bilingual conversation code are included in iPhone
+build 12, together with the native age prover and local timing details. The
+launcher now rejects shop bundles missing that runtime or its pinned setup.
+The new catalogue still needs a fresh physical-device purchase check;
 the successful transactions above are evidence for the earlier beer flow.
 The [atomic catalogue budget](docs/catalogue-budget.md) is separate local-chain
 research with real synthetic-credential ZK acceptance, not unattended payments

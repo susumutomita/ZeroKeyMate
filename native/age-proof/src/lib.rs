@@ -11,6 +11,22 @@ use provekit_common::{file, NoirProof, Verifier};
 use provekit_prover::{read_pkp, Prove, Prover};
 use provekit_verifier::Verify;
 use std::sync::{Once, atomic::{AtomicBool, Ordering}};
+use std::time::Instant;
+
+#[repr(C)]
+#[derive(Default, Clone, Copy)]
+pub struct MateAgeMetrics {
+    version: u64, worker_threads: u64, total_us: u64, prover_load_us: u64,
+    input_parse_us: u64, witness_and_proof_us: u64, verifier_load_us: u64,
+    verify_us: u64, encode_us: u64,
+}
+fn micros(start: Instant) -> u64 { start.elapsed().as_micros().min(u64::MAX as u128) as u64 }
+fn measure<T>(duration: &mut u64, body: impl FnOnce() -> T) -> T {
+    let start = Instant::now();
+    let result = body();
+    *duration = micros(start);
+    result
+}
 
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 static PANIC_HOOK: Once = Once::new();
@@ -40,6 +56,31 @@ pub unsafe extern "C" fn mate_age_prove(
     prover_path: *const c_char, verifier_path: *const c_char,
     input: *const u8, input_len: usize, out: *mut u8, out_len: usize,
 ) -> i32 {
+    mate_age_prove_measured(prover_path, verifier_path, input, input_len, out, out_len, std::ptr::null_mut())
+}
+
+/// # Safety
+/// The same buffer/path requirements as mate_age_prove apply. metrics must be
+/// null or an aligned writable MateAgeMetrics, disjoint from every other buffer.
+#[no_mangle]
+pub unsafe extern "C" fn mate_age_prove_measured(
+    prover_path: *const c_char, verifier_path: *const c_char,
+    input: *const u8, input_len: usize, out: *mut u8, out_len: usize,
+    metrics: *mut MateAgeMetrics,
+) -> i32 {
+    let start = Instant::now();
+    let mut local = MateAgeMetrics { version: 1, worker_threads: 2, ..Default::default() };
+    let code = prove_inner(prover_path, verifier_path, input, input_len, out, out_len, &mut local);
+    local.total_us = micros(start);
+    if !metrics.is_null() { metrics.write(local); }
+    code
+}
+
+unsafe fn prove_inner(
+    prover_path: *const c_char, verifier_path: *const c_char,
+    input: *const u8, input_len: usize, out: *mut u8, out_len: usize,
+    metrics: &mut MateAgeMetrics,
+) -> i32 {
     if out.is_null() || out_len != 640 { return 1; }
     let output = slice::from_raw_parts_mut(out, out_len);
     output.fill(0);
@@ -65,17 +106,19 @@ pub unsafe extern "C" fn mate_age_prove(
         // Thread exhaustion is an explicit failure, never a fallback to all cores.
         let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().map_err(|_| 4)?;
         pool.install(|| {
-        let prover = read_pkp(Path::new(pkp)).map_err(|_| 2)?;
+        let prover = measure(&mut metrics.prover_load_us, || read_pkp(Path::new(pkp))).map_err(|_| 2)?;
         match &prover {
             Prover::Groth16(p) if p.commitment_info.len() == 1
                 && p.commitment_info[0].private_committed.last() == Some(&p.blinding_wire) => {},
             _ => return Err(2),
         }
-        let inputs = Format::from_ext("json").ok_or(3)?.parse(json, prover.abi()).map_err(|_| 3)?;
-        let proof = prover.prove(inputs).map_err(|_| 4)?;
-        let mut verifier: Verifier = file::read(Path::new(pkv)).map_err(|_| 2)?;
-        verifier.verify(&proof).map_err(|_| 5)?;
-        encode(proof)
+        let inputs = measure(&mut metrics.input_parse_us,
+            || Format::from_ext("json").ok_or(3)?.parse(json, prover.abi()).map_err(|_| 3))?;
+        let proof = measure(&mut metrics.witness_and_proof_us, || prover.prove(inputs)).map_err(|_| 4)?;
+        let mut verifier: Verifier = measure(&mut metrics.verifier_load_us,
+            || file::read(Path::new(pkv))).map_err(|_| 2)?;
+        measure(&mut metrics.verify_us, || verifier.verify(&proof)).map_err(|_| 5)?;
+        measure(&mut metrics.encode_us, || encode(proof))
         })
     }));
     match result {

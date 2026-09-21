@@ -2,9 +2,9 @@ name: Cryptographic acceptance
 on:
   push:
     branches: [main]
-    paths: ['circuits/**', 'contracts/**', 'services/**', 'scripts/**', 'patches/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
+    paths: ['circuits/**', 'contracts/**', 'services/**', 'native/age-proof/**', 'scripts/**', 'patches/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
   pull_request:
-    paths: ['circuits/**', 'contracts/**', 'services/**', 'scripts/**', 'patches/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
+    paths: ['circuits/**', 'contracts/**', 'services/**', 'native/age-proof/**', 'scripts/**', 'patches/**', 'config/*.json', 'package*.json', 'Makefile', '.github/workflows/proofs.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,6 +37,9 @@ jobs:
       - run: python scripts/test-age-invalid.py
       - run: node scripts/test-age-evm.mjs .build/age-proof-engine/artifacts
       - run: node scripts/test-catalog-age.mjs .build/age-proof-engine/artifacts
+      - run: python scripts/build-age-native.py
+      - run: python scripts/test-age-native.py
+      - run: node scripts/test-age-evm.mjs .build/age-proof-engine/artifacts --native
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,6 +48,7 @@ jobs:
             .build/age-proof-engine/artifacts/provenance.json
             .build/age-proof-engine/artifacts/local-acceptance.json
             .build/age-proof-engine/artifacts/invalid-acceptance.json
+            .build/age-proof-engine/artifacts/native-acceptance.json
             .build/age-proof-engine/*.log
             .build/catalog-age-*/result.json
           include-hidden-files: true

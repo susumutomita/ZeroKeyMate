@@ -34,3 +34,6 @@ services/shop/worker-configuration.d.ts
 /output/
 /config/scheduler/state.json
 /data/scheduler/
+# Public age setup is staged locally and must match AgeProofPins and the shop verifier.
+apps/ios/ZeroKeyMate/Resources/age.pkp
+apps/ios/ZeroKeyMate/Resources/age.pkv

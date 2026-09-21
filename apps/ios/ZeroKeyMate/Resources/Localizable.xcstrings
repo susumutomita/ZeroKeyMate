@@ -9381,6 +9381,106 @@
           }
         }
       }
+    },
+    "Proof timing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明時間の内訳"
+          }
+        }
+      }
+    },
+    "Total on this phone": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスマホでの合計"
+          }
+        }
+      }
+    },
+    "Input preparation": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力の準備"
+          }
+        }
+      }
+    },
+    "Witness and proof": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証拠データの構築と証明"
+          }
+        }
+      }
+    },
+    "Verifier key loading": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検証用鍵の読み込み"
+          }
+        }
+      }
+    },
+    "Local verification": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の検証"
+          }
+        }
+      }
+    },
+    "Proof encoding": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明の変換"
+          }
+        }
+      }
+    },
+    "%.1f ms": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%.1f ms"
+          }
+        }
+      }
+    },
+    "Prover setup": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明用の準備"
+          }
+        }
+      }
+    },
+    "Groth16 · 2 threads. Witness/proof time includes key pages loaded on demand.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groth16・2スレッド。証拠データの構築と証明には、必要時の鍵データ読み込みも含みます。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

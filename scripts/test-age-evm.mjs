@@ -98,7 +98,7 @@ try {
   const native=process.argv.includes('--native');
   if(native){
     let previous;
-    for(const folder of ['native-evm','native-second-evm']){
+    for(const folder of ['native-evm','native-second-evm','native-legacy-evm']){
       const p=readFileSync(path.join(base,folder,'proof.hex'),'utf8').trim();
       const values=readFileSync(path.join(base,folder,'inputs.txt'),'utf8').trim().split(/\s+/).map(BigInt);
       assert.deepEqual(values,inputs);await verify(p,values);assert.equal(await gate(testGate,p,values),true);

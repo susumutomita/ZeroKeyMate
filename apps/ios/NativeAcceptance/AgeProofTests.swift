@@ -30,6 +30,20 @@ final class AgeProofTests: XCTestCase {
         }.value
         XCTAssertEqual(proof.proof.count, 384)
         XCTAssertEqual(proof.publicInputs.count, 8)
+        XCTAssertEqual(proof.timing.version, 1)
+        XCTAssertEqual(proof.timing.workerThreads, 2)
+        XCTAssertGreaterThan(proof.timing.witnessAndProofMicroseconds, 0)
+        XCTAssertGreaterThan(proof.timing.verificationMicroseconds, 0)
+        XCTAssertLessThanOrEqual(proof.timing.witnessAndProofMicroseconds, proof.timing.totalMicroseconds)
+    }
+    func testOldSavedTimingStillDecodesAndNewTimingStaysOutOfTheProofEnvelope() throws {
+        let old = Data(#"{"totalMilliseconds":12000,"nativeMilliseconds":11000}"#.utf8)
+        let timing = try JSONDecoder().decode(AgeProofTiming.self, from: old)
+        XCTAssertNil(timing.nativePhases)
+        XCTAssertEqual(timing.totalMilliseconds, 12000)
+        let encoded = try JSONEncoder().encode(VerifiedAgeProof(proof: "0x1234", rootKeyHash: "0x5678"))
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: String])
+        XCTAssertEqual(Set(fields.keys), ["proof", "rootKeyHash"])
     }
     func testNativeKeccakAndCompleteOrderCommitment() throws {
         guard MateAgeNative.available else { throw XCTSkip("Build the real age runtime before native acceptance.") }

@@ -12,6 +12,19 @@
 // 6 encoding; 7 internal panic; 8 busy. Messages never contain private values.
 int32_t mate_age_prove(const char *prover_path, const char *verifier_path,
     const uint8_t *input, size_t input_len, uint8_t *out, size_t out_len);
+// Local-only monotonic durations, in microseconds. No inputs, paths, proof or
+// identifiers. Version 1 always uses two worker threads. Witness construction
+// and proving share one upstream API and therefore one measurement.
+typedef struct {
+    uint64_t version, worker_threads, total_us, prover_load_us, input_parse_us;
+    uint64_t witness_and_proof_us, verifier_load_us, verify_us, encode_us;
+} MateAgeMetrics;
+// metrics must be NULL or a valid, disjoint, aligned writable struct. It is
+// initialized on every call, including failures. A correctly sized output is
+// cleared before input processing and is populated only on success.
+int32_t mate_age_prove_measured(const char *prover_path, const char *verifier_path,
+    const uint8_t *input, size_t input_len, uint8_t *out, size_t out_len,
+    MateAgeMetrics *metrics);
 // Ethereum Keccak-256 for local order-material verification. Not SHA3-256.
 int32_t mate_age_keccak256(const uint8_t *input, size_t input_len, uint8_t *out, size_t out_len);
 #endif
