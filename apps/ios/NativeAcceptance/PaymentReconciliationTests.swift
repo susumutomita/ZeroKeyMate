@@ -70,6 +70,7 @@ private final class ReconciliationHTTP:URLProtocol,@unchecked Sendable {
             let tag=method=="eth_getBlockByNumber" ? params.first as? String:nil
             let(mode,reads)=Self.trace.record(request,tag:tag)
             if mode=="timeout"{throw URLError(.timedOut)}
+            if mode=="waiting"{return} // A pending request that the task must cancel.
             let secondary=request.url!.host!.contains("drpc")
             var result:Any=NSNull()
             switch method {
@@ -77,6 +78,7 @@ private final class ReconciliationHTTP:URLProtocol,@unchecked Sendable {
             case "eth_getBlockByNumber":
                 let number=tag=="finalized" ? (secondary ? "0xb":"0xc"):tag!
                 var block=ReconciliationFixture.block(number)
+                if mode=="finalized-hash-disagreement" && secondary && tag=="finalized"{block["hash"]=ReconciliationFixture.blockHash}
                 if mode=="checkpoint-disagreement" && secondary && number=="0xb"{block["hash"]=ReconciliationFixture.blockHash}
                 if mode=="checkpoint-changed" && reads>2 && number=="0xb"{block["hash"]=ReconciliationFixture.blockHash}
                 if mode=="reorg" && number=="0xa"{block["hash"]=ReconciliationFixture.checkpointHash}
@@ -146,7 +148,7 @@ final class PaymentReconciliationTests:XCTestCase {
     }
     func testContradictoryIncompleteAndNoncanonicalEvidenceNeverMeansUnpaid() async throws {
         let pending=try ReconciliationFixture.payment(),claim=try ReconciliationFixture.claim(pending)
-        for mode in ["wrong-chain","checkpoint-disagreement","checkpoint-changed","reorg","absent-transaction",
+        for mode in ["wrong-chain","checkpoint-disagreement","finalized-hash-disagreement","checkpoint-changed","reorg","absent-transaction",
                      "expired-before-mining","wrong-number","malformed-quantity","future-receipt","reverted","wrong-hash",
                      "receipt-disagreement","null-receipt"] {
             let result=try await checker(mode).reconcile(pending,claim:claim,now:2000)
@@ -180,5 +182,19 @@ final class PaymentReconciliationTests:XCTestCase {
         }
         do{_ = try await task.value;XCTFail("Expected cancellation")}catch is CancellationError{}
         XCTAssertTrue(ReconciliationHTTP.trace.snapshot().isEmpty)
+    }
+    func testCancellationDuringRPCStopsFurtherReadsAndRetainsJournal() async throws {
+        let pending=try ReconciliationFixture.payment(),journal=ReconciliationJournal(pending)
+        let recovery=ExternalPaymentRecovery(journal:journal),checker=checker("waiting")
+        let claim=try ReconciliationFixture.claim(pending)
+        let task=Task{try await recovery.reconcile(using:checker,claim:claim,now:2000)}
+        for _ in 0..<200 {
+            if !ReconciliationHTTP.trace.snapshot().isEmpty{break}
+            try await Task.sleep(for:.milliseconds(10))
+        }
+        task.cancel()
+        do{_ = try await task.value;XCTFail("Expected cancellation")}catch is CancellationError{}
+        XCTAssertEqual(ReconciliationHTTP.trace.snapshot().count,1)
+        let saved=await journal.load();XCTAssertEqual(saved,pending)
     }
 }

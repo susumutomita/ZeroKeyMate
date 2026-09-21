@@ -39,6 +39,10 @@ actor ExternalPaymentReconciliation {
             let checkpoint=try await primary.block(tag)
             let otherCheckpoint=try await secondary.block(tag)
             guard checkpoint==otherCheckpoint,try checkpoint.height()==height else{return .unresolved}
+            // Bind the numeric reread to the block actually advertised as finalized.
+            // Agreement on a replacement block must not erase that contradiction.
+            if try firstHead.height()==height,firstHead != checkpoint{return .unresolved}
+            if try secondHead.height()==height,secondHead != checkpoint{return .unresolved}
 
             guard let receipt=try await primary.receipt(hash),
                   let otherReceipt=try await secondary.receipt(hash),receipt==otherReceipt,
