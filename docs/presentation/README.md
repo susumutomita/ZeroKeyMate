@@ -28,3 +28,5 @@ The submission logo and cover were created with the built-in OpenAI image genera
 The logo prompt asks for the existing friendly two-eye face, no mouth or text, as a square ivory/forest-green icon. The cover prompt asks for a 16:9 editorial phone-on-stand illustration with the exact text “ZeroKey Mate”, “Your companion. Your rules.” and “Local AI · Local ZK · Arc payments”. The [full generation prompts](artwork-prompts.md) are included for attribution.
 
 No AI voiceover or synthesized replacement pronunciation is included. The human-narrated 207.38-second export has been uploaded and saved in the ETHGlobal dashboard. The entrant reported successful final submission on September 13, 2026. Award eligibility and judging remain with the organizers.
+
+A separate [Japanese YouTube explainer](youtube-ja.md) was created after submission using VOICEVOX:ずんだもん. It preserves the original submission and explicitly distinguishes implemented testnet behavior from the future release direction.
