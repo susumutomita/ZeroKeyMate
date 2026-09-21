@@ -14,13 +14,19 @@ The submitted film combines the creator's own recorded voice, English subtitles,
 beer and sparkling water, one to five bottles of a single product. Water costs
 0.05 test USDC per bottle and needs no card scan; beer retains its age check.
 The updated catalogue and bilingual conversation code are included in iPhone
-build 12, together with the native age prover and local timing details. The
+build 14, together with the native age prover, local timing details, conversation
+error recovery and catalogue receipt validation. The
 launcher now rejects shop bundles missing that runtime or its pinned setup.
 The new catalogue still needs a fresh physical-device purchase check;
 the successful transactions above are evidence for the earlier beer flow.
 The [atomic catalogue budget](docs/catalogue-budget.md) is separate local-chain
 research with real synthetic-credential ZK acceptance, not unattended payments
 enabled in the app. All of this is pre-Tokyo work.
+
+[External x402 infrastructure](docs/external-x402.md) now validates a restricted
+Arc/USDC profile and preserves unresolved signatures across network failure.
+It is not connected to a wallet or purchase UI yet; independent settlement and
+service-delivery recovery still need integration before it can be enabled.
 
 ## The experience
 
@@ -95,7 +101,9 @@ The age prover uses a pinned **experimental ProveKit Groth16 branch**, an EVM ex
 | English/Japanese | In-place purchase-screen switching and persistence tested; user supplied the English physical-phone screen |
 | Privy | Embedded buyer wallet and exact EIP-712 signing are wired into the completed purchase |
 | Arc / x402 | Live testnet settlement, receipt and explorer link; no mainnet deployment |
-| Two-product catalogue | Public Worker and iPhone build 11 updated; server/Swift validation and real local-model intent tests pass. Fresh physical purchase acceptance remains pending. |
+| Two-product catalogue | Public Worker and iPhone build 14 updated; canonical amounts and receipt checks cover both products at quantities 1–5. Fresh physical purchase acceptance remains pending. |
+| Conversation recovery | [Physical model evidence and scope](docs/conversation-device-status.md): short Japanese recall passed; a benign language-switch turn hit a guardrail. Build 14 contains recovery without retrying or putting Mate to sleep. |
+| External x402 services | [Unconnected infrastructure](docs/external-x402.md): restricted challenge/receipt validation and persistent retries tested with fixtures. No external purchase, wallet integration or settlement reconciliation is claimed. |
 | Atomic spending permissions | [Local-only contract](docs/catalogue-budget.md): real ZK, canonical SKU/age, shared budget/count, replay, revocation and transfer rollback tested. Not deployed or connected to x402/native delegation. |
 | The Graph | Arc purchase-history Subgraph source is merged; Studio deployment and a live data-driven purchase decision remain incomplete |
 | Smartphone My Number card / World ID / delegated wallet | Not integrated into this checkout |
