@@ -82,3 +82,10 @@ python3 scripts/validate-shop-app.py PATH_TO_DEBUG_APP
 ```
 
 The bundle check is a packaging gate, not physical-card or on-chain acceptance.
+
+With `ShopConnection.json` present, regenerating the project preserves existing
+public Privy app/client identifiers and selects Arc even if a legacy
+`SEPOLIA_RPC_URL` remains in the development environment. Explicit identifier
+overrides (including clearing them) take precedence; an explicit non-Arc
+`MATE_CHAIN_ID` fails before installation. No API bearer, pairing token, private
+RPC URL, wallet key or old vault is copied from the prior configuration.

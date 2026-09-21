@@ -8,6 +8,10 @@ fs.mkdirSync(directory,{recursive:true});
 const names=['approve(address,uint256)','deposit(uint256)','withdraw(uint256)','revoke(bytes32)'];
 fs.writeFileSync(path.join(directory,'Selectors.json'),JSON.stringify(Object.fromEntries(names.map(n=>[n,toFunctionSelector(n)])),null,2)+'\n');
 // Bundles contain public identifiers only. Pairing credentials are exchanged at runtime.
-const config=publicAppConfiguration(process.env);
+const configurationPath=path.join(directory,'Configuration.json');
+const shopConfigured=fs.existsSync(path.join(directory,'ShopConnection.json'));
+const previous=shopConfigured && fs.existsSync(configurationPath)
+  ? JSON.parse(fs.readFileSync(configurationPath,'utf8')) : {};
+const config=publicAppConfiguration(process.env,{shopConfigured,previous});
 fs.writeFileSync(path.join(directory,'Configuration.json'),JSON.stringify(config,null,2)+'\n',{mode:0o600});
 console.log('Generated native selectors and installation configuration; no server signing keys are embedded.');
