@@ -46,7 +46,10 @@ struct ShopPurchaseSheet: View {
                         .frame(width: 88, height: 100).background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22))
                     VStack(alignment: .leading, spacing: 5) {
                         Text(checkout.selection.product.name).font(.title2.bold())
-                        Text(L10n.format("%lld bottles · %@ each", Int64(checkout.selection.quantity), checkout.selection.product.size)).foregroundStyle(.secondary)
+                        Text(checkout.selection.quantity == 1
+                             ? L10n.format("One bottle · %@", checkout.selection.product.size)
+                             : L10n.format("%lld bottles · %@ each", Int64(checkout.selection.quantity), checkout.selection.product.size))
+                            .foregroundStyle(.secondary).accessibilityIdentifier("shop-product-size")
                         Text("\(checkout.selection.displayAmount) test USDC").font(.headline)
                     }
                 }
@@ -168,7 +171,7 @@ struct ShopPurchaseSheet: View {
                 SignaturePINScanButton(busy: checkout.busy, submit: startCardRead)
             }
         }
-        .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(L10n.text("Mate's order")).navigationBarTitleDisplayMode(.inline)
         .controlSize(.large)
         .task { checkout.select(model.shopSelection); checkout.load() }
         .onChange(of: checkout.phase) { _, phase in

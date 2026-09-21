@@ -9361,6 +9361,16 @@
           }
         }
       }
+    },
+    "One bottle · %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1本・%@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

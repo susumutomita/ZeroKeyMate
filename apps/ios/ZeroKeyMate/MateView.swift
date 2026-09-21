@@ -62,6 +62,9 @@ struct MateView:View {
                     .id(sheet.id)
                     }
                 }
+                // A presented navigation stack must observe the current choice
+                // itself; inherited sheet locale can retain its presentation value.
+                .environment(\.locale, Locale(identifier: language))
                 .tint(Finish.ink).presentationBackground(Finish.paper)
             }
             .alert("Please check",isPresented:Binding(get:{model.errorMessage != nil},set:{if !$0{model.errorMessage=nil}})){
@@ -487,7 +490,7 @@ private struct SettingsSheet:View {
                 SectionNote(text:"ZK verifies private spending rules. Payment recipients and amounts are public. The current settlement design trusts the signature of the server that verifies the proof.")
             }
             Section{Button("Clear conversation",role:.destructive){model.clearConversation()}}
-        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
+        }.scrollContentBackground(.hidden).background(Finish.paper).navigationTitle(L10n.text("Settings")).navigationBarTitleDisplayMode(.inline)
     }
 }
 
