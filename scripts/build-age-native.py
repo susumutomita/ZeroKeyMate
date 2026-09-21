@@ -21,7 +21,9 @@ NATIVE = ROOT / "native/age-proof"
 args = argparse.ArgumentParser()
 args.add_argument("--ios", action="store_true")
 options = args.parse_args()
-assert platform.system() == "Darwin" and platform.machine() == "arm64", "Apple Silicon build host required"
+assert platform.system() in ("Darwin", "Linux"), "macOS or Linux build host required"
+if options.ios:
+    assert platform.system() == "Darwin" and platform.machine() == "arm64", "Apple Silicon required for --ios"
 record = json.loads((BASE / "artifacts/provenance.json").read_text())
 assert record["sameWitnessCommitmentsDiffer"] is True
 assert record["hidingPatchSHA256"] == sha256((ROOT / "patches/provekit-groth16-hiding.patch").read_bytes()).hexdigest()
@@ -75,7 +77,8 @@ else:
     if end == -1:
         end = len(text)
     lock.write_text(text[:start] + package + "\n" + text[end:])
-toolchain = ROOT / ".tools/rustup/toolchains/nightly-2026-03-04-aarch64-apple-darwin/bin"
+host = "aarch64-apple-darwin" if platform.system() == "Darwin" else "x86_64-unknown-linux-gnu"
+toolchain = ROOT / ".tools/rustup/toolchains" / ("nightly-2026-03-04-" + host) / "bin"
 cargo = str(toolchain / "cargo") if (toolchain / "cargo").exists() else "cargo"
 env = {**os.environ, "CARGO_HOME": str(BASE / "cargo"), "CARGO_TARGET_DIR": str(BASE / "target"),
        "RUSTUP_TOOLCHAIN": "nightly-2026-03-04", "CARGO_BUILD_JOBS": "2", "RAYON_NUM_THREADS": "2",
@@ -94,7 +97,8 @@ def run(name, command):
 
 common = [cargo, "build", "--release", "--locked", "--offline", "-p", "mate-age-ffi", "--manifest-path", manifest]
 run("native-host-build", common)
-libraries = [BASE / "target/release/libmate_age_ffi.a", BASE / "target/release/libmate_age_ffi.dylib"]
+dynamic_library = "libmate_age_ffi.dylib" if platform.system() == "Darwin" else "libmate_age_ffi.so"
+libraries = [BASE / "target/release/libmate_age_ffi.a", BASE / "target/release" / dynamic_library]
 if options.ios:
     frameworks = []
     for target in ["aarch64-apple-ios-sim", "aarch64-apple-ios"]:

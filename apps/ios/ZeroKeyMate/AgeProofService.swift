@@ -18,6 +18,8 @@ struct MeasuredAgeProof: Sendable {
 struct AgeProofTiming: Sendable, Codable {
     let totalMilliseconds: Int
     let nativeMilliseconds: Int
+    // Optional for orders saved before phase measurements were introduced.
+    var nativePhases: MateAgeNativeTiming? = nil
 
     static func milliseconds(_ duration: Duration) -> Int {
         let parts = duration.components
@@ -70,7 +72,8 @@ actor AgeProofService {
         let proof = VerifiedAgeProof(proof: Self.hex(result.proof), rootKeyHash: Self.hex(witness.rootKeyHash))
         return MeasuredAgeProof(proof: proof, timing: AgeProofTiming(
             totalMilliseconds: AgeProofTiming.milliseconds(start.duration(to: .now)),
-            nativeMilliseconds: AgeProofTiming.milliseconds(nativeStart.duration(to: nativeEnd))))
+            nativeMilliseconds: AgeProofTiming.milliseconds(nativeStart.duration(to: nativeEnd)),
+            nativePhases: result.timing))
     }
 
     private func hashFile(_ url: URL) throws -> String {

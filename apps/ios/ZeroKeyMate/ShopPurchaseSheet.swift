@@ -149,6 +149,21 @@ struct ShopPurchaseSheet: View {
                             Text(code).font(.footnote.monospaced()).textSelection(.enabled)
                                 .accessibilityIdentifier("shop-proof-failure-code")
                         }
+                        if let timing = checkout.proofTiming, let phases = timing.nativePhases {
+                            DisclosureGroup("Proof timing") {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    LabeledContent("Total on this phone", value: L10n.format("%lld ms", timing.totalMilliseconds))
+                                    LabeledContent("Prover key loading", value: proofDuration(phases.proverLoadMicroseconds))
+                                    LabeledContent("Input preparation", value: proofDuration(phases.inputParseMicroseconds))
+                                    LabeledContent("Witness and proof", value: proofDuration(phases.witnessAndProofMicroseconds))
+                                    LabeledContent("Verifier key loading", value: proofDuration(phases.verifierLoadMicroseconds))
+                                    LabeledContent("Local verification", value: proofDuration(phases.verificationMicroseconds))
+                                    LabeledContent("Proof encoding", value: proofDuration(phases.encodingMicroseconds))
+                                    Text("Groth16 · 2 threads · Measured locally. Witness construction and proving are measured together.")
+                                        .font(.caption)
+                                }.padding(.top, 8)
+                            }.accessibilityIdentifier("shop-proof-timing")
+                        }
                         if let url = checkout.storeURL {
                             Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }
                         }
@@ -205,6 +220,9 @@ struct ShopPurchaseSheet: View {
         guard checkout.phase == .review, checkout.canStart else { return }
         automaticOrderStarted = true
         checkout.startOrder(wallet: wallet)
+    }
+    private func proofDuration(_ microseconds: UInt64) -> String {
+        L10n.format("%.1f ms", Double(microseconds) / 1_000)
     }
     private func startCardRead() {
         guard checkout.phase == .card else { return }
