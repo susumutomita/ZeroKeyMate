@@ -99,7 +99,8 @@ final class ExternalPaymentTransportTests:XCTestCase {
     func testPersistenceFailureAndEndpointMismatchCannotSendPayment() async throws {
         let p=try payment("quote"),failed=ExternalPaymentRecovery(journal:MemoryPaymentJournal(unavailable:true))
         do{_ = try await failed.submit(p,through:client("quote"),now:1002);XCTFail("Unstored signature was sent")}catch{}
-        do{_ = try await client("other").submit(p,now:1002);XCTFail("Signature leaked to another endpoint")}catch{}
+        let other=ExternalPaymentRecovery(journal:MemoryPaymentJournal())
+        do{_ = try await other.submit(p,through:client("other"),now:1002);XCTFail("Signature leaked to another endpoint")}catch{}
         XCTAssertTrue(PaymentHTTPFixture.trace.snapshot().isEmpty)
     }
     func testRejectedPaidResponsesRetainThePendingPayment() async throws {

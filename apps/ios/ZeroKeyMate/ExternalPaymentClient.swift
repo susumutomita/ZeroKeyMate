@@ -27,7 +27,7 @@ actor ExternalPaymentClient {
         guard result.status==402,let header=result.paymentRequired else{throw ExternalPaymentError.invalidChallenge}
         return try PaymentRequest.parse(header:header,service:service,now:now)
     }
-    func submit(_ pending:PendingPayment,now:UInt64) async throws -> Response {
+    fileprivate func submit(_ pending:PendingPayment,now:UInt64) async throws -> Response {
         guard pending.request.service==service else{throw ExternalPaymentError.invalidAuthorization}
         return try await get(payment:pending.header(now:now))
     }

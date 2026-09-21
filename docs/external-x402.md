@@ -40,6 +40,13 @@ use the same payment header; a different payment remains blocked. A failure to
 persist prevents transmission. Tests use an in-memory journal and synthetic
 signatures, not the device's wallet or existing Keychain entries.
 
+This gate rejects a second signature's **reservation and transmission**. It does
+not yet prevent the signature from being generated: no signing provider is
+connected. That provider must serialize/preflight approvals before Face ID and
+signing, then still use the atomic journal gate before transmission. The current
+65-byte check is structural; the future provider must recover the EIP-712 signer
+and match the approved payer locally before persisting the signature.
+
 `PaymentReceipt` is only a server settlement claim. Both reported success and
 `settlement_pending` can supply a transaction for independent reconciliation.
 `validateTransfer` requires the expected USDC Transfer and AuthorizationUsed
@@ -47,6 +54,10 @@ events in the same transaction. Its caller must first establish the exact
 transaction hash, correct chain, successful status, canonical block and
 confirmation through trusted independent RPCs. The presence of a server header
 or `authorizationState == true` alone does not establish a successful transfer.
+HTTP status and settlement are separate observations: a failing HTTP response
+can arrive after a real transfer. A receipt claim on that response may be used
+for reconciliation, never to claim successful resource delivery. Conversely a
+200 response without verified settlement does not establish a paid purchase.
 
 ## Not yet connected
 
