@@ -31,7 +31,7 @@ test('the same request key yields the same payment nonce across retries',()=>{
   assert.notEqual(newOrder({productId:'mate-lager',quantity:1,payer:make().payer},'cd'.repeat(32),env,now).paymentNonce,make().paymentNonce);
 });
 test('product and quantity cannot be invented by the agent',()=>{
-  for(const input of [{productId:'unknown',quantity:1},{productId:'mate-lager',quantity:2},{productId:'mate-lager',quantity:-1}])assert.throws(()=>newOrder({...input,payer:make().payer},key,env,now),/invalid_order/);
+  for(const input of [{productId:'unknown',quantity:1},{productId:'mate-lager',quantity:6},{productId:'mate-lager',quantity:-1}])assert.throws(()=>newOrder({...input,payer:make().payer},key,env,now),/invalid_order/);
 });
 test('x402 v2 payload is decoded using the actual SDK',()=>{
   const order=make();const raw=payload(order);

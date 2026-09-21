@@ -22,6 +22,8 @@ private struct PendingShopCreation: Codable {
     let connection: AgeShopConnection
     let key: String
     let payer: String
+    // Absent in older saved orders, which were always one beer.
+    var selection: ShopSelection?
 }
 struct ShopPurchaseRecord: Identifiable, Sendable {
     let id: String
@@ -38,6 +40,12 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     @Published private(set) var canStart = false
     @Published private(set) var fundingAddress: String?
     @Published private(set) var proofStartedAt: ContinuousClock.Instant?
+    @Published private var requestedSelection = ShopSelection.lager
+    var selection: ShopSelection { (order.flatMap { try? ShopSelection(order: $0) }) ?? requestedSelection }
+    func select(_ selection: ShopSelection) {
+        guard !busy, order == nil, [.initial, .review, .funding].contains(phase) else { return }
+        requestedSelection = selection
+    }
     var proofTiming: AgeProofTiming? {
         guard let saved, Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash) else { return nil }
         return saved.proofTiming
@@ -116,6 +124,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
                 return
             }
             if let pending = try LocalSecrets.read(PendingShopCreation.self, key: self.creationKey) {
+                self.requestedSelection = pending.selection ?? .lager
                 self.storeURL = try pending.connection.validate(); self.connection = pending.connection
                 self.client = try AgeShopClient(connection: pending.connection)
                 try await self.create(pending, ticket: ticket)
@@ -127,7 +136,6 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             let connection = try JSONDecoder().decode(AgeShopConnection.self, from: Data(contentsOf: url))
             self.storeURL = try connection.validate(); self.connection = connection
             let client = try AgeShopClient(connection: connection); self.client = client
-            try await self.prover.prepare()
             guard try await ShopReadiness.waitForAvailability(check: { try await client.ready() }) else {
                 throw ProductError.unavailable("The store cannot accept new orders right now. Nothing was paid.")
             }
@@ -138,6 +146,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     func startOrder(wallet: WalletService) {
         guard !busy, [.review, .funding].contains(phase), order == nil, canStart, client != nil, let connection else { return }
         guard let payer = wallet.ownerAddress else { message = "Connect your wallet first. No order has been sent."; return }
+        let selection = self.selection
         phase = .checking; message = nil
         run { ticket in
             let primary = EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID)
@@ -146,8 +155,8 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             async let secondHeight = independent.finalizedShopHeight()
             let heights = try await (firstHeight, secondHeight)
             let height = min(heights.0, heights.1)
-            async let firstFunds = primary.shopFunds(payer: payer, blockNumber: height)
-            async let secondFunds = independent.shopFunds(payer: payer, blockNumber: height)
+            async let firstFunds = primary.shopFunds(payer: payer, blockNumber: height, required: selection.amount)
+            async let secondFunds = independent.shopFunds(payer: payer, blockNumber: height, required: selection.amount)
             let funds = try await (firstFunds, secondFunds)
             try self.check(ticket)
             guard wallet.ownerAddress?.lowercased() == payer.lowercased(), funds.0 == funds.1 else { throw ProductError.invalidResponse }
@@ -155,8 +164,9 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
                 self.fundingAddress = payer; self.phase = .funding; return
             }
             self.fundingAddress = nil
+            if selection.requiresAgeProof { try await self.prover.prepare(); try self.check(ticket) }
             let key = String(CanonicalBytes.hexString(try LocalSecrets.random32()).dropFirst(2))
-            let pending = PendingShopCreation(connection: connection, key: key, payer: payer)
+            let pending = PendingShopCreation(connection: connection, key: key, payer: payer, selection: selection)
             // Even a lost creation response must resume the same capability.
             try LocalSecrets.write(pending, key: self.creationKey)
             try await self.create(pending, ticket: ticket)
@@ -164,7 +174,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     }
     private func create(_ pending: PendingShopCreation, ticket: UUID) async throws {
         guard let client else { throw ProductError.invalidResponse }
-        let order = try await client.create(payer: pending.payer, key: pending.key)
+        let order = try await client.create(payer: pending.payer, key: pending.key, selection: pending.selection ?? .lager)
         try check(ticket)
         let saved = SavedShopOrder(connection: pending.connection, key: pending.key, order: order)
         try LocalSecrets.write(saved, key: storageKey)
@@ -174,7 +184,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
     }
 
     func readCard(pin: String, sensors: MateModel) {
-        guard !busy, phase == .card, let saved, client != nil, JPKICardReader.validSigningPIN(pin) else { return }
+        guard !busy, phase == .card, selection.requiresAgeProof, let saved, client != nil, JPKICardReader.validSigningPIN(pin) else { return }
         message = nil
         phase = .preparingCard
         run { ticket in
@@ -277,14 +287,14 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
 
     private func signAndPay(wallet: WalletService, ticket: UUID) async throws {
         guard let client, let saved, saved.paymentHeader == nil, saved.paymentRetiredAtBlockHash == nil,
-              Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash),
-              saved.order.state == .ageVerified else { throw ProductError.invalidResponse }
+              Self.ageRequirementSatisfied(saved.order, marker: saved.locallyProvenOrderHash),
+              [.ageVerified, .paymentReady].contains(saved.order.state) else { throw ProductError.invalidResponse }
         let required = try await client.paymentChallenge(order: saved.order, key: saved.key)
         try check(ticket)
         let signature = try await wallet.signShopPayment(order: saved.order, required: required) {
             try self.check(ticket)
             guard self.saved?.order.orderHash == saved.order.orderHash, self.saved?.paymentHeader == nil,
-                  Self.hasLocalProof(saved.order, marker: self.saved?.locallyProvenOrderHash),
+                  Self.ageRequirementSatisfied(saved.order, marker: self.saved?.locallyProvenOrderHash),
                   saved.order.expiresAt > UInt64(Date().timeIntervalSince1970) else { throw AgeShopError.expiredOrder }
         }
         try check(ticket)
@@ -329,7 +339,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         try check(ticket); try store(current)
         if current.state == .complete {
             phase = .pending
-            guard Self.hasLocalProof(current, marker: saved.locallyProvenOrderHash) else { throw AgeShopError.invalidOrder }
+            guard Self.ageRequirementSatisfied(current, marker: saved.locallyProvenOrderHash) else { throw AgeShopError.invalidOrder }
             async let primary = EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID).confirmShop(current)
             async let independent = EthereumRPC(url: "https://rpc.drpc.testnet.arc.io", chainID: AgeShopProtocol.chainID).confirmShop(current)
             let hashes = try await (primary, independent)
@@ -363,7 +373,7 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
             message = "Checking the original payment. Its order and nonce are preserved."
         } else if current.expiresAt <= UInt64(Date().timeIntervalSince1970) {
             phase = .unavailable; message = "This order expired before payment. Nothing was paid."
-        } else if current.state == .ageVerified && Self.hasLocalProof(current, marker: saved.locallyProvenOrderHash) { phase = .paymentApproval }
+        } else if [.ageVerified, .paymentReady].contains(current.state) && Self.ageRequirementSatisfied(current, marker: saved.locallyProvenOrderHash) { phase = .paymentApproval }
         else {
             phase = recoverablePhase
             if phase == .proofFailed { message = self.saved?.ageProofFailure?.explanation }
@@ -438,6 +448,10 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         guard let marker, (try? CanonicalBytes.hex(marker, count: 32)) != nil else { return false }
         return marker.lowercased() == order.orderHash.lowercased()
     }
+    static func ageRequirementSatisfied(_ order: AgeShopOrder, marker: String?) -> Bool {
+        guard let selection = try? ShopSelection(order: order) else { return false }
+        return !selection.requiresAgeProof || hasLocalProof(order, marker: marker)
+    }
     private var recoverablePhase: Phase {
         guard let saved else { return .unavailable }
         return Self.recoveryPhase(saved, now: UInt64(Date().timeIntervalSince1970))
@@ -446,6 +460,8 @@ struct ShopPurchaseRecord: Identifiable, Sendable {
         if saved.paymentRetiredAtBlockHash != nil { return .pending }
         if saved.paymentHeader != nil || [.paymentPending, .paymentExpired, .complete].contains(saved.order.state) { return .pending }
         if saved.order.expiresAt <= now { return .unavailable }
+        guard let selection = try? ShopSelection(order: saved.order) else { return .unavailable }
+        if !selection.requiresAgeProof { return saved.order.state == .paymentReady ? .paymentApproval : .unavailable }
         if saved.ageProofFailure != nil { return .proofFailed }
         if saved.order.state == .awaitingAge && Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash) { return .verificationFailed }
         return saved.order.state == .ageVerified && Self.hasLocalProof(saved.order, marker: saved.locallyProvenOrderHash) ? .paymentApproval : .card
@@ -506,16 +522,16 @@ extension ShopCheckout.Phase {
     /// successful proof or payment merely because a spinner or timer finished.
     var spokenGuide: String? {
         switch self {
-        case .review: return "I’ll get one beer. First, let’s confirm your age."
+        case .review: return "Please review your product and quantity."
         case .card: return "Enter your card’s signature password, then tap Start card scan."
         case .funding: return "Your wallet needs free test USDC before I can order."
         case .proving: return "Card read. I’m making your age proof on this iPhone."
         case .proofFailed: return "The card was read, but I couldn't finish the age proof. Your purchase is not complete."
         case .verificationFailed: return "Your age proof is ready, but the store hasn't confirmed it. Your purchase is not complete."
         case .verifying: return "Your proof is ready. The store is checking it."
-        case .paymentApproval: return "Age verified. Please approve this one payment on your iPhone."
+        case .paymentApproval: return "Your order is ready. Please approve the displayed payment on your iPhone."
         case .pending: return "The payment is still being checked. I’ll keep this order."
-        case .complete: return "Your beer purchase is complete. Your birth date stayed on this iPhone."
+        case .complete: return "Your test purchase is complete. The payment is confirmed on Arc Testnet."
         case .expired: return "This order expired. Please start a new order."
         case .unavailable: return "I couldn’t continue the order. Please check the message on screen."
         default: return nil

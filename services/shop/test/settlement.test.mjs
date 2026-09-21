@@ -8,10 +8,10 @@ import {createArcSettlement,createArcTransaction,paymentTypedData,settlementConf
 import {CHAIN_ID,NETWORK,newOrder,requirements} from '../src/protocol.mjs';
 
 // Fresh process-memory keys for isolated tests only. No public requests.
-async function fixture() {
+async function fixture(selection={}) {
  const key=generatePrivateKey(),sponsor=privateKeyToAccount(key),buyer=privateKeyToAccount(generatePrivateKey());
  const env={ARC_SETTLER_KEY:key,ARC_SETTLER_ADDRESS:sponsor.address,PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),AGE_GATE_ADDRESS:'0x'+'11'.repeat(20)};
- const now=1800000000,order=newOrder({payer:buyer.address,productId:'mate-lager',quantity:1},'ab'.repeat(32),env,now);
+ const now=1800000000,order=newOrder({payer:buyer.address,productId:'mate-lager',quantity:1,...selection},'ab'.repeat(32),env,now);
  const required=requirements(order),a={from:buyer.address,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+180),nonce:order.paymentNonce};
  const payload={x402Version:2,accepted:required,payload:{authorization:a,signature:await buyer.signTypedData(paymentTypedData(a))}};
  const state={sends:[],simulations:0,chain:CHAIN_ID,price:21000000000n,balance:10n**18n,revert:false,nonce:0,finalized:0,signs:0,sendFails:false};
@@ -43,6 +43,23 @@ test('real buyer signature produces only the fixed Arc USDC call within its nati
  const decoded=decodeFunctionData({abi:parseAbi(['function transferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce,uint8 v,bytes32 r,bytes32 s)']),data:call.data});
  assert.equal(decoded.functionName,'transferWithAuthorization');assert.equal(decoded.args[2],100000n);assert.equal(call.gas,SETTLEMENT_GAS);assert.equal(call.maxFeePerGas,SETTLEMENT_MAX_FEE);
  assert.equal(call.gas*call.maxFeePerGas,3750000000000000n);assert.equal(call.value??0n,0n);
+});
+test('signed catalogue totals are preserved in the actual USDC call',async()=>{
+ for(const [selection,amount] of [[{productId:'mate-sparkling-water',quantity:3},150000n],[{quantity:5},500000n]]) {
+  const f=await fixture(selection);assert.equal((await f.settlement.verify(f.payload,f.required)).isValid,true);
+  await f.settlement.settle(f.payload,f.required);
+  const call=parseTransaction(f.state.sends[0]);
+  const decoded=decodeFunctionData({abi:parseAbi(['function transferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce,uint8 v,bytes32 r,bytes32 s)']),data:call.data});
+  assert.equal(decoded.args[2],amount);assert.equal(call.gas*call.maxFeePerGas,3750000000000000n);
+ }
+ const f=await fixture();
+ for(const amount of ['0','1','050000','550000','999999999999999999999','1e5']) {
+  const authorization={...f.payload.payload.authorization,value:amount};
+  const accepted={...f.required,amount};
+  const payload={...f.payload,accepted,payload:{authorization,signature:/^[0-9]+$/.test(amount)?await f.buyer.signTypedData(paymentTypedData(authorization)):f.payload.payload.signature}};
+  assert.equal((await f.settlement.verify(payload,accepted)).isValid,false);
+ }
+ assert.equal(f.state.signs,0);assert.equal(f.state.sends.length,0);
 });
 test('a transient readiness RPC failure recovers without signing and still checks the current fee cap',async()=>{
  for(const price of [21000000000n,SETTLEMENT_MAX_FEE+1n]) {

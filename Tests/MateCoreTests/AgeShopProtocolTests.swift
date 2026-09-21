@@ -25,6 +25,19 @@ final class AgeShopProtocolTests: XCTestCase {
         XCTAssertEqual(try CanonicalBytes.hexString(AgeShopProtocol.orderMaterial(ref.order)), ref.materialHex)
         try check(ref.order, ref: ref)
     }
+    func testCatalogueOrdersHaveTheSameCommitmentsAsTheStore() throws {
+        let url = try XCTUnwrap(Bundle.module.url(forResource: "catalogue", withExtension: "json", subdirectory: "Shop"))
+        let references = try JSONDecoder().decode([Reference].self, from: Data(contentsOf: url))
+        XCTAssertEqual(references.count, 4)
+        for ref in references {
+            XCTAssertEqual(try CanonicalBytes.hexString(AgeShopProtocol.orderMaterial(ref.order)), ref.materialHex)
+            try check(ref.order, ref: ref)
+            var changed = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(ref.order)) as? [String: Any])
+            changed["state"] = ref.order.minimumAge == 0 ? "age_verified" : "payment_ready"
+            let invalid = try JSONDecoder().decode(AgeShopOrder.self, from: JSONSerialization.data(withJSONObject: changed))
+            XCTAssertThrowsError(try check(invalid, ref: ref))
+        }
+    }
     func testEveryFinancialIdentityAndTimeSubstitutionFails() throws {
         let ref = try reference()
         let original = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(ref.order)) as? [String: Any])

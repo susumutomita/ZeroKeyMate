@@ -14,7 +14,8 @@ struct ShopPaymentRequirements: Codable, Equatable, Sendable {
     let extra: Extra
     struct Extra: Codable, Equatable, Sendable { let name: String, version: String }
     func validate(order: AgeShopOrder) throws {
-        guard scheme == "exact", network == AgeShopProtocol.network, amount == AgeShopProtocol.amount,
+        _ = try ShopSelection(order: order)
+        guard scheme == "exact", network == AgeShopProtocol.network, amount == order.amount,
               asset.lowercased() == AgeShopProtocol.token, payTo.lowercased() == order.recipient.lowercased(),
               maxTimeoutSeconds == 300, extra.name == "USDC", extra.version == "2" else { throw AgeShopError.invalidPayment }
     }
@@ -43,13 +44,15 @@ actor AgeShopClient {
             && catalog.testnet && !catalog.shipsPhysicalGoods else { throw ProductError.invalidResponse }
         return catalog.checkoutAvailable
     }
-    func create(payer: String, key: String) async throws -> AgeShopOrder {
-        let data = try JSONSerialization.data(withJSONObject: ["productId": "mate-lager", "quantity": 1, "payer": payer])
+    func create(payer: String, key: String, selection: ShopSelection = .lager) async throws -> AgeShopOrder {
+        let data = try JSONSerialization.data(withJSONObject: ["productId": selection.product.rawValue, "quantity": selection.quantity, "payer": payer])
         let result = try await request(["api", "orders"], method: "POST", key: key, body: data)
         guard result.code == 201 else { throw ProductError.unavailable("The shop cannot accept this order yet. Nothing was paid.") }
         // The idempotent creation response may be an older order after restart.
         // Keep it for recovery; expiry still prevents a new proof or payment.
-        return try decodeOrder(result.data, payer: payer, key: key, allowExpired: true)
+        let order = try decodeOrder(result.data, payer: payer, key: key, allowExpired: true)
+        guard try ShopSelection(order: order) == selection else { throw AgeShopError.invalidOrder }
+        return order
     }
     func status(order: AgeShopOrder, key: String) async throws -> AgeShopOrder {
         try validate(order, key: key, allowExpired: true)

@@ -1,7 +1,7 @@
 import {createPublicClient, http, keccak256, parseAbi, decodeEventLog} from 'viem';
 import {arcTestnet} from 'viem/chains';
 import {encodePaymentRequiredHeader, encodePaymentResponseHeader} from '@x402/core/http';
-import {CHAIN_ID, NETWORK, USDC, PRODUCTS, configuration, hex32, hashKey, newOrder, nowSeconds, requirements, paymentPayload} from './protocol.mjs';
+import {CHAIN_ID, NETWORK, USDC, PRODUCTS, catalogProduct, orderHash, configuration, hex32, hashKey, newOrder, nowSeconds, requirements, paymentPayload} from './protocol.mjs';
 import {checkoutReady, checkoutReadiness, supportedNetworks, MAX_ORDERS} from './readiness.mjs';
 import {ageArguments, ageSubmission} from './age.mjs';
 import {checkedAgeCall} from './age-rpc.mjs';
@@ -41,10 +41,18 @@ async function save(env,record,next) {
 }
 
 async function verifiedAge(env,order) {
+  if(catalogProduct(order).minimumAge!==20)return false;
   const args=ageArguments(order);
   if(!args || order.minimumAge!==20)return false;
   if(order.ageGate.toLowerCase()!==env.AGE_GATE_ADDRESS.toLowerCase())return false;
   return checkedAgeCall(env,[client(),secondaryClient()],args,true);
+}
+
+async function eligibleOrder(env,order) {
+  const product=catalogProduct(order);
+  if(orderHash(order)!==order.orderHash || order.chainId!==CHAIN_ID || order.token!==USDC
+    || order.ageGate!==env.AGE_GATE_ADDRESS.toLowerCase() || order.recipient!==env.PAYMENT_RECIPIENT.toLowerCase())return false;
+  return product.minimumAge===0 || await verifiedAge(env,order);
 }
 
 async function confirmedPaymentAt(rpc,order,transaction) {
@@ -160,7 +168,7 @@ async function route(request,env) {
        && clock()>=current.paymentAttemptAt+60 && clock()<current.expiresAt) {
       const payload=paymentPayload(header,current,clock());
       if(keccak256(new TextEncoder().encode(header))!==current.paymentDigest)return json({error:'payment_mismatch'},400);
-      if(!await verifiedAge(env,current))return json({error:'age_not_verified'},403);
+      if(!await eligibleOrder(env,current))return json({error:'age_not_verified'},403);
       const latest=await load(env,id);
       if(latest.order.state!=='payment_pending' || latest.order.paymentTransaction || latest.order.paymentAttemptAt!==current.paymentAttemptAt)return json({order:latest.order},202);
       const pending={...latest.order,paymentAttemptAt:clock(),paymentAttemptId:crypto.randomUUID()};
@@ -172,6 +180,7 @@ async function route(request,env) {
   if(order.ageGate!==env.AGE_GATE_ADDRESS.toLowerCase() || order.recipient!==env.PAYMENT_RECIPIENT.toLowerCase())return json({error:'shop_configuration_changed'},409);
   if(clock()>=order.expiresAt)return json({error:'order_expired'},410);
   if(match[2]==='age') {
+    if(catalogProduct(order).minimumAge===0)return json({error:'age_not_required'},409);
     // The actual EVM verifier sees only an order-bound proof and public values.
     // No raw card field, date, certificate, signature or client boolean is used.
     const submission=ageSubmission(await body(request));
@@ -181,10 +190,11 @@ async function route(request,env) {
     return json({order:(await load(env,id)).order});
   }
   if(match[2]!=='pay')return json({error:'not_found'},404);
-  if(order.state!=='age_verified' || !await verifiedAge(env,order))return json({error:'age_not_verified'},403);
+  const product=catalogProduct(order);
+  if(order.state!==(product.minimumAge > 0 ? 'age_verified' : 'payment_ready') || !await eligibleOrder(env,order))return json({error:'age_not_verified'},403);
   const required=requirements(order);
   const header=request.headers.get('PAYMENT-SIGNATURE');
-  if(!header){const challenge={x402Version:2,resource:{url:`${url.origin}${url.pathname}`,description:'Mate Lager testnet order',mimeType:'application/json'},accepts:[required]};
+  if(!header){const challenge={x402Version:2,resource:{url:`${url.origin}${url.pathname}`,description:`${product.name} testnet order`,mimeType:'application/json'},accepts:[required]};
     return json({...challenge,paymentNonce:order.paymentNonce,expiresAt:order.expiresAt},402,{'PAYMENT-REQUIRED':encodePaymentRequiredHeader(challenge)});}
   const payload=paymentPayload(header,order,clock());
   const facilitator=facilitatorClient(env);

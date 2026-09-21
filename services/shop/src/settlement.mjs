@@ -1,11 +1,11 @@
 // The store sponsors gas for one exact x402 USDC authorization. This module is
-// not an HTTP endpoint. Only the age-verified, reserved order path calls settle.
+// not an HTTP endpoint. Only the policy-checked, reserved order path calls settle.
 // ARC_SETTLER_KEY is a separately authorized, testnet-only Worker secret; never
 // use a buyer key, model output, .env fallback, or general transaction payload.
 import {createPublicClient,createWalletClient,http,encodeFunctionData,keccak256,parseAbi,parseSignature,verifyTypedData} from 'viem';
 import {privateKeyToAccount} from 'viem/accounts';
 import {arcTestnet} from 'viem/chains';
-import {CHAIN_ID,NETWORK,USDC,PRODUCTS,address,hex32} from './protocol.mjs';
+import {CHAIN_ID,NETWORK,USDC,catalogAmount,address,hex32} from './protocol.mjs';
 
 export const SETTLEMENT_GAS = 150000n;
 export const SETTLEMENT_MAX_FEE = 25000000000n; // 0.00375 test USDC maximum per attempt, native 18 decimals.
@@ -51,13 +51,14 @@ export function createArcTransaction(env,{client,secondary,wallet,clock=()=>Math
  const signer=wallet??createWalletClient({chain:arcTestnet,account,transport:http('https://rpc.testnet.arc.io',{timeout:8000,retryCount:0})});
  async function validate(payload,required) {
   if(payload?.x402Version!==2 || !address(env.PAYMENT_RECIPIENT))throw new Error('invalid_payment');
-  const expected={scheme:'exact',network:NETWORK,asset:USDC,amount:PRODUCTS[0].amount,payTo:env.PAYMENT_RECIPIENT};
+  if(!catalogAmount(required?.amount))throw new Error('payment_mismatch');
+  const expected={scheme:'exact',network:NETWORK,asset:USDC,amount:required.amount,payTo:env.PAYMENT_RECIPIENT};
   for(const [key,value] of Object.entries(expected))for(const terms of [payload.accepted,required])
    if(String(terms?.[key]).toLowerCase()!==value.toLowerCase())throw new Error('payment_mismatch');
   for(const terms of [payload.accepted,required])if(terms?.extra?.name!=='USDC' || terms.extra.version!=='2')throw new Error('payment_mismatch');
   const a=payload.payload?.authorization,signature=payload.payload?.signature,now=BigInt(clock());
   if(!a || !address(a.from) || a.from.toLowerCase()===account.address.toLowerCase() || !hex32(a.nonce)
-    || String(a.to).toLowerCase()!==env.PAYMENT_RECIPIENT.toLowerCase() || a.value!==PRODUCTS[0].amount
+    || String(a.to).toLowerCase()!==env.PAYMENT_RECIPIENT.toLowerCase() || a.value!==required.amount
     || !/^[0-9]{1,12}$/.test(a.validAfter) || !/^[0-9]{1,12}$/.test(a.validBefore)
     || BigInt(a.validAfter)>=now || BigInt(a.validBefore)<=now || BigInt(a.validBefore)>now+300n
     || !/^0x[0-9a-fA-F]{130}$/.test(signature??''))throw new Error('invalid_payment');

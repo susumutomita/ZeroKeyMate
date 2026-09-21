@@ -121,7 +121,7 @@ try {
  await client.request({method:'anvil_setCode',params:[USDC,'0x'+token.evm.deployedBytecode.object]});
  const minted=await wallet.writeContract({address:USDC,abi:token.abi,functionName:'mint',args:[payer.address,100000n]});
  await client.waitForTransactionReceipt({hash:minted});
- for(const file of ['0001_orders.sql','0002_payment_expiry.sql'])db.exec(readFileSync(path.join(root,'services/shop/migrations',file),'utf8'));
+ for(const file of ['0001_orders.sql','0002_payment_expiry.sql','0003_catalogue.sql'])db.exec(readFileSync(path.join(root,'services/shop/migrations',file),'utf8'));
  const database={
   prepare(sql){
    return {

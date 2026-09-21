@@ -4,6 +4,37 @@ import CoreNFC
 @testable import ZeroKeyMate
 
 final class ShopProposalTests: XCTestCase {
+    func testModelProposalsResolveOnlyExplicitBoundedCatalogueSelections() throws {
+        let water = ShopPlan(intent: .purchaseNow, operation: .buyWater, quantity: 3)
+        XCTAssertEqual(try ShopPlanner.selection(for: water, input: "Buy me three waters."), try ShopSelection(product: .sparklingWater, quantity: 3))
+        // Word boundaries allow "water", not invented SKU data or a model's
+        // confident assertion about a different product.
+        for input in ["Buy me milk", "Buy beer and water", "Buy water and a Mac mini", "Buy 12 bottles of water", "Buy 1.5 bottles of water", "Translate buy water into Japanese", "I bought water yesterday"] {
+            XCTAssertThrowsError(try ShopPlanner.selection(for: water, input: input))
+        }
+        XCTAssertThrowsError(try ShopPlanner.selection(for: ShopPlan(intent: .purchaseNow, operation: .buyBeer, quantity: 6), input: "Buy six beers"))
+        XCTAssertThrowsError(try ShopPlanner.selection(for: ShopPlan(intent: .negated, operation: .buyWater, quantity: 1), input: "Buy water"))
+        XCTAssertEqual(try ShopPlanner.selection(for: water, input: "炭酸水を3本買って"), try ShopSelection(product: .sparklingWater, quantity: 3))
+    }
+    @MainActor func testWaterRecoveryNeverRequestsAPINButTamperedBeerStillCannotSkipProof() throws {
+        let bundle = Bundle(for: Self.self)
+        let url = bundle.url(forResource: "shop-order", withExtension: "json") ?? bundle.url(forResource: "shop-order", withExtension: "json", subdirectory: "AgeFixtures")
+        let fixture = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: XCTUnwrap(url))) as? [String: Any])
+        let connection = try JSONDecoder().decode(AgeShopConnection.self, from: JSONSerialization.data(withJSONObject: fixture["connection"]!))
+        var fields = try XCTUnwrap(fixture["order"] as? [String: Any])
+        fields["productId"] = "mate-sparkling-water"; fields["quantity"] = 3; fields["amount"] = "150000"; fields["minimumAge"] = 0; fields["state"] = "payment_ready"
+        let water = try JSONDecoder().decode(AgeShopOrder.self, from: JSONSerialization.data(withJSONObject: fields))
+        let saved = SavedShopOrder(connection: connection, key: fixture["key"] as! String, order: water)
+        XCTAssertTrue(ShopCheckout.ageRequirementSatisfied(water, marker: nil))
+        XCTAssertEqual(ShopCheckout.recoveryPhase(saved, now: water.createdAt + 1), .paymentApproval)
+        // A server's unchecked minimumAge alone never establishes eligibility.
+        fields["productId"] = "mate-lager"; fields["amount"] = "300000"
+        let tampered = try JSONDecoder().decode(AgeShopOrder.self, from: JSONSerialization.data(withJSONObject: fields))
+        XCTAssertFalse(ShopCheckout.ageRequirementSatisfied(tampered, marker: nil))
+        fields["minimumAge"] = 20; fields["state"] = "age_verified"
+        let beer = try JSONDecoder().decode(AgeShopOrder.self, from: JSONSerialization.data(withJSONObject: fields))
+        XCTAssertFalse(ShopCheckout.ageRequirementSatisfied(beer, marker: nil))
+    }
     @MainActor func testNFCFailuresKeepActionableReasonsWithoutUnderlyingCardData() {
         let cases: [(NFCReaderError.Code, CardScanError)] = [
             (.readerErrorSecurityViolation, .permissionMissing),

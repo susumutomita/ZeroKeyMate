@@ -17,6 +17,7 @@ function harness(t) {
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
   db.exec(readFileSync(new URL('../migrations/0001_orders.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('../migrations/0002_payment_expiry.sql',import.meta.url),'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0003_catalogue.sql',import.meta.url),'utf8'));
   const state={age:true,settles:0,receipt:null,logs:[],updateCount:0,failUpdate:0,now:Math.floor(Date.now()/1000)};
   const env={SHOP_CHAIN_ID:'5042002',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:keccak256('0x6000'),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{
     prepare(sql){return {async first(){return db.prepare(sql).get()??null;},bind(...values){return {
@@ -33,7 +34,7 @@ function harness(t) {
   const worker=createShop({client:()=>rpc,secondaryClient:()=>secondary,facilitatorClient:()=>facilitator,supported,clock:()=>state.now});
   const key='ab'.repeat(32);
   const request=(path,method='GET',body,headers={})=>worker.fetch(new Request('https://shop.example/api'+path,{method,headers:{'X-Order-Key':key,...(body===undefined?{}:{'content-type':'application/json'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})}),env);
-  async function order(){const res=await request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20)});assert.equal(res.status,201);return (await res.json()).order;}
+  async function order(selection={}){const res=await request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20),...selection});assert.equal(res.status,201);return (await res.json()).order;}
   async function approve(order){assert.equal((await request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)})).status,200);}
   function header(order){const now=Math.floor(Date.now()/1000);return encodePaymentSignatureHeader({x402Version:2,accepted:requirements(order),payload:{signature:'0x'+'44'.repeat(65),authorization:{from:order.payer,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+200),nonce:order.paymentNonce}}});}
   const pay=order=>request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header(order)});
@@ -50,6 +51,47 @@ test('SQLite persists one order and one nonce under concurrent creation/restart'
   assert.equal(h.db.prepare('SELECT count(*) AS count FROM orders').get().count,1);
   const response=await h.request(`/orders/${orders[0].id}`);
   assert.equal((await response.json()).order.paymentNonce,orders[0].paymentNonce);
+});
+test('water reaches a confirmed payment without submitting or verifying any age proof',async t=>{
+  const h=harness(t),order=await h.order({productId:'mate-sparkling-water',quantity:3});
+  assert.equal(order.state,'payment_ready');assert.equal(order.amount,'150000');assert.equal(order.minimumAge,0);
+  // Creation checks store health, but the individual water order must never
+  // call the age verifier or accept unnecessary identity disclosure.
+  h.rpc.readContract=h.secondary.readContract=async()=>{throw Error('unexpected_age_verifier');};
+  assert.equal((await h.request(`/orders/${order.id}/age`,'POST',{})).status,409);
+  const challenge=await h.request(`/orders/${order.id}/pay`,'POST');assert.equal(challenge.status,402);
+  assert.equal(decodePaymentRequiredHeader(challenge.headers.get('PAYMENT-REQUIRED')).accepts[0].amount,'150000');
+  h.settleReceipt(order);
+  assert.equal((await h.pay(order)).status,200);
+  const paid=(await (await h.request(`/orders/${order.id}`)).json()).order;
+  assert.equal(paid.state,'complete');assert.equal(paid.paymentTransaction,transaction);
+  assert.equal(paid.proof,undefined);assert.equal(h.state.settles,1);
+  await h.pay(order);assert.equal(h.state.settles,1);
+});
+test('quantity and age policy cannot be changed under an existing order capability',async t=>{
+  const h=harness(t),order=await h.order({quantity:2});
+  assert.equal(order.amount,'200000');assert.equal(order.minimumAge,20);
+  assert.equal((await h.pay(order)).status,403);
+  for(const input of [{productId:'mate-lager',quantity:1},{productId:'mate-sparkling-water',quantity:2}]) {
+    assert.equal((await h.request('/orders','POST',{...input,payer:order.payer})).status,409);
+  }
+  assert.equal((await h.request('/orders','POST',{productId:'mate-lager',quantity:2,payer:order.payer,minimumAge:0})).status,400);
+  // Even a corrupted stored age flag cannot bypass the canonical catalogue.
+  const tampered={...order,minimumAge:0,state:'payment_ready'};
+  h.db.prepare('UPDATE orders SET value=? WHERE id=?').run(JSON.stringify(tampered),order.id);
+  assert.equal((await h.pay(order)).status,400);assert.equal(h.state.settles,0);
+});
+test('unrestricted order keeps its original authorization across a settlement timeout',async t=>{
+  const h=harness(t),order=await h.order({productId:'mate-sparkling-water'});h.state.timeout=true;
+  assert.equal((await h.pay(order)).status,202);assert.equal(h.state.settles,1);
+  assert.equal((await h.request(`/orders/${order.id}/pay`,'POST')).status,202);
+  const pending=(await (await h.request(`/orders/${order.id}`)).json()).order;
+  assert.equal(pending.state,'payment_pending');assert.equal(pending.paymentNonce,order.paymentNonce);
+  h.state.timeout=false;h.settleReceipt(order);
+  h.state.receipt.blockNumber=103n;
+  h.rpc.getBlockNumber=h.secondary.getBlockNumber=async()=>105n;
+  assert.equal((await (await h.request(`/orders/${order.id}`)).json()).order.state,'complete');
+  assert.equal(h.state.settles,1);
 });
 test('raw age claims cannot unlock a shop order or reach the facilitator',async t=>{
   const h=harness(t),order=await h.order();h.state.age=false;
