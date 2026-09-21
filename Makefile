@@ -87,3 +87,12 @@ circle-setup:
 
 circle-login:
 	CIRCLE_CLI_HOME="$(CURDIR)/.data/circle" DO_NOT_TRACK=1 .tools/circle-cli/node_modules/.bin/circle wallet login "$(EMAIL)" --testnet
+
+.PHONY: test-budget demo-budget
+test-budget: node_modules/.package-lock.json
+	node scripts/compile-contracts.mjs --tests
+	node --test contracts/test/shared-budget.test.mjs
+
+demo-budget: node_modules/.package-lock.json
+	node scripts/compile-contracts.mjs --tests
+	node contracts/test/shared-budget.test.mjs --demo
