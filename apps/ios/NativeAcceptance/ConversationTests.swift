@@ -35,6 +35,26 @@ private actor StreamingConversation:ConversationResponding {
 
 @MainActor
 final class ConversationTests:XCTestCase {
+    func testConversationCannotInventTheResultOfAnExplicitPurchase() async throws {
+        // This boundary also works when the system model is unavailable.
+        // Real catalogue purchases are handled before this chat-only service.
+        let service=ConversationService()
+        for (input,language,expected) in [
+            ("Mac miniをAmazonで買って","日本語","実行できません"),
+            ("Please buy a laptop on Amazon.","English","can't make that purchase")
+        ] {
+            let response=try await service.reply(to:input,history:"",observations:"",notes:"",replyLanguage:language)
+            XCTAssertTrue(response.text.contains(expected),response.text)
+            XCTAssertNil(response.service)
+            XCTAssertFalse(response.text.contains("購入しました"))
+            XCTAssertFalse(response.text.contains("completed"))
+        }
+        do {
+            _=try await service.reply(to:"Buy "+String(repeating:"x",count:8_001),history:"",observations:"",notes:"",replyLanguage:"English")
+            XCTFail("Overlong purchase text must still be rejected")
+        } catch ProductError.invalidResponse {} catch {XCTFail("Unexpected error: \(error)")}
+    }
+
     func testPartialReplyAppearsBeforeCompletionAndCommitsOnlyOnce() async throws {
         let service=StreamingConversation()
         let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
