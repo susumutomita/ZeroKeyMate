@@ -9,7 +9,7 @@ This is a separate Japanese explainer with **VOICEVOX:ずんだもん** narratio
 - Reproducibility evidence: `output/youtube-ja/build-evidence.json`
 - Release scope and trust boundaries: [release direction](../release-direction-2026-09-15.md)
 
-The rendered video was uploaded to YouTube on September 15 as video `deIP60_RYoM`. Japanese SRT captions, chapter timestamps, the existing cover, VOICEVOX credit and synthesized-content disclosure were saved. YouTube reported no copyright issues at upload time; this is not a guarantee against later claims. The upload was saved privately pending the creator's publication confirmation.
+The rendered video was uploaded to YouTube on September 15 as video `deIP60_RYoM`. Japanese SRT captions, chapter timestamps, the existing cover, VOICEVOX credit and synthesized-content disclosure were saved. YouTube reported no copyright issues at upload time; this is not a guarantee against later claims. After the creator confirmed publication, the video was published publicly on September 15: https://youtu.be/deIP60_RYoM. The saved public visibility was verified after reloading YouTube Studio.
 
 The September 15 export is 264.23 seconds, 1920×1080 H.264 with 48 kHz AAC. It uses VOICEVOX Engine 0.25.2, Zundamon normal (speaker 3), Japanese explanation graphics, and the existing edited physical-device walkthrough at its original speed. The original recording's audio is not mixed into this version. The ten chapter frames, subtitle layout, full-file decoding, audio peak (-1.5 dBFS) and credit were checked; this does not claim human listening acceptance or a new device purchase.
 
