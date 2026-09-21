@@ -21,6 +21,9 @@ public struct PaymentService: Codable, Equatable, Sendable {
               !host.hasSuffix(".local"),!host.hasSuffix(".localhost"),
               !host.hasSuffix(".internal"),!host.hasSuffix(".test"),
               host.split(separator:".").contains(where:{$0.contains(where:{$0.isLetter})}),
+              !host.split(separator:".").allSatisfy({label in
+                  label.allSatisfy(\.isNumber) || (label.hasPrefix("0x") && label.dropFirst(2).allSatisfy(\.isHexDigit))
+              }),
               host.split(separator:".",omittingEmptySubsequences:false).allSatisfy({label in
                   !label.isEmpty && label.count<=63 && label.first != "-" && label.last != "-"
                     && label.allSatisfy({$0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-")})
@@ -94,17 +97,21 @@ public struct PaymentAuthorization: Codable, Equatable, Sendable {
     public let from:String,to:String,value:String,validAfter:String,validBefore:String,nonce:String
     public init(request:PaymentRequest,payer:String,nonce:String,now:UInt64) throws {
         try request.validate(now:now)
-        guard request.expiresAt-now>=15 else{throw ExternalPaymentError.expired}
+        guard now<=UInt64.max-300 else{throw ExternalPaymentError.invalidAuthorization}
         from=payer;to=request.accepted.payTo;value=request.accepted.amount
-        validAfter=String(now-1);validBefore=String(request.expiresAt);self.nonce=nonce
+        // Match the reference EIP-3009 client. Quote freshness limits when an
+        // approval can be made, not the server's subsequent settlement window.
+        validAfter="0";validBefore=String(now+UInt64(request.accepted.maxTimeoutSeconds));self.nonce=nonce
         try validate(request:request)
     }
     public func validate(request:PaymentRequest) throws {
         try request.validate(now:request.quotedAt,allowExpired:true)
         guard (try? CanonicalBytes.hex(from,count:20).contains(where:{$0 != 0}))==true,
               to==request.accepted.payTo,value==request.accepted.amount,
-              let start=UInt64(validAfter),String(start)==validAfter,start>=request.quotedAt-1,
-              let end=UInt64(validBefore),String(end)==validBefore,end==request.expiresAt,start<end,
+              validAfter=="0",let end=UInt64(validBefore),String(end)==validBefore,
+              end>UInt64(request.accepted.maxTimeoutSeconds),
+              end-UInt64(request.accepted.maxTimeoutSeconds)>=request.quotedAt,
+              end-UInt64(request.accepted.maxTimeoutSeconds)<request.expiresAt,
               (try? CanonicalBytes.hex(nonce,count:32).contains(where:{$0 != 0}))==true
         else{throw ExternalPaymentError.invalidAuthorization}
     }
@@ -118,11 +125,15 @@ public struct PendingPayment: Codable, Equatable, Sendable {
     public let signature:String
     public init(request:PaymentRequest,authorization:PaymentAuthorization,signature:String,now:UInt64) throws {
         self.request=request;self.authorization=authorization;self.signature=signature
+        try request.validate(now:now)
         try validate(now:now)
     }
     public func validate(now:UInt64,allowExpired:Bool=false) throws {
-        try request.validate(now:now,allowExpired:allowExpired)
+        try request.validate(now:now,allowExpired:true)
         try authorization.validate(request:request)
+        guard let end=UInt64(authorization.validBefore),end-UInt64(request.accepted.maxTimeoutSeconds)<=now
+        else{throw ExternalPaymentError.invalidAuthorization}
+        if !allowExpired && now>=end{throw ExternalPaymentError.expired}
         guard (try? CanonicalBytes.hex(signature,count:65).contains(where:{$0 != 0}))==true else{throw ExternalPaymentError.invalidAuthorization}
     }
     public func header(now:UInt64) throws -> String {
@@ -150,14 +161,14 @@ public struct PaymentReceipt: Codable, Equatable, Sendable {
         guard receipt.network==AgeShopProtocol.network,
               receipt.payer?.lowercased()==pending.authorization.from.lowercased(),
               (try? CanonicalBytes.hex(receipt.transaction,count:32).contains(where:{$0 != 0}))==true,
-              receipt.success || receipt.errorReason=="settlement_pending"
+              (receipt.success && receipt.errorReason==nil) || (!receipt.success && receipt.errorReason=="settlement_pending")
         else{throw ExternalPaymentError.invalidReceipt}
         return receipt
     }
     /// Call only with logs from a successful, canonical confirmed transaction
     /// at `transaction` on the configured chain, obtained independently of HTTP.
-    public func validateTransfer(pending:PendingPayment,logs:[AgeShopReceipt.Log]) throws {
-        try pending.validate(now:pending.request.quotedAt,allowExpired:true)
+    public func validateTransfer(pending:PendingPayment,logs:[AgeShopReceipt.Log],now:UInt64) throws {
+        try pending.validate(now:now,allowExpired:true)
         guard network==AgeShopProtocol.network,payer?.lowercased()==pending.authorization.from.lowercased(),
               let amount=UInt64(pending.authorization.value) else{throw ExternalPaymentError.invalidReceipt}
         let from=try CanonicalBytes.hexString(Data(repeating:0,count:12)+CanonicalBytes.hex(pending.authorization.from,count:20))

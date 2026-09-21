@@ -18,7 +18,11 @@ a deliberately narrow interoperability profile, not full x402 conformance.
 
 `PaymentRequest` validates the challenge's exact resource, recipient, canonical
 integer amount, timeout and domain metadata. It expires locally after at most
-180 seconds. `PaymentAuthorization` binds the corresponding transfer fields;
+180 seconds for **new approval**. Signing within that period gives the
+authorization its full advertised `maxTimeoutSeconds` settlement window, as in
+the reference EIP-3009 client. A retry uses that original signed deadline even
+if the quote's approval deadline has since passed; it never extends either one.
+`PaymentAuthorization` binds the corresponding transfer fields;
 `PendingPayment` serializes the selected requirement and authorization without
 changing the nonce, deadline or signature on retry. Restored data is revalidated.
 

@@ -41,6 +41,9 @@ actor ExternalPaymentClient {
         guard let http=response as? HTTPURLResponse,http.url?.absoluteString==service.resource,
               !(300...399).contains(http.statusCode),response.expectedContentLength<=65_536
         else{throw ExternalPaymentError.invalidReceipt}
+        for field in ["PAYMENT-REQUIRED","PAYMENT-RESPONSE"] {
+            guard (http.value(forHTTPHeaderField:field)?.utf8.count ?? 0)<=16_384 else{throw ExternalPaymentError.invalidReceipt}
+        }
         var data=Data()
         for try await byte in bytes {
             try Task.checkCancellation()

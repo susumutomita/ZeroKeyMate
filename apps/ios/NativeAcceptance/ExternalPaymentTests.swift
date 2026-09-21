@@ -102,6 +102,15 @@ final class ExternalPaymentTransportTests:XCTestCase {
         do{_ = try await client("other").submit(p,now:1002);XCTFail("Signature leaked to another endpoint")}catch{}
         XCTAssertTrue(PaymentHTTPFixture.trace.snapshot().isEmpty)
     }
+    func testRejectedPaidResponsesRetainThePendingPayment() async throws {
+        for path in ["redirect","oversize"] {
+            let journal=MemoryPaymentJournal(),recovery=ExternalPaymentRecovery(journal:journal),p=try payment(path)
+            do{_ = try await recovery.submit(p,through:client(path),now:1002);XCTFail("Expected rejected response")}
+            catch{}
+            let saved=await journal.load();XCTAssertEqual(saved,p,"A bad response after transmission is not evidence of nonpayment")
+        }
+        XCTAssertEqual(PaymentHTTPFixture.trace.snapshot().count,2)
+    }
     func testTwoCoordinatorsCannotReserveDifferentPaymentsConcurrently() async throws {
         let journal=MemoryPaymentJournal(),first=ExternalPaymentRecovery(journal:journal),second=ExternalPaymentRecovery(journal:journal)
         let p=try payment("quote"),other=try payment("quote",nonce:String(repeating:"55",count:32)),c=try client("quote")

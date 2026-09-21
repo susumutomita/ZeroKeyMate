@@ -31,7 +31,7 @@ final class ExternalPaymentTests:XCTestCase {
         XCTAssertEqual((decoded["resource"] as? [String:String])?["url"],"https://api.example.com/data")
         let payload=try XCTUnwrap(decoded["payload"] as? [String:Any])
         let auth=try XCTUnwrap(payload["authorization"] as? [String:String])
-        XCTAssertEqual(auth,["from":payer,"to":recipient,"value":"50000","nonce":nonce,"validAfter":"1000","validBefore":"1060"])
+        XCTAssertEqual(auth,["from":payer,"to":recipient,"value":"50000","nonce":nonce,"validAfter":"0","validBefore":"1061"])
         let saved=try JSONEncoder().encode(p),restored=try JSONDecoder().decode(PendingPayment.self,from:saved)
         XCTAssertEqual(try restored.header(now:1_020),wire,"A retry must not produce a fresh nonce, deadline or signature")
     }
@@ -65,6 +65,7 @@ final class ExternalPaymentTests:XCTestCase {
     }
     func testRegisteredServiceRejectsCredentialsLocalIPsQueriesAndNormalization() throws {
         for url in ["http://api.example.com/data","https://user:pass@api.example.com/data","https://127.0.0.1/data",
+                    "https://0x7f.0.0.1/data","https://0177.0.0.1/data","https://127.1/data",
                     "https://[::1]/data","https://localhost/data","https://shop.local/data","https://api.example.com:443/data",
                     "https://api.example.com/data?secret=x","https://api.example.com/data#fragment","https://api.example.com/%2fdata",
                     "https://api.example.com/../data","file:///tmp/data"] {
@@ -74,9 +75,9 @@ final class ExternalPaymentTests:XCTestCase {
     }
     func testExpiredPaymentsRemainReadableButCannotBeResubmittedOrSignedAgain() throws {
         let p=try pending()
-        XCTAssertThrowsError(try p.header(now:1060))
+        XCTAssertThrowsError(try p.header(now:1061))
         XCTAssertNoThrow(try p.validate(now:2000,allowExpired:true))
-        XCTAssertThrowsError(try PaymentAuthorization(request:p.request,payer:payer,nonce:nonce,now:1050))
+        XCTAssertThrowsError(try PaymentAuthorization(request:p.request,payer:payer,nonce:nonce,now:1060))
         var data=try JSONSerialization.jsonObject(with:JSONEncoder().encode(p)) as! [String:Any]
         var a=data["authorization"] as! [String:Any];a["value"]="1";data["authorization"]=a
         let tampered=try JSONDecoder().decode(PendingPayment.self,from:JSONSerialization.data(withJSONObject:data))
@@ -84,6 +85,17 @@ final class ExternalPaymentTests:XCTestCase {
         var r=try JSONSerialization.jsonObject(with:JSONEncoder().encode(p.request)) as! [String:Any];r["quotedAt"]=0
         let broken=try JSONDecoder().decode(PaymentRequest.self,from:JSONSerialization.data(withJSONObject:r))
         XCTAssertThrowsError(try p.authorization.validate(request:broken),"Malformed persisted data must not underflow")
+    }
+    func testApprovalDeadlineDoesNotShortenTheAdvertisedSettlementWindow() throws {
+        var c=challenge(),a=(c["accepts"] as! [[String:Any]])[0]
+        a["maxTimeoutSeconds"]=300;c["accepts"]=[a]
+        let r=try request(c);XCTAssertEqual(r.expiresAt,1180)
+        let auth=try PaymentAuthorization(request:r,payer:payer,nonce:nonce,now:1179)
+        XCTAssertEqual(auth.validBefore,"1479")
+        let p=try PendingPayment(request:r,authorization:auth,signature:signature,now:1179)
+        XCTAssertNoThrow(try p.header(now:1300),"Retry an already-approved payment after the quote's approval deadline")
+        XCTAssertThrowsError(try p.header(now:1479))
+        XCTAssertThrowsError(try PendingPayment(request:r,authorization:auth,signature:signature,now:1180),"Do not approve a new payment from an expired quote")
     }
     func testServerSuccessIsOnlyAClaimAndRequiresBothTransferAndAuthorizationEvidence() throws {
         let p=try pending(),hash="0x"+String(repeating:"aa",count:32)
@@ -96,12 +108,14 @@ final class ExternalPaymentTests:XCTestCase {
             data:"0x"+String(repeating:"0",count:60)+"c350")
         let used=AgeShopReceipt.Log(address:AgeShopProtocol.token,
             topics:["0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5",from,nonce],data:"0x")
-        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[]))
-        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[transfer]))
-        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[used]))
-        XCTAssertNoThrow(try r.validateTransfer(pending:p,logs:[transfer,used]))
+        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[],now:2000))
+        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[transfer],now:2000))
+        XCTAssertThrowsError(try r.validateTransfer(pending:p,logs:[used],now:2000))
+        XCTAssertNoThrow(try r.validateTransfer(pending:p,logs:[transfer,used],now:2000))
         var pendingClaim=wire;pendingClaim["success"]=false;pendingClaim["errorReason"]="settlement_pending"
         XCTAssertFalse(try PaymentReceipt.parse(header:header(pendingClaim),pending:p,now:2000).success)
+        pendingClaim["success"]=true
+        XCTAssertThrowsError(try PaymentReceipt.parse(header:header(pendingClaim),pending:p,now:2000))
         for(key,value) in [("network","eip155:1"),("payer",recipient),("transaction","not-a-hash")] {
             var bad=wire;bad[key]=value;XCTAssertThrowsError(try PaymentReceipt.parse(header:header(bad),pending:p,now:2000))
         }
