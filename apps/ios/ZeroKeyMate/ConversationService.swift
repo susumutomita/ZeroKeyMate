@@ -8,6 +8,15 @@ struct ConversationReply:Sendable {
     let disclosure:String
 }
 
+enum ConversationFailure: Error, Sendable, Equatable {
+    case responseBlocked
+    init?(modelError: Error) {
+        guard let error=modelError as? LanguageModelSession.GenerationError,
+              case .guardrailViolation = error else{return nil}
+        self = .responseBlocked
+    }
+}
+
 protocol ConversationResponding:Sendable {
     func availability() async -> String?
     func prepare(replyLanguage:String,notes:String) async
@@ -131,6 +140,11 @@ actor ConversationService:ConversationResponding {
         }catch{
             // Do not retain an incomplete or cancelled turn for the next interaction.
             self.session=nil
+            if let failure=ConversationFailure(modelError:error) {
+                // Keep the system guardrails and do not retry/rewrite the prompt.
+                // The companion can ask for a new turn without ending the session.
+                throw failure
+            }
             throw error
         }
     }

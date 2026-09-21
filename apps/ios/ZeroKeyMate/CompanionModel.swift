@@ -495,7 +495,16 @@ final class CompanionModel:ObservableObject {
                     self.draft=DisclosureDraft(service:service,text:response.disclosure)
                 }
                 if self.readAloud{self.voice.finishStream(response.text,locale:replyLanguage.speechLocale)}
-            }catch is CancellationError{}catch{
+            }catch is CancellationError{}catch ConversationFailure.responseBlocked {
+                guard !Task.isCancelled,self.foreground,self.conversationGeneration==generation else{return}
+                // Discard unfinished speech/text. A blocked reply must not put
+                // the companion to sleep or authorize any action. Resume input
+                // only through the already-consented listening-session rules.
+                self.voice.stop();self.streamingReply=""
+                self.agentSay(replyLanguage == .japanese
+                    ? "うまく返事ができませんでした。別の言い方で話してもらえますか？"
+                    : "I couldn't answer that. Could you say it another way?",language:replyLanguage)
+            }catch{
                 if self.conversationGeneration==generation{self.rest();self.errorMessage=error.localizedDescription}
             }
         }
