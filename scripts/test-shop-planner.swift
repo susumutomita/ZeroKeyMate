@@ -13,6 +13,10 @@ import FoundationModels
             ("Buy me one beer.", .buyBeer, 1),
             ("ビールを1本買って。", .buyBeer, 1),
             ("Buy two beers.", .buyBeer, 2),
+            ("Buy me three waters.", .buyWater, 3),
+            ("炭酸水を3本買って。", .buyWater, 3),
+            ("Buy me one Mate Sparkling Water.", .buyWater, 1),
+            ("Buy beer and water.", .unsupportedPurchase, nil),
             ("Please buy a Mac mini on Amazon.", .unsupportedPurchase, nil),
             ("Don't buy beer.", .chat, nil),
             ("Translate 'buy beer' into Japanese.", .chat, nil),
@@ -30,8 +34,9 @@ import FoundationModels
         for (input, expected, count) in cases {
             do {
                 let result = try await planner.plan(input)
-                let matches = String(describing: result.operation) == String(describing: expected)
+                var matches = String(describing: result.operation) == String(describing: expected)
                     && (count == nil || result.quantity == count)
+                if count != nil { matches = matches && (try? ShopPlanner.selection(for: result, input: input)) != nil }
                 print("\(matches ? "PASS" : "FAIL") | \(input) | \(result.operation) | quantity \(result.quantity)")
                 if !matches { failures += 1 }
             } catch {

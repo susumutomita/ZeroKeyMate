@@ -136,6 +136,7 @@ final class CompanionModel:ObservableObject {
     private let shopPlanner = ShopPlanner()
     private var shopReplyLanguage = AppLanguage.english
     private(set) var shopStartsFromVoice = false
+    private(set) var shopSelection = ShopSelection.lager
     private var agentOffer:AgentOffer? {didSet{updateStandApproval()}}
     private let conversation:any ConversationResponding
     // A single actor serializes native work across payment and offline screens.
@@ -463,15 +464,15 @@ final class CompanionModel:ObservableObject {
                     try Task.checkCancellation()
                     guard self.foreground, self.conversationGeneration == generation else { return }
                     switch plan.operation {
-                    case .buyBeer:
-                        guard plan.quantity == 1 else {
-                            self.agentSay(replyLanguage == .japanese ? "今の店舗は1本ずつの注文に対応しています。1本を注文する場合は、そう話しかけてください。" : "The store currently accepts one bottle per order. Ask me for one bottle if that's what you'd like.", language: replyLanguage)
+                    case .buyBeer, .buyWater:
+                        guard let selection = try? ShopPlanner.selection(for: plan, input: input) else {
+                            self.agentSay(replyLanguage == .japanese ? "ビールか炭酸水のどちらかを、1〜5本で教えてください。一度に注文できるのは1種類です。" : "Please choose beer or sparkling water, one to five bottles of a single product.", language: replyLanguage)
                             return
                         }
-                        self.openShop(language: replyLanguage, startsFromVoice: true)
+                        self.openShop(language: replyLanguage, startsFromVoice: true, selection: selection)
                         return
                     case .unsupportedPurchase:
-                        self.agentSay(replyLanguage == .japanese ? "今つながっている店舗で買えるのはMate Lagerです。Amazonやほかの商品はまだ注文できません。" : "The connected store sells Mate Lager. Amazon and other products aren't connected yet.", language: replyLanguage)
+                        self.agentSay(replyLanguage == .japanese ? "今はビールか炭酸水を1種類、1〜5本で注文できます。商品と本数を教えてください。" : "The connected store sells beer or sparkling water, one to five bottles of one product per order. Please tell me which product and how many.", language: replyLanguage)
                         return
                     case .chat: break
                     }
@@ -510,11 +511,12 @@ final class CompanionModel:ObservableObject {
     }
     func finishShopConversation() {
         let language = shopReplyLanguage
-        agentSay(language == .japanese ? "Mate Lagerのテスト購入が完了しました。カードの情報はこのiPhoneに残したままです。" : "Your Mate Lager test purchase is complete. Your card details stayed on this iPhone.", language: language)
+        agentSay(language == .japanese ? "テスト購入が完了しました。Arc Testnetで支払いが確認できました。" : "Your test purchase is complete. The payment is confirmed on Arc Testnet.", language: language)
     }
-    func openShop(language: AppLanguage? = nil, startsFromVoice: Bool = false) {
+    func openShop(language: AppLanguage? = nil, startsFromVoice: Bool = false, selection: ShopSelection = .lager) {
         shopReplyLanguage = language ?? L10n.language
         shopStartsFromVoice = startsFromVoice
+        shopSelection = selection
         sheet = .shop
     }
     func languagePreferencesChanged() {

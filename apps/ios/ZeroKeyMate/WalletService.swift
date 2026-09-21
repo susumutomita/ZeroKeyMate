@@ -120,15 +120,15 @@ final class WalletService: ObservableObject {
     /// This signs one Arc Testnet USDC transfer, never a general allowance.
     func signShopPayment(order: AgeShopOrder, required: ShopPaymentRequirements,
                          validateApproval: () throws -> Void) async throws -> ShopSignature {
+        let selection = try ShopSelection(order: order)
         guard let ownerWallet, ownerWallet.address.lowercased() == order.payer.lowercased(),
               order.chainId == AgeShopProtocol.chainID, order.token.lowercased() == AgeShopProtocol.token,
-              order.amount == AgeShopProtocol.amount, order.quantity == 1, order.productId == "mate-lager",
-              order.minimumAge == 20, order.state == .ageVerified else { throw AgeShopError.invalidPayment }
+              order.state == (selection.requiresAgeProof ? .ageVerified : .paymentReady) else { throw AgeShopError.invalidPayment }
         try required.validate(order: order)
         try validateApproval()
         try await EthereumRPC(url: "https://rpc.testnet.arc.io", chainID: AgeShopProtocol.chainID).ensureNetwork()
         try validateApproval()
-        try await authenticateOwner(reason: "Approve one Mate Lager for 0.10 test USDC on Arc Testnet")
+        try await authenticateOwner(reason: L10n.format("Approve %lld × %@ for %@ test USDC on Arc Testnet", Int64(selection.quantity), selection.product.name, selection.displayAmount))
         try validateApproval()
         let now = UInt64(Date().timeIntervalSince1970)
         guard now > 0, order.expiresAt > now, order.expiresAt - now > 30 else { throw AgeShopError.expiredOrder }

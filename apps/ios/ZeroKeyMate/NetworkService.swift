@@ -246,8 +246,8 @@ actor EthereumRPC {
         let balance: Data
         let sufficient: Bool
     }
-    func shopFunds(payer: String, blockNumber: UInt64) async throws -> ShopFunds {
-        guard chainID == AgeShopProtocol.chainID else { throw AgeShopError.invalidPayment }
+    func shopFunds(payer: String, blockNumber: UInt64, required: UInt64 = 100_000) async throws -> ShopFunds {
+        guard chainID == AgeShopProtocol.chainID, required > 0, required <= 500_000 else { throw AgeShopError.invalidPayment }
         let address = try CanonicalBytes.hexString(CanonicalBytes.hex(payer, count: 20)).dropFirst(2)
         try await ensureNetwork()
         let height = "0x" + String(blockNumber, radix: 16)
@@ -260,7 +260,6 @@ actor EthereumRPC {
         let encoded: String? = try await call(method: "eth_call", params: [["to": AgeShopProtocol.token, "data": data], height])
         guard let encoded else { throw ProductError.invalidResponse }
         let balance = try CanonicalBytes.hex(encoded, count: 32)
-        guard let required = UInt64(AgeShopProtocol.amount) else { throw AgeShopError.invalidPayment }
         let threshold = Data(repeating: 0, count: 24) + CanonicalBytes.u64(required)
         return ShopFunds(blockHash: block.hash.lowercased(), balance: balance, sufficient: !balance.lexicographicallyPrecedes(threshold))
     }

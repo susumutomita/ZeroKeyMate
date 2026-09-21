@@ -364,7 +364,7 @@ final class ProductUITests: XCTestCase {
         app.buttons["language-menu"].tap()
         app.buttons["choose-language-ja"].tap()
         XCTAssertTrue(app.navigationBars["Mateの注文"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["1本・330 ml"].exists)
+        XCTAssertEqual(app.staticTexts["shop-product-size"].label, "1本・330 ml")
         XCTAssertNotEqual(app.staticTexts["shop-phase"].label, originalPhase)
         if let originalMessage { XCTAssertNotEqual(app.staticTexts["shop-message"].label, originalMessage) }
         capture("purchase-language-japanese")
@@ -372,7 +372,7 @@ final class ProductUITests: XCTestCase {
         app.buttons["language-menu"].tap()
         app.buttons["choose-language-en"].tap()
         XCTAssertTrue(app.navigationBars["Mate's order"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["One bottle · 330 ml"].exists)
+        XCTAssertEqual(app.staticTexts["shop-product-size"].label, "One bottle · 330 ml")
         XCTAssertEqual(app.staticTexts["shop-phase"].label, originalPhase)
         if let originalMessage { XCTAssertEqual(app.staticTexts["shop-message"].label, originalMessage) }
         XCTAssertFalse(app.navigationBars["Settings"].exists)

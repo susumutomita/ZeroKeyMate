@@ -43,7 +43,7 @@ public struct AgeShopOrder: Codable, Equatable, Sendable {
     public let paymentValidBefore: UInt64?
     public let paymentNonce: String
     public let orderHash: String
-    public enum State: String, Codable, Sendable { case awaitingAge = "awaiting_age", ageVerified = "age_verified", paymentPending = "payment_pending", paymentExpired = "payment_expired", complete }
+    public enum State: String, Codable, Sendable { case awaitingAge = "awaiting_age", ageVerified = "age_verified", paymentReady = "payment_ready", paymentPending = "payment_pending", paymentExpired = "payment_expired", complete }
 }
 
 public enum AgeShopProtocol {
@@ -58,15 +58,17 @@ public enum AgeShopProtocol {
                                 key: String, now: UInt64, allowExpired: Bool = false,
                                 keccak: (Data) throws -> Data) throws {
         _ = try connection.validate()
+        let selection = try ShopSelection(order: order)
         guard key.utf8.count == 64, key.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
               try CanonicalBytes.hex(payer, count: 20).contains(where: { $0 != 0 }),
-              order.chainId == chainID, order.token.lowercased() == token, order.productId == "mate-lager",
-              order.quantity == 1, order.amount == amount, order.minimumAge == 20,
+              order.chainId == chainID, order.token.lowercased() == token,
               order.payer.lowercased() == payer.lowercased(),
               order.recipient.lowercased() == connection.recipient.lowercased(),
               order.ageGate.lowercased() == connection.ageGate.lowercased(),
               order.expiresAt > order.createdAt, order.expiresAt - order.createdAt == 900,
               order.createdAt <= now else { throw AgeShopError.invalidOrder }
+        if selection.requiresAgeProof && order.state == .paymentReady { throw AgeShopError.invalidOrder }
+        if !selection.requiresAgeProof && [.awaitingAge, .ageVerified].contains(order.state) { throw AgeShopError.invalidOrder }
         if !allowExpired && order.expiresAt <= now { throw AgeShopError.expiredOrder }
         let id = try keccak(Data(key.utf8))
         guard id.count == 32, try CanonicalBytes.hex(order.id, count: 32) == id else { throw AgeShopError.invalidOrder }
@@ -82,11 +84,11 @@ public enum AgeShopProtocol {
     }
 
     public static func orderMaterial(_ order: AgeShopOrder) throws -> Data {
-        guard let value = UInt64(order.amount), order.quantity == 1, order.minimumAge == 20 else { throw AgeShopError.invalidOrder }
+        let selection = try ShopSelection(order: order)
         return try abi([.text("ZKM-AGE-ORDER-1"), .integer(order.chainId), .address(order.ageGate),
-            .bytes32(CanonicalBytes.hex(order.id, count: 32)), .text(order.productId), .integer(1),
-            .address(order.payer), .address(order.recipient), .address(order.token), .integer(value),
-            .integer(order.expiresAt), .bytes32(CanonicalBytes.hex(order.paymentNonce, count: 32)), .integer(20)])
+            .bytes32(CanonicalBytes.hex(order.id, count: 32)), .text(order.productId), .integer(UInt64(selection.quantity)),
+            .address(order.payer), .address(order.recipient), .address(order.token), .integer(selection.amount),
+            .integer(order.expiresAt), .bytes32(CanonicalBytes.hex(order.paymentNonce, count: 32)), .integer(UInt64(selection.product.minimumAge))])
     }
 
     // The small ABI subset used by the published shop protocol. Keccak itself

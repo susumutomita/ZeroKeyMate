@@ -17,7 +17,7 @@ struct ShopPurchaseSheet: View {
     private var heading: String {
         switch checkout.phase {
         case .initial,.checking: return "Opening the store"
-        case .review: return "Let Mate get your beer"
+        case .review: return "Let Mate get your order"
         case .funding: return "Add free test USDC"
         case .card: return "Confirm you're 20 or older"
         case .preparingCard: return "Preparing the card scanner"
@@ -41,13 +41,16 @@ struct ShopPurchaseSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .center, spacing: 20) {
-                    Image(systemName: checkout.phase == .complete ? "checkmark.seal.fill" : "mug.fill")
+                    Image(systemName: checkout.phase == .complete ? "checkmark.seal.fill" : (checkout.selection.requiresAgeProof ? "mug.fill" : "drop.fill"))
                         .font(.system(size: 48)).foregroundStyle(checkout.phase == .complete ? Color.green : Color.orange)
                         .frame(width: 88, height: 100).background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22))
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Mate Lager").font(.title2.bold())
-                        Text("One bottle · 330 ml").foregroundStyle(.secondary)
-                        Text("0.10 test USDC").font(.headline)
+                        Text(checkout.selection.product.name).font(.title2.bold())
+                        Text(checkout.selection.quantity == 1
+                             ? L10n.format("One bottle · %@", checkout.selection.product.size)
+                             : L10n.format("%lld bottles · %@ each", Int64(checkout.selection.quantity), checkout.selection.product.size))
+                            .foregroundStyle(.secondary).accessibilityIdentifier("shop-product-size")
+                        Text("\(checkout.selection.displayAmount) test USDC").font(.headline)
                     }
                 }
                 Text(L10n.text(heading)).font(.title2.bold()).accessibilityIdentifier("shop-phase")
@@ -56,15 +59,23 @@ struct ShopPurchaseSheet: View {
                 }
                 switch checkout.phase {
                 case .review:
-                    Text("I’ll get one beer. First, let’s confirm your age.")
+                    Picker("Product", selection: Binding(get: { checkout.selection.product }, set: { product in
+                        if let selection = try? ShopSelection(product: product, quantity: checkout.selection.quantity) { checkout.select(selection) }
+                    })) {
+                        ForEach(ShopProduct.allCases, id: \.self) { product in Text(product.name).tag(product) }
+                    }.disabled(checkout.busy).accessibilityIdentifier("shop-product")
+                    Stepper(L10n.format("Quantity: %lld", Int64(checkout.selection.quantity)), value: Binding(get: { checkout.selection.quantity }, set: { quantity in
+                        if let selection = try? ShopSelection(product: checkout.selection.product, quantity: quantity) { checkout.select(selection) }
+                    }), in: 1...ShopSelection.maximumQuantity).disabled(checkout.busy).accessibilityIdentifier("shop-quantity")
+                    Text(L10n.text(checkout.selection.requiresAgeProof ? "This product requires proof that you are 20 or older." : "No age verification or card scan needed."))
                     if wallet.ownerAddress == nil {
                         ShopWalletConnection(wallet: wallet, email: $buyerEmail, sentTo: $buyerCodeSentTo)
                     } else {
-                        Button("Start this order · 0.10 test USDC") { checkout.startOrder(wallet: wallet) }
+                        Button(L10n.format("Start this order · %@ test USDC", checkout.selection.displayAmount)) { checkout.startOrder(wallet: wallet) }
                             .buttonStyle(.borderedProminent).accessibilityIdentifier("shop-start-order")
                     }
                 case .funding:
-                    Text("Your buyer wallet needs 0.10 test USDC on Arc Testnet. The store pays the network fee. No order has been created yet.")
+                    Text(L10n.format("Your buyer wallet needs %@ test USDC on Arc Testnet. The store pays the network fee. No order has been created yet.", checkout.selection.displayAmount))
                     if let address = checkout.fundingAddress {
                         Text(address).font(.footnote.monospaced()).textSelection(.enabled)
                         ShareLink(item: address) { Label("Share buyer address", systemImage: "square.and.arrow.up") }
@@ -102,8 +113,8 @@ struct ShopPurchaseSheet: View {
                         }
                     }
                 case .paymentApproval:
-                    Text("Age verified. Approve this one purchase.")
-                    Button("Approve 0.10 test USDC") { checkout.continuePayment(wallet: wallet) }
+                    Text(L10n.text(checkout.selection.requiresAgeProof ? "Age verified. Approve this one purchase." : "No age verification needed. Approve this one purchase."))
+                    Button(L10n.format("Approve %@ test USDC", checkout.selection.displayAmount)) { checkout.continuePayment(wallet: wallet) }
                         .buttonStyle(.borderedProminent).disabled(checkout.busy)
                 case .pending:
                     if checkout.busy { ProgressView() }
@@ -113,7 +124,7 @@ struct ShopPurchaseSheet: View {
                         Button("Retry the original payment") { checkout.retryOriginalPayment() }.disabled(checkout.busy)
                     }
                 case .complete:
-                    Text("Paid. Your birth date stayed on your iPhone.")
+                    Text(L10n.text(checkout.selection.requiresAgeProof ? "Paid. Your birth date stayed on your iPhone." : "Paid. No identity document was needed."))
                     if let hash = checkout.order?.paymentTransaction {
                         ArcPaymentReceiptView(transaction: hash)
                     }
@@ -141,8 +152,12 @@ struct ShopPurchaseSheet: View {
                         if let url = checkout.storeURL {
                             Link(destination: url) { Label(url.host ?? "Store", systemImage: "arrow.up.right") }
                         }
-                        privacy
-                        Text("Use the signature password: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
+                        if checkout.selection.requiresAgeProof {
+                            privacy
+                            Text("Use the signature password: 6–16 uppercase letters and numbers. This is different from the four-digit card PIN.")
+                        } else {
+                            Text("This order does not request your card or personal details.")
+                        }
                         Text("Only this order is authorized. The store pays the network fee.")
                     }.font(.subheadline).padding(.top, 8)
                 }.font(.subheadline).foregroundStyle(.secondary)
@@ -156,9 +171,9 @@ struct ShopPurchaseSheet: View {
                 SignaturePINScanButton(busy: checkout.busy, submit: startCardRead)
             }
         }
-        .navigationTitle("Mate's order").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(L10n.text("Mate's order")).navigationBarTitleDisplayMode(.inline)
         .controlSize(.large)
-        .task { checkout.load() }
+        .task { checkout.select(model.shopSelection); checkout.load() }
         .onChange(of: checkout.phase) { _, phase in
             // A fresh voice request may first recover a completed/expired old
             // order. Its terminal phase is not the result of the new request.
@@ -179,7 +194,7 @@ struct ShopPurchaseSheet: View {
         }
     }
     private func advanceVoiceOrder() {
-        // A current, explicit one-beer voice request may create its order after
+        // A current, explicit catalogue request may create its order after
         // readiness/funds checks. It does not authorize a payment signature.
         guard model.shopStartsFromVoice, !automaticOrderStarted,
               !checkout.busy,

@@ -9073,6 +9073,304 @@
           }
         }
       }
+    },
+    "Product": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Product"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品"
+          }
+        }
+      }
+    },
+    "Let Mate get your order": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let Mate get your order"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateが注文します"
+          }
+        }
+      }
+    },
+    "%lld bottles · %@ each": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld bottles · %@ each"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld本・1本%@"
+          }
+        }
+      }
+    },
+    "Quantity: %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantity: %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数量：%lld本"
+          }
+        }
+      }
+    },
+    "This product requires proof that you are 20 or older.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This product requires proof that you are 20 or older."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この商品には20歳以上であることの証明が必要です。"
+          }
+        }
+      }
+    },
+    "No age verification or card scan needed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No age verification or card scan needed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢確認やカードの読み取りは不要です。"
+          }
+        }
+      }
+    },
+    "Start this order · %@ test USDC": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start this order · %@ test USDC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文を開始・%@ test USDC"
+          }
+        }
+      }
+    },
+    "Your buyer wallet needs %@ test USDC on Arc Testnet. The store pays the network fee. No order has been created yet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your buyer wallet needs %@ test USDC on Arc Testnet. The store pays the network fee. No order has been created yet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用ウォレットにArc TestnetのテストUSDCが%@必要です。手数料は店舗が負担します。注文はまだ作成していません。"
+          }
+        }
+      }
+    },
+    "No age verification needed. Approve this one purchase.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No age verification needed. Approve this one purchase."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢確認は不要です。この注文の支払いを承認してください。"
+          }
+        }
+      }
+    },
+    "Approve %@ test USDC": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve %@ test USDC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ test USDCの支払いを承認"
+          }
+        }
+      }
+    },
+    "Paid. No identity document was needed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paid. No identity document was needed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いが完了しました。本人確認書類は使っていません。"
+          }
+        }
+      }
+    },
+    "This order does not request your card or personal details.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This order does not request your card or personal details."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この注文ではカードや個人情報を求めません。"
+          }
+        }
+      }
+    },
+    "Approve %lld × %@ for %@ test USDC on Arc Testnet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve %lld × %@ for %@ test USDC on Arc Testnet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arc Testnetで%2$@を%1$lld本、%3$@ test USDCで購入することを承認"
+          }
+        }
+      }
+    },
+    "Please review your product and quantity.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please review your product and quantity."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品と数量を確認してください。"
+          }
+        }
+      }
+    },
+    "Your order is ready. Please approve the displayed payment on your iPhone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your order is ready. Please approve the displayed payment on your iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文の準備ができました。iPhoneに表示された支払いを承認してください。"
+          }
+        }
+      }
+    },
+    "Your test purchase is complete. The payment is confirmed on Arc Testnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your test purchase is complete. The payment is confirmed on Arc Testnet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テスト購入が完了しました。Arc Testnetで支払いが確認できました。"
+          }
+        }
+      }
+    },
+    "Yes. Your test purchase is complete, and the payment is confirmed on Arc Testnet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes. Your test purchase is complete, and the payment is confirmed on Arc Testnet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "はい。テスト購入は完了し、Arc Testnetで支払いを確認できました。"
+          }
+        }
+      }
+    },
+    "Not yet. Your order is ready, but it is waiting for you to approve the displayed payment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not yet. Your order is ready, but it is waiting for you to approve the displayed payment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ購入は完了していません。注文は準備できていますが、表示された支払いの承認が必要です。"
+          }
+        }
+      }
+    },
+    "One bottle · %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1本・%@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

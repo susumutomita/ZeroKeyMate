@@ -3,10 +3,33 @@
 Workers static assets + D1 + a sponsor Durable Object + x402 v2, testnet only. The storefront currently
 has a [public Arc deployment](https://zerokeymate-arc-shop.oyster880.workers.dev/)
 whose catalog readiness check passes. The signed-card circuit, directly verifying
-EVM gate and iPhone purchase integration are implemented. Physical card-to-payment
-acceptance and device proving performance remain unverified. See the
+EVM gate and iPhone purchase integration are implemented. A physical one-beer
+card-to-payment purchase was confirmed for the submitted version. See the
 [current live status](../../docs/arc-live-status.md) and
 [implementation history](../../docs/age-shop-progress.md).
+
+## Catalogue checkout
+
+The application and Worker both enforce these products, in quantities of 1–5
+of a single product per order:
+
+| Product | Unit price | Age requirement |
+| --- | --- | --- |
+| `mate-lager` | 0.10 test USDC | Local authenticated-card proof of age ≥20 |
+| `mate-sparkling-water` | 0.05 test USDC | None; no card scan or identity disclosure |
+
+The Worker computes the total and age rule. The phone independently validates
+them and checks that the response matches the requested product and quantity.
+The existing order commitment includes both fields, the total and age rule;
+the original single-beer commitment and immutable age gate are unchanged.
+The wallet still requires explicit approval of each exact payment. This is
+**not** delegated purchasing or a contract-enforced SKU permission validator.
+
+Apply `0003_catalogue.sql` before publishing this version. It preserves existing
+orders, revisions and payment nonces and adds `payment_ready` for products that
+require no age proof. Never substitute an `age_verified` flag for this state.
+The new catalogue has automated and browser coverage; physical multi-product
+acceptance must be recorded separately from the original beer purchase.
 
 ## Local development
 
@@ -45,7 +68,9 @@ and sends its lowercase hex form as `X-Order-Key` on every request. Do not put t
 capability into a URL or logs. Keep it with the pending order on the phone.
 
 - `GET /api/catalog`: product and live readiness status.
-- `POST /api/orders`: `{productId: "mate-lager", quantity: 1, payer: "0x…"}`.
+- `POST /api/orders`: `{productId: "mate-lager", quantity: 1, payer: "0x…"}`
+  or the sparkling-water SKU and a quantity from 1 to 5. No caller-supplied price
+  or minimum age is accepted.
 - `GET /api/orders/{id}`: retrieve/reconcile this order.
 - `POST /api/orders/{id}/age`: `{proof: "0x…", rootKeyHash: "0x…"}`. The proof is
   exactly 384 bytes from the age Groth16 backend. The Worker constructs all eight
