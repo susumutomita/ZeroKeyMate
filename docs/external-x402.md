@@ -40,12 +40,34 @@ use the same payment header; a different payment remains blocked. A failure to
 persist prevents transmission. Tests use an in-memory journal and synthetic
 signatures, not the device's wallet or existing Keychain entries.
 
-This gate rejects a second signature's **reservation and transmission**. It does
-not yet prevent the signature from being generated: no signing provider is
-connected. That provider must serialize/preflight approvals before Face ID and
-signing, then still use the atomic journal gate before transmission. The current
-65-byte check is structural; the future provider must recover the EIP-712 signer
-and match the approved payer locally before persisting the signature.
+`PaymentApprovalCoordinator` also reserves the immutable quote/payer/nonce/time
+snapshot **before** invoking an approval UI or signer. That snapshot starts the
+fixed authorization window; time spent approving does not extend it. The shared device journal
+atomically moves from `approving` to `signing` before a provider can create a
+signature. Concurrent coordinators, including requests with identical terms,
+cannot start a second prompt or signature. Existing bare signed entries are
+migrated without deleting or replacing them; unreadable/unknown records fail
+closed. This single-process guarantee relies on the shared actor: no extension
+or other process may write that Keychain item.
+
+A denied, canceled or expired approval may release only its own `approving`
+reservation, before any signer invocation. Once `signing` is persisted, provider
+failure, cancellation, process death and expiry remain unresolved. A late valid
+signature keeps its original authorization deadline. After a signature is
+returned, bounded local verification and persistence finish in an uncanceled
+task before the caller receives cancellation; verification/storage failures
+still retain the unresolved signing barrier. An expired signature cannot be retried. Neither a
+`signing` entry nor a signed payment has a cancellation/reset convenience API.
+A crash during approval also stays locked until a separate recovery path is
+implemented; this conservative behavior is not enabled in the user flow yet.
+
+The coordinator has separate trusted approver, signer and local signature
+verifier interfaces. The verifier must recover the EIP-712 payer before the
+coordinator stores a signature for transmission. These are dependency boundaries,
+**not implemented Face ID, wallet or cryptographic verification adapters**. The
+wire type's 65-byte check alone is still only structural. No model, purchase
+button or production wallet receives these capabilities. Connecting a real
+provider and preventing alternate unverified callers remain release work.
 
 `PaymentReceipt` is only a server settlement claim. Both reported success and
 `settlement_pending` can supply a transaction for reconciliation outside the
@@ -96,8 +118,8 @@ operated node/provider and its trust policy remain release work.
 ## Not yet connected
 
 - Native service registration/review and exact-payment approval UX.
-- A `PaymentProvider` that checks the approved snapshot again around Face ID
-  and signing; the model must never receive this provider.
+- Concrete owner-approval, wallet-signing and local EIP-712 recovery adapters
+  for the coordinator; the model must never receive these capabilities.
 - User-facing reconciliation, transaction discovery when the server supplies no
   locator, and a carefully checked journal-release path. The current journal
   deliberately has no delete/reset convenience API.
@@ -129,6 +151,11 @@ timeout/restart retry, storage failure and concurrent journal reservation.
 Reconciliation tests additionally cover provider lag, checkpoint changes,
 receipt/chain disagreement, missing transactions, cancellation, removed or
 misbound logs, expired-but-settled payments, response limits and retained journals.
+Approval tests cover concurrent prompts/signatures, every persistence boundary,
+denial and cancellation before versus after signing, late expired signatures,
+crash/restoration, legacy migration, corrupt state and stale cleanup attempts.
+They use synthetic capabilities and an in-memory serialization fixture, not
+Face ID, a real wallet or the device's existing Keychain contents.
 Those are controlled tests, not an external purchase or financial audit.
 
 The implementation is independent Swift code based on the official public

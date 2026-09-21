@@ -54,25 +54,28 @@ actor ExternalPaymentClient {
     }
 }
 
-protocol PaymentJournal:Sendable {
-    func load() async throws -> PendingPayment?
-    /// Atomically retain this payment, reject a different unresolved payment,
-    /// or permit exactly the same saved signature to be retried.
-    func reserve(_ pending:PendingPayment) async throws
-}
-
-actor DevicePaymentJournal:PaymentJournal {
+actor DevicePaymentJournal:PaymentApprovalJournal {
     static let shared=DevicePaymentJournal()
     private init(){}
-    // A single unresolved external payment deliberately blocks every new one.
-    // Do not reuse the dedicated shop's pending-order Keychain entry.
+    // Retain the same entry so prior signed payments cannot be bypassed.
+    // Access is serialized through this process-wide actor; no app extension
+    // or other process may mutate this Keychain item.
     private let key="external-x402-pending-v1"
-    func load() throws -> PendingPayment? {try LocalSecrets.read(PendingPayment.self,key:key)}
-    func reserve(_ pending:PendingPayment) throws {
-        if let saved=try load() {
-            guard saved==pending else{throw ExternalPaymentError.unresolvedPayment}
-        }else{try LocalSecrets.write(pending,key:key)}
+    private func state() throws -> PaymentJournalState {
+        try LocalSecrets.read(PaymentJournalState.self,key:key) ?? PaymentJournalState()
     }
+    private func update(_ change:(inout PaymentJournalState) throws -> Void) throws {
+        var current=try state();try change(&current)
+        try LocalSecrets.write(current,key:key)
+    }
+    func load() throws -> PendingPayment? {try state().pending()}
+    func reserve(_ pending:PendingPayment) throws {try update{try $0.reserve(pending)}}
+    func beginApproval(_ approval:PaymentApproval) throws {try update{try $0.beginApproval(approval)}}
+    func beginSigning(_ approval:PaymentApproval) throws {try update{try $0.beginSigning(approval)}}
+    func finishSigning(_ pending:PendingPayment,approval:PaymentApproval) throws {
+        try update{try $0.finishSigning(pending,approval:approval)}
+    }
+    func cancelApproval(_ approval:PaymentApproval) throws {try update{try $0.cancelApproval(approval)}}
 }
 
 /// The signature is saved before network transmission. A timeout, cancellation,
