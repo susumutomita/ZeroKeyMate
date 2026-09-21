@@ -10,6 +10,16 @@ An iPhone companion that helps you buy something without giving the store your i
 
 The submitted film combines the creator's own recorded voice, English subtitles, technical slides and fifty seconds of edited device footage at original speed. [Submission assets](docs/presentation/README.md) include the film, subtitle file, pitch PDF and original visual assets.
 
+**Development after submission (September 21, 2026):** the public store now offers
+beer and sparkling water, one to five bottles of a single product. Water costs
+0.05 test USDC per bottle and needs no card scan; beer retains its age check.
+The updated catalogue and bilingual conversation code are installed as iPhone
+build 11. The new catalogue still needs a fresh physical-device purchase check;
+the successful transactions above are evidence for the earlier beer flow.
+The [atomic catalogue budget](docs/catalogue-budget.md) is separate local-chain
+research with real synthetic-credential ZK acceptance, not unattended payments
+enabled in the app. All of this is pre-Tokyo work.
+
 ## The experience
 
 1. Open Mate on a compatible iPhone. Tap the resting face to start the companion. A DockKit stand can follow the detected face; the stand is optional for purchasing.
@@ -28,7 +38,7 @@ No real money is charged and no beer is delivered. The app supports the **physic
 
 An age check usually asks a person to reveal an identity document or personal details. Mate separates the fact the shop needs — **age 20 or over** — from the underlying identity data. The companion stays conversational while code controls the sensitive steps.
 
-The local model handles conversation and proposes actions. It never receives the card password, certificate, date of birth, order capability or signing interface. A request to buy does not authorize arbitrary browsing or arbitrary spending: this implementation supports one configured shop, one product and one exact testnet amount.
+The local model handles conversation and proposes actions. It never receives the card password, certificate, date of birth, order capability or signing interface. A request to buy does not authorize arbitrary browsing or arbitrary spending: checkout supports one configured shop, two canonical products and one to five bottles of a single product per order. Code resolves the exact amount before the owner approves payment.
 
 ## How it works
 
@@ -83,6 +93,8 @@ The age prover uses a pinned **experimental ProveKit Groth16 branch**, an EVM ex
 | English/Japanese | In-place purchase-screen switching and persistence tested; user supplied the English physical-phone screen |
 | Privy | Embedded buyer wallet and exact EIP-712 signing are wired into the completed purchase |
 | Arc / x402 | Live testnet settlement, receipt and explorer link; no mainnet deployment |
+| Two-product catalogue | Public Worker and iPhone build 11 updated; server/Swift validation and real local-model intent tests pass. Fresh physical purchase acceptance remains pending. |
+| Atomic spending permissions | [Local-only contract](docs/catalogue-budget.md): real ZK, canonical SKU/age, shared budget/count, replay, revocation and transfer rollback tested. Not deployed or connected to x402/native delegation. |
 | The Graph | Arc purchase-history Subgraph source is merged; Studio deployment and a live data-driven purchase decision remain incomplete |
 | Smartphone My Number card / World ID / delegated wallet | Not integrated into this checkout |
 
