@@ -116,7 +116,9 @@ struct ExternalServicesSheet: View {
         .onChange(of:checkout.completion?.id) { _,id in
             if id != nil,let result=checkout.completion { onCompletion(result) }
         }
-        .onChange(of: scenePhase) { _, value in if value != .active { checkout.cancel() } }
+        // System owner authentication can temporarily make the scene inactive.
+        // Only backgrounding abandons this approval; Face ID must be able to finish.
+        .onChange(of: scenePhase) { _, value in if value == .background { checkout.cancel() } }
     }
 
     @ViewBuilder private func paymentDetails(_ request: PaymentRequest) -> some View {
