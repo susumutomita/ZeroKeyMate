@@ -56,13 +56,14 @@ private actor FirstChunk {
                       check: (String) -> Bool = { !$0.isEmpty }) async throws {
                 await session.prepare(replyLanguage: language, notes: "")
                 let timing = FirstChunk()
-                let recalled=PurchaseConversation.recall(input:input,history:history,replyLanguage:language)
+                let remembered=ConversationMemory.reply(to:input,history:history,language:language)
+                let recalled=remembered ?? PurchaseConversation.recall(input:input,history:history,replyLanguage:language)
                 let answer: String
                 if let recalled { answer=recalled; await timing.receive(recalled) }
                 else { answer = try await session.streamReply(to: input, history: history,
                     observations: "No camera observations are available.", notes: "", replyLanguage: language,
                     onPartial: { await timing.receive($0) }) }
-                results.append(Result(responseSource: recalled == nil ? "local-model" : "quoted-request", scenario: scenario, input: input, output: answer, passed: check(answer) && !["マテ", "メイトの", "私のマグ", "私の犬", "my mug", "my dog"].contains(where:answer.contains),
+                results.append(Result(responseSource: remembered != nil ? "literal-memory" : recalled == nil ? "local-model" : "quoted-request", scenario: scenario, input: input, output: answer, passed: check(answer) && !["マテ", "メイトの", "私のマグ", "私の犬", "my mug", "my dog"].contains(where:answer.contains),
                     firstTextSeconds: await timing.elapsed, totalSeconds: FirstChunk.seconds(timing.start.duration(to: .now))))
                 history += [.init(isUser: true, text: input), .init(isUser: false, text: answer)]
             }
@@ -88,6 +89,17 @@ private actor FirstChunk {
             history = []
             try await turn("clear-context", "覚えて。私の犬の名前はポチです。")
             try await turn("clear-context", "犬の名前は何だった？", check: { $0.contains("ポチ") })
+            history=[]
+            try await turn("name", "私の名前はアキラです。この会話の間だけ覚えてね。", check: { $0.contains("アキラ") && !$0.contains("歳") })
+            try await turn("name-follow-up", "私の名前、覚えてる？", check: { $0.contains("アキラ") && !$0.contains("私の名前は") })
+            try await turn("preference", "コーヒーは苦手なので紅茶が好きです。", check: { $0.contains("紅茶") && !$0.contains("？") })
+            try await turn("preference-follow-up", "私にはコーヒーと紅茶のどっちがいい？", check: { $0.contains("紅茶") && !$0.contains("？") && !$0.contains("どちらも") })
+            try await turn("new-topic", "週末に家でできる楽しいことを二つ教えて。", check: {
+                !$0.contains("アキラ") && !$0.contains("コーヒー") &&
+                ["映画","料理","読書","ゲーム","工作","音楽","掃除","パズル","手芸","絵","ヨガ"].filter($0.contains).count >= 2
+            })
+            history=[]
+            try await turn("forget-name", "私の名前、覚えてる？", check: { !$0.contains("アキラ") && $0.contains("まだ") })
             status = results.allSatisfy(\.passed) ? "passed" : "failed"
         } catch {
             status = "unavailable-or-generation-error: \(error)"

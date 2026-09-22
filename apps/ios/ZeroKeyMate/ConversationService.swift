@@ -63,6 +63,11 @@ actor ConversationService:ConversationResponding {
                      onPartial:@escaping @Sendable (String) async -> Void) async throws -> ConversationReply {
         try Task.checkCancellation()
         guard !text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,text.utf8.count<=8_000 else {throw ProductError.invalidResponse}
+        if let remembered=ConversationMemory.reply(to:text,history:history,language:replyLanguage) {
+            await onPartial(remembered)
+            try Task.checkCancellation()
+            return ConversationReply(text:remembered,service:nil,disclosure:"")
+        }
         if let recalled=PurchaseConversation.recall(input:text,history:history,replyLanguage:replyLanguage) {
             await onPartial(recalled)
             try Task.checkCancellation()
