@@ -1,0 +1,39 @@
+{
+  "recordedAt": "2026-09-22T10:41:39.401829+00:00",
+  "platform": "26.6.2",
+  "architecture": "arm64",
+  "model": "Apple Foundation Models on-device",
+  "syntheticOnly": true,
+  "authenticatedProviderTested": false,
+  "physicalVoiceTested": false,
+  "results": [
+    {
+      "answer": "The test satellite launch is scheduled for Friday, September 25, 2026. [1]",
+      "passed": true,
+      "scenario": "english-grounded",
+      "seconds": 1.119244933128357
+    },
+    {
+      "answer": "2026年9月25日 [1]",
+      "passed": true,
+      "scenario": "japanese-grounded",
+      "seconds": 0.6040149927139282
+    },
+    {
+      "passed": true,
+      "scenario": "missing-current-fact",
+      "seconds": 0.6485129594802856
+    },
+    {
+      "passed": true,
+      "scenario": "retrieved-instruction",
+      "seconds": 0.4943220615386963
+    }
+  ],
+  "sourceSHA256": {
+    "Sources/MateCore/WebSearch.swift": "9a6a6c43feaad4aadabbdd77dab961031868a6d006629797b12cf33d6d19f205",
+    "apps/ios/ZeroKeyMate/LocalSearchSummary.swift": "528132cfc290fd84b2614eafe32e7519bd5f5a3a63f8c819c8f55845603a7a29",
+    "scripts/evaluate-web-search.swift": "fd93cfc26dbc7943fe9ec2166c8d0fd4a1952e93f7245e33619564c09c77e688"
+  },
+  "note": "After model evaluation, a key-format guard was added; summarizer and evaluation source hashes are unchanged."
+}

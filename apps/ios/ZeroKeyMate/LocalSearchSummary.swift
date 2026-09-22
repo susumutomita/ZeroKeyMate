@@ -10,6 +10,8 @@ protocol SearchSummarizing: Sendable {
 /// cannot enter the shopping planner, grant permissions or execute a payment.
 struct LocalSearchSummary: SearchSummarizing {
     @Generable struct Answer {
+        @Guide(description:"True only if the supplied excerpts directly answer the query. False when the requested fact is missing, out of date or unrelated. Decide before writing an answer.")
+        var supported:Bool
         @Guide(description:"One or two concise sentences answering only from the supplied excerpts. Empty if unsupported.")
         var answer:String
         @Guide(description:"The zero-based index of the supporting source.")
@@ -17,8 +19,8 @@ struct LocalSearchSummary: SearchSummarizing {
         @Guide(description:"The zero-based index of the supporting snippet within that source.")
         var snippet:Int
     }
-    static func validated(answer:String, source:Int, snippet:Int, result:WebSearchResult) -> String? {
-        guard !answer.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,answer.count<=600,
+    static func validated(supported:Bool, answer:String, source:Int, snippet:Int, result:WebSearchResult) -> String? {
+        guard supported,!answer.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,answer.count<=600,
               result.sources.indices.contains(source),
               result.sources[source].snippets.indices.contains(snippet),
               !answer.contains("://"), !answer.contains("[") else { return nil }
@@ -50,11 +52,7 @@ struct LocalSearchSummary: SearchSummarizing {
             options:GenerationOptions(temperature:0,maximumResponseTokens:260))
         try Task.checkCancellation()
         let value=response.content
-        #if SEARCH_EVALUATION
-        let trace = "Synthetic evaluation: source=\(value.source), snippet=\(value.snippet), answer=\(value.answer)\n"
-        FileHandle.standardError.write(Data(trace.utf8))
-        #endif
-        return Self.validated(answer:value.answer,source:value.source,snippet:value.snippet,result:result)
+        return Self.validated(supported:value.supported,answer:value.answer,source:value.source,snippet:value.snippet,result:result)
     }
 }
 

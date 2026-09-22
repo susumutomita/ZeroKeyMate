@@ -77,6 +77,7 @@ final class WebSearchTests:XCTestCase {
         for (input,expected) in [("最新の宇宙ニュースを調べて","最新の宇宙ニュース"),("Search for the latest space news","the latest space news"),("今日のニュースは？","今日のニュースは？"),("What is the current exchange rate?","What is the current exchange rate?")] {
             XCTAssertEqual(WebSearchIntent.query(input),expected)
         }
+        XCTAssertEqual(WebSearchIntent.query("翻訳APIの公式仕様を調べて"),"翻訳APIの公式仕様")
         for input in ["今日は疲れた", "I had a long meeting today", "今日何を買った？", "Buy a beer", "Translate 'latest news'", "今日のニュースを英語に翻訳して"] {
             XCTAssertNil(WebSearchIntent.query(input),input)
         }
@@ -84,6 +85,12 @@ final class WebSearchTests:XCTestCase {
             XCTAssertFalse(WebSearchIntent.isSafeQuery(query),query)
         }
         XCTAssertTrue(WebSearchIntent.isSafeQuery("マイナンバーカードの公式仕様"))
+    }
+    func testCommonWalletSecretsCannotBeSavedAsSearchKeys() {
+        XCTAssertFalse(BraveWebSearch.validKey("0x"+String(repeating:"a",count:64)))
+        XCTAssertFalse(BraveWebSearch.validKey(String(repeating:"b",count:64)))
+        XCTAssertFalse(BraveWebSearch.validKey("word word word word word word word word word word word word"))
+        XCTAssertTrue(BraveWebSearch.validKey("test-key-never-real"))
     }
     func testCancellationAndRejectedQueriesNeverBecomeResults() async throws {
         let api=BraveWebSearch(apiKey:"test-key-never-real",fetch:{_ in throw CancellationError()})

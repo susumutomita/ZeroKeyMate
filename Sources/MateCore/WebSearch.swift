@@ -35,7 +35,7 @@ public protocol WebSearchProviding: Sendable {
 public enum WebSearchIntent {
     public static func query(_ input: String) -> String? {
         let text=input.trimmingCharacters(in: .whitespacesAndNewlines), lower=text.lowercased()
-        if ["translate", "翻訳", "英訳", "という言葉", "を英語", "を日本語"].contains(where: lower.contains) { return nil }
+        if ["translate ", "翻訳して", "翻訳してください", "英訳して", "という言葉", "を英語", "を日本語"].contains(where: lower.contains) { return nil }
         let explicit = ["検索して", "調べて", "検索してほしい", "検索してください"].contains(where: text.contains)
             || lower.range(of: #"^(please |can you |could you )?(search( the web| online)?( for)?|look up|find online)\b"#, options: .regularExpression) != nil
         let topic = ["ニュース", "株価", "為替", "価格", "値段", "首相", "大統領", "リリース", "news", "price", "exchange rate", "president", "prime minister", "ceo", "release", "score"].contains(where: lower.contains)
@@ -116,7 +116,9 @@ public struct BraveWebSearch: WebSearchProviding {
         }
     }
     public static func validKey(_ key: String) -> Bool {
-        (16...256).contains(key.utf8.count) && key.unicodeScalars.allSatisfy { (33...126).contains($0.value) }
+        (16...256).contains(key.utf8.count)
+            && key.range(of:#"^(0x)?[0-9a-fA-F]{64}$"#,options:.regularExpression)==nil
+            && key.unicodeScalars.allSatisfy { (33...126).contains($0.value) }
     }
     public static func publicURL(_ raw: String) -> URL? {
         guard raw.count<=2048, let url=URL(string:raw), url.scheme=="https", url.user==nil, url.password==nil,

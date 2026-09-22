@@ -18,7 +18,7 @@ private struct MissingSummary:SearchSummarizing {
 }
 private struct GroundedSummary:SearchSummarizing {
     func summarize(_ result:WebSearchResult,japanese:Bool) async throws -> String? {
-        LocalSearchSummary.validated(answer:japanese ? "発表によると打ち上げは金曜日です。":"The announcement schedules the launch for Friday.",source:0,snippet:0,result:result)
+        LocalSearchSummary.validated(supported:true,answer:japanese ? "発表によると打ち上げは金曜日です。":"The announcement schedules the launch for Friday.",source:0,snippet:0,result:result)
     }
 }
 final class WebSearchConversationTests:XCTestCase {
@@ -61,9 +61,10 @@ final class WebSearchConversationTests:XCTestCase {
     }
     func testInventedEvidenceAndURLsAreRejected() {
         let result=WebSearchResult(query:"space news",sources:[.init(title:"Agency",url:URL(string:"https://example.org")!,snippets:["The launch is scheduled for Friday."])])
-        XCTAssertNil(LocalSearchSummary.validated(answer:"A claim",source:9,snippet:0,result:result))
-        XCTAssertNil(LocalSearchSummary.validated(answer:"A claim",source:0,snippet:99,result:result))
-        XCTAssertNil(LocalSearchSummary.validated(answer:"https://attacker.invalid",source:0,snippet:0,result:result))
+        XCTAssertNil(LocalSearchSummary.validated(supported:false,answer:"A claim",source:0,snippet:0,result:result))
+        XCTAssertNil(LocalSearchSummary.validated(supported:true,answer:"A claim",source:9,snippet:0,result:result))
+        XCTAssertNil(LocalSearchSummary.validated(supported:true,answer:"A claim",source:0,snippet:99,result:result))
+        XCTAssertNil(LocalSearchSummary.validated(supported:true,answer:"https://attacker.invalid",source:0,snippet:0,result:result))
     }
 }
 

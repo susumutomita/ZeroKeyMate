@@ -47,7 +47,7 @@ not an account-wide billing guarantee. Reinstallation can reset it.
   automatically. Opening a source is an explicit browser action.
 - A separate Apple Foundation Models session sees only the public query and
   retrieved excerpts. It has no tools, purchase authority or private history.
-  Selected source and excerpt indexes are checked before the summary
+  The model first classifies whether evidence supports an answer. Selected source and excerpt indexes are checked before the summary
   is spoken. This checks attribution, **not semantic entailment or source truth**;
   the on-device model can still misinterpret evidence. A source link is not a
   guarantee that a claim is correct.
@@ -66,12 +66,16 @@ not an account-wide billing guarantee. Reinstallation can reset it.
 
 ## Reproducible validation and remaining acceptance
 
+Local validation on September 22 passed `make test`, `make build-ios`, 25 native regression tests (3 hardware/model-only skips), and the settings UI test.
+
 `make test`, `make build-ios`, native `WebSearchConversationTests`, and the
 `ProductUITests/testWebSearchSettingsAndKeyboardDismissal` UI test exercise the
 implementation without paid requests. Core tests cover minimized POST bodies,
 source filtering/bounds, cancellation, invalid credentials, quotas and failure
 responses. Native tests cover routing without private context, explicit
 unavailability, attributed excerpt fallback and invalid citation rejection.
+
+[The recorded Mac evaluation](evidence/search-mac-2026-09-22.json) passed four synthetic scenarios: English, Japanese, a missing current fact and a retrieved instruction.
 
 `bash scripts/evaluate-web-search.sh` compiles the exact app summarizer and runs
 Apple Intelligence on synthetic public information. It needs a supported Mac with
