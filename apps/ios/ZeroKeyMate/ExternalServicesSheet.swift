@@ -166,21 +166,31 @@ private struct AddPaymentServiceSheet: View {
                 }
             } else {
                 Section {
-                    TextField("https://service.example/resource", text: $resource).keyboardType(.URL)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled().focused($editing)
-                    TextField("Maximum test USDC", text: $ceiling).keyboardType(.decimalPad).focused($editing)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Service URL").font(.caption).foregroundStyle(.secondary)
+                        TextField("https://service.example/resource", text: $resource).keyboardType(.URL)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled().focused($editing)
+                    }.disabled(busy)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Maximum per purchase").font(.caption).foregroundStyle(.secondary)
+                        HStack {
+                            TextField("Maximum test USDC", text: $ceiling).keyboardType(.decimalPad).focused($editing)
+                            Text("test USDC").foregroundStyle(.secondary)
+                        }
+                    }.disabled(busy)
                     Button("Check service") {
-                        editing = false; busy = true; error = nil
+                        editing = false; error = nil
+                        // Decimal(string:) accepts numeric prefixes. Use the same
+                        // strict fixed-point parser as the payment mandate.
+                        guard let units = try? TokenAmount(decimal: ceiling).units, units <= 500_000 else {
+                            error = L10n.text("Enter a limit from 0.000001 to 0.50 test USDC."); return
+                        }
+                        let requestedResource = resource.trimmingCharacters(in: .whitespacesAndNewlines)
+                        busy = true
                         operation = Task {
                             defer { busy = false }
                             do {
-                                guard let amount = Decimal(string: ceiling, locale: Locale(identifier: "en_US_POSIX")), amount > 0, amount <= Decimal(string: "0.50")! else {
-                                    throw ExternalPaymentError.invalidService
-                                }
-                                let scaled = amount * 1_000_000
-                                let units = NSDecimalNumber(decimal: scaled).uint64Value
-                                guard Decimal(units) == scaled else { throw ExternalPaymentError.invalidService }
-                                let discovered = try await checkout.discover(resource: resource.trimmingCharacters(in: .whitespacesAndNewlines), maximum: units)
+                                let discovered = try await checkout.discover(resource: requestedResource, maximum: units)
                                 try Task.checkCancellation()
                                 quote = discovered
                                 name = URL(string: discovered.service.resource)?.host ?? ""

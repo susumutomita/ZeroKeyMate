@@ -10601,6 +10601,38 @@
           }
         }
       }
+    },
+    "Service URL": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service URL"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスURL"
+          }
+        }
+      }
+    },
+    "Enter a limit from 0.000001 to 0.50 test USDC.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a limit from 0.000001 to 0.50 test USDC."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限を0.000001〜0.50 test USDCで入力してください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
