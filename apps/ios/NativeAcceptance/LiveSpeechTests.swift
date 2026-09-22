@@ -115,14 +115,22 @@ final class LiveSpeechTests: XCTestCase {
         buffer.frameLength = 480
         for i in 0..<480 { buffer.floatChannelData![0][i] = 0.02 }
         let bridge = try SpeechAudioBridge(source: source, target: target)
-        bridge.append(buffer); bridge.finish()
+        bridge.append(buffer)
+        // A real microphone tap reuses the input storage after returning.
+        for i in 0..<480 {buffer.floatChannelData![0][i] = 0}
+        bridge.finish()
         var samples = 0
+        var audibleSamples = 0
         for try await input in bridge.inputs {
             XCTAssertEqual(input.buffer.format.sampleRate, 16_000)
             XCTAssertFalse(input.buffer === buffer)
             samples += Int(input.buffer.frameLength)
+            if let pcm=input.buffer.int16ChannelData {
+                audibleSamples += (0..<Int(input.buffer.frameLength)).filter{abs(Int(pcm[0][$0]))>100}.count
+            }
         }
         XCTAssertGreaterThan(samples, 0)
+        XCTAssertGreaterThan(audibleSamples,0,"The converter must retain owned audio, not a reused microphone buffer")
         XCTAssertLessThanOrEqual(samples, 160)
         let overflow = try SpeechAudioBridge(source: source, target: target)
         for _ in 0..<5_000 { overflow.append(buffer) }

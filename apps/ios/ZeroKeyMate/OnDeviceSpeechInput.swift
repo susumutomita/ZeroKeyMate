@@ -176,7 +176,9 @@ final class SpeechAudioBridge: @unchecked Sendable {
             }
         }
         if let modernConvert {
-            do {for input in try modernConvert(buffer) {yield(input)}}
+            // AVAudioEngine may reuse tap memory after this callback. The
+            // iOS 27 converter can retain its input until a later convert/flush.
+            do {for input in try modernConvert(Self.ownedCopy(of:buffer)) {yield(input)}}
             catch {continuation.finish(throwing:ProductError.invalidResponse)}
             return
         }
@@ -194,6 +196,21 @@ final class SpeechAudioBridge: @unchecked Sendable {
             continuation.finish(throwing: ProductError.invalidResponse); return
         }
         if output.frameLength > 0 {yield(AnalyzerInput(buffer: output))}
+    }
+    static func ownedCopy(of buffer:AVAudioPCMBuffer) throws -> AVAudioPCMBuffer {
+        guard let copy=AVAudioPCMBuffer(pcmFormat:buffer.format,frameCapacity:buffer.frameLength) else {
+            throw ProductError.invalidResponse
+        }
+        copy.frameLength=buffer.frameLength
+        let source=UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList)
+        let target=UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
+        guard source.count==target.count else{throw ProductError.invalidResponse}
+        for index in source.indices {
+            guard let from=source[index].mData,let to=target[index].mData,
+                  target[index].mDataByteSize>=source[index].mDataByteSize else{throw ProductError.invalidResponse}
+            memcpy(to,from,Int(source[index].mDataByteSize))
+        }
+        return copy
     }
     private func yield(_ input: AnalyzerInput) {
         if case .dropped = continuation.yield(input) {
