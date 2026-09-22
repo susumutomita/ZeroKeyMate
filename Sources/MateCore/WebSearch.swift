@@ -36,14 +36,22 @@ public enum WebSearchIntent {
     public static func query(_ input: String) -> String? {
         let text=input.trimmingCharacters(in: .whitespacesAndNewlines), lower=text.lowercased()
         if ["translate ", "翻訳して", "翻訳してください", "英訳して", "という言葉", "を英語", "を日本語"].contains(where: lower.contains) { return nil }
-        let explicit = ["検索して", "調べて", "検索してほしい", "検索してください"].contains(where: text.contains)
+        if ["検索しない", "検索しなく", "調べない", "調べなく", "don't search", "do not search", "don't look up", "do not look up", "no web search", "と言われた", "って言われた"].contains(where: lower.contains) { return nil }
+        let japaneseCommand = #"(について|を)?(検索|調べ)して(?:ください|くれる|もらえる|ほしい|欲しい)?[。！？!?]?$"#
+        let japaneseLookup = #"(について|を)?調べて(?:ください|くれる|もらえる|ほしい|欲しい)?[。！？!?]?$"#
+        let explicit = text.range(of:japaneseCommand,options:.regularExpression) != nil
+            || text.range(of:japaneseLookup,options:.regularExpression) != nil
             || lower.range(of: #"^(please |can you |could you )?(search( the web| online)?( for)?|look up|find online)\b"#, options: .regularExpression) != nil
-        let topic = ["ニュース", "株価", "為替", "価格", "値段", "首相", "大統領", "リリース", "news", "price", "exchange rate", "president", "prime minister", "ceo", "release", "score"].contains(where: lower.contains)
+        let topics=["ニュース", "株価", "為替", "価格", "値段", "首相", "大統領", "リリース", "news", "price", "exchange rate", "president", "prime minister", "ceo", "release", "score"]
+        let topic=topics.contains(where:lower.contains)
         let current = ["今日", "現在", "最新", "今の", "直近", "today", "current", "latest", "right now", "this week"].contains(where: lower.contains)
-        guard explicit || (topic && current) else { return nil }
+        let asking=text.hasSuffix("？") || text.hasSuffix("?") || text.hasSuffix("教えて") || topics.contains(where:text.hasSuffix)
+            || lower.range(of:#"^(what|who|how|when|tell me|give me|show me|latest|current)\b"#,options:.regularExpression) != nil
+        guard explicit || (topic && current && asking) else { return nil }
         var query=text.replacingOccurrences(of: #"(?i)^(please |can you |could you )?(search( the web| online)?( for)?|look up|find online)\s*"#, with: "", options: .regularExpression)
         query=query.replacingOccurrences(of: #"^(Web|web|ウェブ|ネット)(で|から)"#, with: "", options: .regularExpression)
-        query=query.replacingOccurrences(of: #"(について|を)?(検索してほしい|検索してください|検索して|調べてください|調べてほしい|調べて)(。|！|!|？|\?)?$"#, with: "", options: .regularExpression)
+        query=query.replacingOccurrences(of:japaneseCommand,with:"",options:.regularExpression)
+        query=query.replacingOccurrences(of:japaneseLookup,with:"",options:.regularExpression)
         return query.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     public static func isSafeQuery(_ query: String) -> Bool {

@@ -90,11 +90,13 @@ private actor SearchPlannerSpy:AgentPlanning {
         let model=CompanionModel(conversation:conversation,planner:planner)
         model.readAloud=false
         defer {model.rest()}
-        model.send("Search for space news")
+        model.send("Search for how to buy beer")
         try await finished(model)
         let planned=await planner.inputs
         XCTAssertTrue(planned.isEmpty)
         XCTAssertNotNil(model.messages.last?.webSearch)
+        XCTAssertNil(model.sheet)
+        XCTAssertNil(model.draft)
         model.send("Hello")
         try await finished(model)
         let histories=await conversation.histories

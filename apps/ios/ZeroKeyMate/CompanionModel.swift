@@ -365,160 +365,166 @@ final class CompanionModel:ObservableObject {
                 }
             }
             do {
-                if ConnectedServiceIntent.requestsList(input) {
-                    self.openExternalServices()
-                    return
-                }
-                // Service names are explicitly registered by the owner. Neither
-                // model output nor merchant content selects a signing target.
-                let services:[ConnectedPaymentService]
-                do {
-                    try ConnectedPaymentServices.shared.load()
-                    services=ConnectedPaymentServices.shared.services
-                } catch { services=[] } // A service-store failure must not disable ordinary conversation.
-                if let name = ConnectedServiceIntent.requestedName(input, names: services.map(\.name)),
-                   let service = services.first(where: { $0.name == name }) {
-                    self.openExternalServices(service)
-                    return
-                }
-                if ShopOrderQuestion.matches(input) {
+                let searchRequested=WebSearchIntent.query(input) != nil
+                if searchRequested {
+                    // A search about buying or revoking is not that action.
                     self.agentOffer=nil;self.revokeOffer=nil
-                    guard self.stateLoaded else {
-                        self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
+                } else {
+                    if ConnectedServiceIntent.requestsList(input) {
+                        self.openExternalServices()
                         return
                     }
-                    if self.lastPurchaseWasExternal {
-                        let answer = await ExternalCheckout.savedPaymentAnswer()
-                        guard self.foreground,self.conversationGeneration==generation else{return}
-                        self.agentSay(L10n.text(answer,language:replyLanguage),language:replyLanguage)
-                    } else if self.pendingExecution == nil && ShopCheckout.hasSavedOrder() {
-                        let answer = await ShopCheckout.savedOrderAnswer()
-                        guard self.foreground, self.conversationGeneration == generation else { return }
-                        self.agentSay(L10n.text(answer, language: replyLanguage), language: replyLanguage)
-                    } else if self.pendingExecution != nil {
-                        self.executionStatus=replyLanguage == .japanese ? "同じ注文の結果を確認しています" : "Checking the existing order"
-                        await self.recoverExecution()
+                    // Service names are explicitly registered by the owner. Neither
+                    // model output nor merchant content selects a signing target.
+                    let services:[ConnectedPaymentService]
+                    do {
+                        try ConnectedPaymentServices.shared.load()
+                        services=ConnectedPaymentServices.shared.services
+                    } catch { services=[] } // A service-store failure must not disable ordinary conversation.
+                    if let name = ConnectedServiceIntent.requestedName(input, names: services.map(\.name)),
+                       let service = services.first(where: { $0.name == name }) {
+                        self.openExternalServices(service)
+                        return
+                    }
+                    if ShopOrderQuestion.matches(input) {
+                        self.agentOffer=nil;self.revokeOffer=nil
+                        guard self.stateLoaded else {
+                            self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
+                            return
+                        }
+                        if self.lastPurchaseWasExternal {
+                            let answer = await ExternalCheckout.savedPaymentAnswer()
+                            guard self.foreground,self.conversationGeneration==generation else{return}
+                            self.agentSay(L10n.text(answer,language:replyLanguage),language:replyLanguage)
+                        } else if self.pendingExecution == nil && ShopCheckout.hasSavedOrder() {
+                            let answer = await ShopCheckout.savedOrderAnswer()
+                            guard self.foreground, self.conversationGeneration == generation else { return }
+                            self.agentSay(L10n.text(answer, language: replyLanguage), language: replyLanguage)
+                        } else if self.pendingExecution != nil {
+                            self.executionStatus=replyLanguage == .japanese ? "同じ注文の結果を確認しています" : "Checking the existing order"
+                            await self.recoverExecution()
+                            self.executionStatus=nil
+                            guard self.foreground,self.conversationGeneration==generation else{return}
+                            self.reportAgentResult(language:replyLanguage)
+                        } else {
+                            self.agentSay(replyLanguage == .japanese ? "確認待ちの注文はありません。過去の結果は履歴に残しています。" : "There are no pending orders. Earlier results are saved in Activity.",language:replyLanguage)
+                        }
+                        return
+                    }
+                    if let offered=self.agentOffer {
+                        self.agentOffer=nil
+                        if offered.accepts(input,draftID:self.draft?.id,generation:self.requestGeneration) {
+                            self.agentSay(replyLanguage == .japanese ? "このiPhoneで証明を作って注文します。" : "I'll create the proof on this iPhone and place the order.",language:replyLanguage)
+                            await self.execute(payload:offered.request.text,provider:offered.provider,fromAgent:true)
+                            guard self.foreground,self.conversationGeneration==generation else{return}
+                            self.reportAgentResult(language:replyLanguage)
+                            return
+                        }
+                    }
+                    if let offered=self.revokeOffer {
+                        self.revokeOffer=nil
+                        if offered.accepts(input,generation:self.requestGeneration),self.mandate?.id==offered.mandateID {
+                            await self.fund(.revoke(offered.mandateID))
+                            guard self.foreground,self.conversationGeneration==generation else{return}
+                            if let failure=self.errorMessage {
+                                self.errorMessage=nil
+                                self.agentSay((replyLanguage == .japanese ? "委任を取り消せませんでした。" : "I couldn't revoke the mandate. ")+L10n.text(failure),language:replyLanguage)
+                            } else if self.mandate == nil {
+                                self.agentSay(replyLanguage == .japanese ? "委任を取り消しました。" : "The mandate has been revoked.",language:replyLanguage)
+                            }
+                            return
+                        }
+                    }
+                    if !self.stateLoaded && (ConversationRouter.isUsageStatusRequest(input) || ConversationRouter.isRevokeRequest(input)) {
+                        self.agentSay(replyLanguage == .japanese ? "保存済みの委任を復元しています。少し待ってからもう一度確認してください。" : "I'm restoring saved mandates. Please check again shortly.",language:replyLanguage)
+                        return
+                    }
+                    if ConversationRouter.isUsageStatusRequest(input) {
+                        self.agentOffer=nil;self.revokeOffer=nil
+                        guard let stored=self.mandate else {
+                            self.agentSay(replyLanguage == .japanese ? "有効な予算の設定はまだありません。「あなたのルール」から設定できます。" : "There is no active spending mandate yet. Set one up from Your rules.",language:replyLanguage)
+                            return
+                        }
+                        self.executionStatus=replyLanguage == .japanese ? "利用状況を確認しています" : "Checking usage"
+                        self.errorMessage=nil
+                        await self.refreshAccount()
                         self.executionStatus=nil
-                        guard self.foreground,self.conversationGeneration==generation else{return}
-                        self.reportAgentResult(language:replyLanguage)
-                    } else {
-                        self.agentSay(replyLanguage == .japanese ? "確認待ちの注文はありません。過去の結果は履歴に残しています。" : "There are no pending orders. Earlier results are saved in Activity.",language:replyLanguage)
-                    }
-                    return
-                }
-                if let offered=self.agentOffer {
-                    self.agentOffer=nil
-                    if offered.accepts(input,draftID:self.draft?.id,generation:self.requestGeneration) {
-                        self.agentSay(replyLanguage == .japanese ? "このiPhoneで証明を作って注文します。" : "I'll create the proof on this iPhone and place the order.",language:replyLanguage)
-                        await self.execute(payload:offered.request.text,provider:offered.provider,fromAgent:true)
-                        guard self.foreground,self.conversationGeneration==generation else{return}
-                        self.reportAgentResult(language:replyLanguage)
-                        return
-                    }
-                }
-                if let offered=self.revokeOffer {
-                    self.revokeOffer=nil
-                    if offered.accepts(input,generation:self.requestGeneration),self.mandate?.id==offered.mandateID {
-                        await self.fund(.revoke(offered.mandateID))
                         guard self.foreground,self.conversationGeneration==generation else{return}
                         if let failure=self.errorMessage {
                             self.errorMessage=nil
-                            self.agentSay((replyLanguage == .japanese ? "委任を取り消せませんでした。" : "I couldn't revoke the mandate. ")+L10n.text(failure),language:replyLanguage)
-                        } else if self.mandate == nil {
-                            self.agentSay(replyLanguage == .japanese ? "委任を取り消しました。" : "The mandate has been revoked.",language:replyLanguage)
+                            self.agentSay((replyLanguage == .japanese ? "利用状況を確認できませんでした。" : "I couldn't confirm the current usage. ")+L10n.text(failure),language:replyLanguage)
+                        } else if self.mandate?.id == stored.id, let checkedAt=self.accountCheckedAt {
+                            let remaining=TokenAmount(units:stored.policy.budget>self.spent ? stored.policy.budget-self.spent:0).display
+                            let timestamp=checkedAt.formatted(date:.omitted,time:.standard)
+                            self.agentSay(replyLanguage == .japanese
+                                ? "確認時刻\(timestamp)。これまでに\(TokenAmount(units:self.spent).display) USDC使いました。残りは\(remaining) USDCです。"
+                                : "As of \(timestamp), you've spent \(TokenAmount(units:self.spent).display) USDC so far, with \(remaining) USDC remaining.",language:replyLanguage)
+                        } else {
+                            self.agentSay(replyLanguage == .japanese ? "現在の委任は失効または期限切れです。" : "The mandate is revoked or expired.",language:replyLanguage)
                         }
                         return
                     }
-                }
-                if !self.stateLoaded && (ConversationRouter.isUsageStatusRequest(input) || ConversationRouter.isRevokeRequest(input)) {
-                    self.agentSay(replyLanguage == .japanese ? "保存済みの委任を復元しています。少し待ってからもう一度確認してください。" : "I'm restoring saved mandates. Please check again shortly.",language:replyLanguage)
-                    return
-                }
-                if ConversationRouter.isUsageStatusRequest(input) {
-                    self.agentOffer=nil;self.revokeOffer=nil
-                    guard let stored=self.mandate else {
-                        self.agentSay(replyLanguage == .japanese ? "有効な予算の設定はまだありません。「あなたのルール」から設定できます。" : "There is no active spending mandate yet. Set one up from Your rules.",language:replyLanguage)
-                        return
-                    }
-                    self.executionStatus=replyLanguage == .japanese ? "利用状況を確認しています" : "Checking usage"
-                    self.errorMessage=nil
-                    await self.refreshAccount()
-                    self.executionStatus=nil
-                    guard self.foreground,self.conversationGeneration==generation else{return}
-                    if let failure=self.errorMessage {
-                        self.errorMessage=nil
-                        self.agentSay((replyLanguage == .japanese ? "利用状況を確認できませんでした。" : "I couldn't confirm the current usage. ")+L10n.text(failure),language:replyLanguage)
-                    } else if self.mandate?.id == stored.id, let checkedAt=self.accountCheckedAt {
-                        let remaining=TokenAmount(units:stored.policy.budget>self.spent ? stored.policy.budget-self.spent:0).display
-                        let timestamp=checkedAt.formatted(date:.omitted,time:.standard)
-                        self.agentSay(replyLanguage == .japanese
-                            ? "確認時刻\(timestamp)。これまでに\(TokenAmount(units:self.spent).display) USDC使いました。残りは\(remaining) USDCです。"
-                            : "As of \(timestamp), you've spent \(TokenAmount(units:self.spent).display) USDC so far, with \(remaining) USDC remaining.",language:replyLanguage)
-                    } else {
-                        self.agentSay(replyLanguage == .japanese ? "現在の委任は失効または期限切れです。" : "The mandate is revoked or expired.",language:replyLanguage)
-                    }
-                    return
-                }
-                if ConversationRouter.isRevokeRequest(input) {
-                    self.agentOffer=nil
-                    guard let stored=self.mandate else {
-                        self.agentSay(replyLanguage == .japanese ? "現在、取り消す委任はありません。" : "There is no active mandate to revoke.",language:replyLanguage)
-                        return
-                    }
-                    self.revokeOffer=PendingRevoke(mandateID:stored.id,generation:self.requestGeneration,createdAt:Date())
-                    self.errorMessage=nil
-                    let limit=TokenAmount(units:stored.policy.budget).display
-                    self.agentSay(replyLanguage == .japanese
-                        ? "\(self.configuration.networkName)の委任\(stored.id)（上限\(limit) USDC）を取り消します。よろしければ「はい」と言ってください。"
-                        : "This will revoke mandate \(stored.id) on \(self.configuration.networkName) (limit \(limit) USDC). Say yes to confirm.",language:replyLanguage)
-                    return
-                }
-                if let proposal=ConversationRouter.ruleProposal(from:input) {
-                    self.agentOffer=nil;self.revokeOffer=nil
-                    guard proposal.translation || proposal.summary else {
-                        self.agentSay(replyLanguage == .japanese ? "翻訳と要約のどちらに使ってよいか教えてください。" : "Let me know whether this can be used for translation, summary or both.",language:replyLanguage)
-                        return
-                    }
-                    guard self.mandate == nil else {
-                        self.agentSay(replyLanguage == .japanese ? "ルールを変更するには、現在の委任を先に「あなたのルール」から取り消してください。" : "Changing the rules requires revoking the current mandate first, from Your rules.",language:replyLanguage)
-                        return
-                    }
-                    self.ruleDraft=proposal
-                    self.sheet = .rules
-                    if let unsupported=proposal.unsupportedService {
-                        self.agentSay(replyLanguage == .japanese
-                            ? "「\(unsupported)」はまだ対応していません。翻訳・要約の範囲で提案を「あなたのルール」に用意しました。金額と期限を確認して承認してください。"
-                            : "\"\(unsupported)\" isn't supported yet. I've prepared a proposal limited to translation and summary on Your rules. Review the amount and expiry, then approve it there.",language:replyLanguage)
-                    } else {
-                        self.agentSay(replyLanguage == .japanese ? "提案を「あなたのルール」に用意しました。金額と期限を確認して承認してください。" : "I've prepared this proposal on Your rules. Review the amount and expiry, then approve it there.",language:replyLanguage)
-                    }
-                    return
-                }
-                if ShopPlanner.relevant(input) {
-                    let plan = try await self.shopPlanner.plan(input)
-                    try Task.checkCancellation()
-                    guard self.foreground, self.conversationGeneration == generation else { return }
-                    switch plan.operation {
-                    case .buyBeer, .buyWater:
-                        guard let selection = try? ShopPlanner.selection(for: plan, input: input) else {
-                            self.agentSay(replyLanguage == .japanese ? "ビールか炭酸水のどちらかを、1〜5本で教えてください。一度に注文できるのは1種類です。" : "Please choose beer or sparkling water, one to five bottles of a single product.", language: replyLanguage)
+                    if ConversationRouter.isRevokeRequest(input) {
+                        self.agentOffer=nil
+                        guard let stored=self.mandate else {
+                            self.agentSay(replyLanguage == .japanese ? "現在、取り消す委任はありません。" : "There is no active mandate to revoke.",language:replyLanguage)
                             return
                         }
-                        self.openShop(language: replyLanguage, startsFromVoice: true, selection: selection)
+                        self.revokeOffer=PendingRevoke(mandateID:stored.id,generation:self.requestGeneration,createdAt:Date())
+                        self.errorMessage=nil
+                        let limit=TokenAmount(units:stored.policy.budget).display
+                        self.agentSay(replyLanguage == .japanese
+                            ? "\(self.configuration.networkName)の委任\(stored.id)（上限\(limit) USDC）を取り消します。よろしければ「はい」と言ってください。"
+                            : "This will revoke mandate \(stored.id) on \(self.configuration.networkName) (limit \(limit) USDC). Say yes to confirm.",language:replyLanguage)
                         return
-                    case .unsupportedPurchase:
-                        self.agentSay(replyLanguage == .japanese ? "今はビールか炭酸水を1種類、1〜5本で注文できます。商品と本数を教えてください。" : "The connected store sells beer or sparkling water, one to five bottles of one product per order. Please tell me which product and how many.", language: replyLanguage)
+                    }
+                    if let proposal=ConversationRouter.ruleProposal(from:input) {
+                        self.agentOffer=nil;self.revokeOffer=nil
+                        guard proposal.translation || proposal.summary else {
+                            self.agentSay(replyLanguage == .japanese ? "翻訳と要約のどちらに使ってよいか教えてください。" : "Let me know whether this can be used for translation, summary or both.",language:replyLanguage)
+                            return
+                        }
+                        guard self.mandate == nil else {
+                            self.agentSay(replyLanguage == .japanese ? "ルールを変更するには、現在の委任を先に「あなたのルール」から取り消してください。" : "Changing the rules requires revoking the current mandate first, from Your rules.",language:replyLanguage)
+                            return
+                        }
+                        self.ruleDraft=proposal
+                        self.sheet = .rules
+                        if let unsupported=proposal.unsupportedService {
+                            self.agentSay(replyLanguage == .japanese
+                                ? "「\(unsupported)」はまだ対応していません。翻訳・要約の範囲で提案を「あなたのルール」に用意しました。金額と期限を確認して承認してください。"
+                                : "\"\(unsupported)\" isn't supported yet. I've prepared a proposal limited to translation and summary on Your rules. Review the amount and expiry, then approve it there.",language:replyLanguage)
+                        } else {
+                            self.agentSay(replyLanguage == .japanese ? "提案を「あなたのルール」に用意しました。金額と期限を確認して承認してください。" : "I've prepared this proposal on Your rules. Review the amount and expiry, then approve it there.",language:replyLanguage)
+                        }
                         return
-                    case .chat: break
+                    }
+                    if ShopPlanner.relevant(input) {
+                        let plan = try await self.shopPlanner.plan(input)
+                        try Task.checkCancellation()
+                        guard self.foreground, self.conversationGeneration == generation else { return }
+                        switch plan.operation {
+                        case .buyBeer, .buyWater:
+                            guard let selection = try? ShopPlanner.selection(for: plan, input: input) else {
+                                self.agentSay(replyLanguage == .japanese ? "ビールか炭酸水のどちらかを、1〜5本で教えてください。一度に注文できるのは1種類です。" : "Please choose beer or sparkling water, one to five bottles of a single product.", language: replyLanguage)
+                                return
+                            }
+                            self.openShop(language: replyLanguage, startsFromVoice: true, selection: selection)
+                            return
+                        case .unsupportedPurchase:
+                            self.agentSay(replyLanguage == .japanese ? "今はビールか炭酸水を1種類、1〜5本で注文できます。商品と本数を教えてください。" : "The connected store sells beer or sparkling water, one to five bottles of one product per order. Please tell me which product and how many.", language: replyLanguage)
+                            return
+                        case .chat: break
+                        }
+                    }
+                    if let request=try await self.planner.request(from:input) {
+                        try Task.checkCancellation()
+                        guard self.foreground,self.conversationGeneration==generation else{return}
+                        await self.prepareAgent(request,language:replyLanguage,generation:generation)
+                        return
                     }
                 }
-                if WebSearchIntent.query(input)==nil, let request=try await self.planner.request(from:input) {
-                    try Task.checkCancellation()
-                    guard self.foreground,self.conversationGeneration==generation else{return}
-                    await self.prepareAgent(request,language:replyLanguage,generation:generation)
-                    return
-                }
-                self.searchingWeb=WebSearchIntent.query(input) != nil
+                self.searchingWeb=searchRequested
                 let response=try await self.conversation.streamReply(to:input,history:history,
                     observations:self.sensors.currentObservation,notes:notes,replyLanguage:replyLanguage.name,
                     onPartial:{[weak self] partial in
