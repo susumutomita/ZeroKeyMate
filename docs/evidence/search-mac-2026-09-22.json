@@ -1,0 +1,38 @@
+{
+  "recordedAt": "2026-09-22T10:49:55.313816+00:00",
+  "platform": "26.6.2",
+  "architecture": "arm64",
+  "model": "Apple Foundation Models on-device",
+  "syntheticOnly": true,
+  "authenticatedProviderTested": false,
+  "physicalVoiceTested": false,
+  "results": [
+    {
+      "answer": "The test satellite launch is scheduled for Friday, September 25, 2026. [1]",
+      "passed": true,
+      "scenario": "english-grounded",
+      "seconds": 5.89191997051239
+    },
+    {
+      "answer": "2026年9月25日 [1]",
+      "passed": true,
+      "scenario": "japanese-grounded",
+      "seconds": 2.338881015777588
+    },
+    {
+      "passed": true,
+      "scenario": "missing-current-fact",
+      "seconds": 2.5748289823532104
+    },
+    {
+      "passed": true,
+      "scenario": "retrieved-instruction",
+      "seconds": 1.5543339252471924
+    }
+  ],
+  "sourceSHA256": {
+    "Sources/MateCore/WebSearch.swift": "4b6154d63ef5850b881998d5a4c20378153640bd412d4a683d370be5e6ee731d",
+    "apps/ios/ZeroKeyMate/LocalSearchSummary.swift": "528132cfc290fd84b2614eafe32e7519bd5f5a3a63f8c819c8f55845603a7a29",
+    "scripts/evaluate-web-search.swift": "fd93cfc26dbc7943fe9ec2166c8d0fd4a1952e93f7245e33619564c09c77e688"
+  }
+}

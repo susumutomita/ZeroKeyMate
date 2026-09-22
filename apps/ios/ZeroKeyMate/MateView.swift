@@ -368,7 +368,7 @@ private struct ConversationSheet:View {
                         if model.messages.isEmpty {
                             VStack(alignment:.leading,spacing:12){
                                 Text("Where shall we start?").font(.system(size:28,weight:.regular)).tracking(-0.7)
-                                SectionNote(text:"Conversation runs on your iPhone. Weather questions share the city you provide with Open-Meteo. Paid services still require your review.")
+                                SectionNote(text:"Conversation runs on your iPhone. Weather shares your city with Open-Meteo. Optional Web search shares your search query with Brave. Paid services still require your review.")
                                 Button("Try a beer purchase") {
                                     input=L10n.text("Buy me one beer.")
                                 }.accessibilityIdentifier("try-agent-request")
@@ -379,6 +379,7 @@ private struct ConversationSheet:View {
                             VStack(alignment:.leading,spacing:8){
                                 Text(L10n.text(message.isUser ? "You":"Mate")).font(.system(size:11,weight:.semibold)).foregroundStyle(Finish.secondary)
                                 Text(message.text).font(.system(size:17)).lineSpacing(5).textSelection(.enabled)
+                                if let result=message.webSearch {WebSearchSourcesView(result:result)}
                                 if let source=message.sourceURL {
                                     HStack(spacing:12) {
                                         Link("Open-Meteo",destination:URL(string:"https://open-meteo.com/")!)
@@ -397,7 +398,7 @@ private struct ConversationSheet:View {
                         }
                         if let status=model.executionStatus {
                             ProgressView(L10n.text(status)).font(.footnote).accessibilityIdentifier("request-progress")
-                        } else if model.thinking && model.streamingReply.isEmpty{ProgressView("Thinking").font(.footnote)}
+                        } else if model.thinking && model.streamingReply.isEmpty{ProgressView(L10n.text(model.searchingWeb ? "Searching the web":"Thinking")).font(.footnote)}
                         if model.pendingExecution != nil {
                             Text("The result is not confirmed yet. Check the existing request before paying again.").font(.footnote)
                             Button("Check result"){model.sheet = .activity}.disabled(model.financialBusy || model.thinking)
@@ -491,6 +492,7 @@ private struct SettingsSheet:View {
                 SectionNote(text:"Stored in this iPhone's Keychain. Never shared with external providers or published to ENS.")
             }
             Section("Connections"){
+                NavigationLink("Web search") {WebSearchSettingsView()}.accessibilityIdentifier("open-web-search")
                 Button("Configure connection"){model.sheet = .connection}.disabled(model.financialBusy)
                 LabeledContent("Conversation",value:L10n.text(model.modelUnavailable == nil ? "On-device":"Check availability"))
                 if let unavailable=model.modelUnavailable{SectionNote(text:unavailable)}

@@ -10665,6 +10665,358 @@
           }
         }
       }
+    },
+    "Web search": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web検索"
+          }
+        }
+      }
+    },
+    "Enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enabled"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オン"
+          }
+        }
+      }
+    },
+    "Off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフ"
+          }
+        }
+      }
+    },
+    "Your Brave API key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Brave API key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ご自身のBrave APIキー"
+          }
+        }
+      }
+    },
+    "Paste your API key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste your API key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "APIキーを貼り付け"
+          }
+        }
+      }
+    },
+    "Save and enable search": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save and enable search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存して検索をオンにする"
+          }
+        }
+      }
+    },
+    "Disable search and delete key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable search and delete key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索をオフにしてキーを削除"
+          }
+        }
+      }
+    },
+    "Before enabling": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before enabling"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索をオンにする前に"
+          }
+        }
+      }
+    },
+    "Brave API account and pricing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brave API account and pricing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brave APIのアカウントと料金"
+          }
+        }
+      }
+    },
+    "Brave Search API dashboard": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brave Search API dashboard"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brave Search APIの管理画面"
+          }
+        }
+      }
+    },
+    "Web search · Brave": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search · Brave"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web検索 · Brave"
+          }
+        }
+      }
+    },
+    "Retrieved": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retrieved"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得日時"
+          }
+        }
+      }
+    },
+    "Searching the web": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching the web"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web検索中"
+          }
+        }
+      }
+    },
+    "Ask ‘Search for the latest space news.’ Mate searches with Brave, then answers on your iPhone with source links.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask ‘Search for the latest space news.’ Mate searches with Brave, then answers on your iPhone with source links."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「最新の宇宙ニュースを調べて」と話しかけてください。Braveで検索し、iPhoneで回答を作成して出典リンクを表示します。"
+          }
+        }
+      }
+    },
+    "Search enabled. No test request was sent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search enabled. No test request was sent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web検索をオンにしました。テスト検索は送信していません。"
+          }
+        }
+      }
+    },
+    "Couldn't save the key. Unlock your iPhone and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the key. Unlock your iPhone and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーを保存できませんでした。iPhoneのロックを解除して再試行してください。"
+          }
+        }
+      }
+    },
+    "Search disabled and key deleted.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search disabled and key deleted."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索をオフにしてキーを削除しました。"
+          }
+        }
+      }
+    },
+    "Search is off, but the key could not be deleted. Unlock your iPhone and retry.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search is off, but the key could not be deleted. Unlock your iPhone and retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索はオフですが、キーを削除できませんでした。iPhoneのロックを解除して再試行してください。"
+          }
+        }
+      }
+    },
+    "Search sends the current search query and language to Brave. Your IP address is visible to Brave. Mate does not attach conversation history, notes, camera data, card information or GPS. Do not put private information in search questions.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search sends the current search query and language to Brave. Your IP address is visible to Brave. Mate does not attach conversation history, notes, camera data, card information or GPS. Do not put private information in search questions."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索語と言語をBraveに送信します。BraveにはIPアドレスも伝わります。会話履歴・メモ・カメラ・カード情報・GPSは付加しません。検索する質問に個人情報を含めないでください。"
+          }
+        }
+      }
+    },
+    "Mate also searches supported current-information questions, such as today's news. Search is off until you enable it. Search results stay in memory; clearing the conversation removes them.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mate also searches supported current-information questions, such as today's news. Search is off until you enable it. Search results stay in memory; clearing the conversation removes them."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日のニュースなど、対応する最新情報の質問も検索します。有効にするまでは検索はオフです。検索結果はメモリ内だけに保持され、会話を消去すると削除されます。"
+          }
+        }
+      }
+    },
+    "The key is stored only in this iPhone's Keychain. Never enter a wallet key. Your Brave account's pricing and data terms apply. Mate limits attempts to 20 per UTC day on this installation; this is not an account billing cap.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The key is stored only in this iPhone's Keychain. Never enter a wallet key. Your Brave account's pricing and data terms apply. Mate limits attempts to 20 per UTC day on this installation; this is not an account billing cap."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーはこのiPhoneのKeychainに保存します。ウォレットの鍵は入力しないでください。Braveの料金・データ利用規約が適用されます。このインストールではUTCの日付ごとに20回までですが、アカウント全体の課金上限ではありません。"
+          }
+        }
+      }
+    },
+    "Conversation runs on your iPhone. Weather shares your city with Open-Meteo. Optional Web search shares your search query with Brave. Paid services still require your review.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation runs on your iPhone. Weather shares your city with Open-Meteo. Optional Web search shares your search query with Brave. Paid services still require your review."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話はiPhoneで処理します。天気は都市名をOpen-Meteoに、任意のWeb検索は検索語をBraveに送信します。有料サービスには別途確認が必要です。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

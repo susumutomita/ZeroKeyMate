@@ -7,6 +7,7 @@ struct ConversationReply:Sendable {
     let service:MateService?
     let disclosure:String
     var sourceURL:URL?=nil
+    var webSearch:WebSearchResult?=nil
 }
 
 enum ConversationFailure: Error, Sendable, Equatable {
@@ -44,7 +45,12 @@ extension ConversationResponding {
 actor ConversationService:ConversationResponding {
     private let local=LocalConversationSession()
     private let weather:WeatherConversation
-    init(weather:any WeatherProviding=OpenMeteoWeather()) { self.weather=WeatherConversation(provider:weather) }
+    private let web:WebSearchConversation
+    init(weather:any WeatherProviding=OpenMeteoWeather(),search:any WebSearchProviding=WebSearchAccess.shared,
+         searchSummary:any SearchSummarizing=LocalSearchSummary()) {
+        self.weather=WeatherConversation(provider:weather)
+        self.web=WebSearchConversation(provider:search,summarizer:searchSummary)
+    }
     func availability() -> String? {
         switch SystemLanguageModel.default.availability {
         case .available:return nil
@@ -70,6 +76,12 @@ actor ConversationService:ConversationResponding {
             await onPartial(result.text)
             try Task.checkCancellation()
             return ConversationReply(text:result.text,service:nil,disclosure:"",sourceURL:result.source)
+        }
+        if let result=try await web.reply(to:text,japanese:replyLanguage == "日本語") {
+            try Task.checkCancellation()
+            await onPartial(result.text)
+            try Task.checkCancellation()
+            return ConversationReply(text:result.text,service:nil,disclosure:"",webSearch:result.result)
         }
         if let remembered=ConversationMemory.reply(to:text,history:history,language:replyLanguage) {
             await onPartial(remembered)

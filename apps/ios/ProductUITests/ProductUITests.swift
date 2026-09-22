@@ -52,6 +52,24 @@ final class ProductUITests: XCTestCase {
             XCTAssertGreaterThanOrEqual(button.frame.height, 44, id)
         }
     }
+    func testWebSearchSettingsAndKeyboardDismissal() {
+        let app=launch()
+        app.buttons["open-settings"].tap()
+        let entry=app.buttons["open-web-search"]
+        for _ in 0..<7 { if entry.isHittable {break};app.swipeUp() }
+        XCTAssertTrue(entry.isHittable)
+        entry.tap()
+        let key=app.secureTextFields["search-api-key"]
+        XCTAssertTrue(key.waitForExistence(timeout:5))
+        XCTAssertFalse(app.buttons["save-search-key"].isEnabled)
+        key.tap();key.typeText("invalid")
+        XCTAssertFalse(app.buttons["save-search-key"].isEnabled)
+        let done=app.buttons["Done"].firstMatch
+        XCTAssertTrue(done.isHittable);done.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout:5))
+        capture("web-search-settings")
+        // Do not save a fake API key or modify an existing user's configuration.
+    }
     func testUnconfiguredBeerShopIsHonestAndCanRetryOrClose() {
         let app = launch()
         XCTAssertTrue(app.buttons["open-shop"].waitForExistence(timeout: 5))
