@@ -84,3 +84,11 @@ above remain **iOS 26.7 build 15 measurements**. No iOS 27 first-token, spoken
 response or quality result is claimed. Resume the fixed synthetic conversation
 and PCM checks after restoring the device connection, then measure actual
 speech-end to audible-reply latency separately.
+
+## Build 18: software completion while physical update is deferred
+
+At the user's request, physical installation is deferred. The conversation
+implementation now includes typed visible history and the continuity fixes
+described in [the conversation quality report](conversation-quality.md). That
+report includes an actual Mac local-model run, clearly separated from phone
+acceptance. No newer iPhone speech or model-quality result is claimed here.

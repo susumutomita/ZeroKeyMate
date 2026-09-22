@@ -10,7 +10,7 @@ private actor ChatOnlyPlanner:AgentPlanning {
 private actor SuspendedConversation:ConversationResponding {
     private var continuation:CheckedContinuation<ConversationReply,Error>?
     func availability() -> String? {nil}
-    func reply(to text:String,history:String,observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
+    func reply(to text:String,history:[ConversationTurn],observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
         try await withCheckedThrowingContinuation{continuation=$0}
     }
     var waiting:Bool{continuation != nil}
@@ -21,10 +21,10 @@ private actor StreamingConversation:ConversationResponding {
     private var continuation:CheckedContinuation<ConversationReply,Error>?
     private var partial:(@Sendable (String) async -> Void)?
     func availability()->String?{nil}
-    func reply(to text:String,history:String,observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
+    func reply(to text:String,history:[ConversationTurn],observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
         try await streamReply(to:text,history:history,observations:observations,notes:notes,replyLanguage:replyLanguage,onPartial:{_ in})
     }
-    func streamReply(to text:String,history:String,observations:String,notes:String,replyLanguage:String,
+    func streamReply(to text:String,history:[ConversationTurn],observations:String,notes:String,replyLanguage:String,
                      onPartial:@escaping @Sendable (String) async -> Void) async throws -> ConversationReply {
         partial=onPartial
         return try await withCheckedThrowingContinuation{continuation=$0}
@@ -38,15 +38,80 @@ private actor StreamingConversation:ConversationResponding {
 private actor BlockedThenSuccessfulConversation:ConversationResponding {
     private(set) var calls=0
     func availability()->String?{nil}
-    func reply(to text:String,history:String,observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
+    func reply(to text:String,history:[ConversationTurn],observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
         calls += 1
         if calls==1{throw ConversationFailure.responseBlocked}
         return ConversationReply(text:"Let's talk about your day.",service:nil,disclosure:"")
     }
 }
 
+private actor ContextRecordingConversation:ConversationResponding {
+    private(set) var receivedHistory:[ConversationTurn]=[]
+    private(set) var language=""
+    func availability()->String?{nil}
+    func reply(to text:String,history:[ConversationTurn],observations:String,notes:String,replyLanguage:String) async throws -> ConversationReply {
+        receivedHistory=history;language=replyLanguage
+        return ConversationReply(text:"Recorded reply",service:nil,disclosure:"")
+    }
+}
+
 @MainActor
 final class ConversationTests:XCTestCase {
+    func testPurchaseRecallQuotesTheActualRequestWithoutInventingCompletion() async throws {
+        let service=ConversationService()
+        let request="Mac miniをAmazonで買って"
+        let history:[ConversationTurn]=[.init(isUser:true,text:request),
+            .init(isUser:false,text:"その購入は実行できません。")]
+        for (input,language) in [("さっき何を買ってって頼んだ？","日本語"),("What did I ask you to buy?","English")] {
+            let response=try await service.reply(to:input,history:history,observations:"",notes:"",replyLanguage:language)
+            XCTAssertTrue(response.text.contains(request))
+            XCTAssertFalse(response.text.contains("購入しました"))
+            XCTAssertFalse(response.text.contains("completed"))
+            XCTAssertNil(response.service)
+        }
+        XCTAssertNil(PurchaseConversation.recall(input:"Translate 'what did I ask you to buy?'",history:history,replyLanguage:"English"))
+        XCTAssertNil(PurchaseConversation.recall(input:"Did my payment complete?",history:history,replyLanguage:"English"))
+        let unknown=PurchaseConversation.recall(input:"What did I ask you to buy?",history:[],replyLanguage:"English")
+        XCTAssertTrue(unknown?.contains("don't have")==true)
+        let interrupted=PurchaseConversation.recall(input:"What did I ask you to buy?",history:[.init(isUser:true,text:request)],replyLanguage:"English")
+        XCTAssertEqual(interrupted,unknown)
+    }
+    func testRoutedReplyIsVisibleToTheNextConversationTurn() async throws {
+        let service=ContextRecordingConversation()
+        let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
+        model.readAloud=false
+        model.send("残りの予算")
+        try await waitUntil{!model.thinking}
+        let routed=try XCTUnwrap(model.messages.last?.text)
+        XCTAssertTrue(routed.contains("復元"))
+        model.send("それはどういう意味？")
+        try await waitUntil{!model.thinking}
+        let history=await service.receivedHistory
+        XCTAssertEqual(history,[.init(isUser:true,text:"残りの予算"),.init(isUser:false,text:routed)])
+        XCTAssertNil(model.draft)
+        XCTAssertFalse(model.voice.listening)
+        model.rest()
+    }
+    func testNumericFollowUpKeepsTheConversationLanguageAndClearRemovesHistory() async throws {
+        let service=ContextRecordingConversation()
+        let model=CompanionModel(conversation:service,planner:ChatOnlyPlanner())
+        model.readAloud=false
+        model.send("こんにちは")
+        try await waitUntil{!model.thinking}
+        model.send("123")
+        try await waitUntil{!model.thinking}
+        let language=await service.language
+        XCTAssertEqual(language,"日本語")
+        model.clearConversation()
+        model.send("Hello again")
+        try await waitUntil{!model.thinking}
+        let history=await service.receivedHistory
+        let nextLanguage=await service.language
+        XCTAssertTrue(history.isEmpty)
+        XCTAssertEqual(nextLanguage,"English")
+        model.rest()
+    }
+
     #if compiler(>=6.4)
     func testIOS27GuardrailErrorUsesTheSameRecovery() throws {
         guard #available(iOS 27.0, *) else { throw XCTSkip("Requires iOS 27 error types") }
@@ -115,14 +180,14 @@ final class ConversationTests:XCTestCase {
             ("Mac miniをAmazonで買って","日本語","実行できません"),
             ("Please buy a laptop on Amazon.","English","can't make that purchase")
         ] {
-            let response=try await service.reply(to:input,history:"",observations:"",notes:"",replyLanguage:language)
+            let response=try await service.reply(to:input,history:[],observations:"",notes:"",replyLanguage:language)
             XCTAssertTrue(response.text.contains(expected),response.text)
             XCTAssertNil(response.service)
             XCTAssertFalse(response.text.contains("購入しました"))
             XCTAssertFalse(response.text.contains("completed"))
         }
         do {
-            _=try await service.reply(to:"Buy "+String(repeating:"x",count:8_001),history:"",observations:"",notes:"",replyLanguage:"English")
+            _=try await service.reply(to:"Buy "+String(repeating:"x",count:8_001),history:[],observations:"",notes:"",replyLanguage:"English")
             XCTFail("Overlong purchase text must still be rejected")
         } catch ProductError.invalidResponse {} catch {XCTFail("Unexpected error: \(error)")}
     }
@@ -207,7 +272,7 @@ final class ConversationTests:XCTestCase {
         try requirePhysicalModel()
         let service=ConversationService()
         if let reason=await service.availability(){throw XCTSkip(reason)}
-        var history=""
+        var history:[ConversationTurn]=[]
         for (prompt,expected) in [("Hello, how are you?",AppLanguage.english),("今日は会議が長くて疲れた。",.japanese),("Can you answer in English now?",.english)] {
             let language=ConversationLanguage.detect(prompt,fallback:.japanese)
             XCTAssertEqual(language,expected)
@@ -215,7 +280,7 @@ final class ConversationTests:XCTestCase {
             let evidence=XCTAttachment(string:"User: \(prompt)\nMate: \(response.text)")
             evidence.name="real-language-switch";evidence.lifetime = .keepAlways;add(evidence)
             XCTAssertEqual(ConversationLanguage.detect(response.text,fallback:expected == .english ? .japanese:.english),expected,response.text)
-            history += "\nUser: \(prompt)\nMate: \(response.text)"
+            history += [.init(isUser:true,text:prompt),.init(isUser:false,text:response.text)]
         }
     }
     private func requirePhysicalModel() throws {
@@ -283,7 +348,7 @@ final class ConversationTests:XCTestCase {
         try requirePhysicalModel()
         let service=ConversationService()
         if let reason=await service.availability(){throw XCTSkip(reason)}
-        var history=""
+        var history:[ConversationTurn]=[]
         var evidence:[String]=[]
         defer {
             let attachment=XCTAttachment(string:evidence.joined(separator:"\n\n"))
@@ -304,7 +369,7 @@ final class ConversationTests:XCTestCase {
                 XCTAssertTrue(["用途","使","メモリ","予算","構成"].contains{response.text.contains($0)},response.text)
             }
             if prompt.contains("どうして疲れた") {XCTAssertTrue(response.text.contains("会議"),response.text)}
-            history += "\nUser: \(prompt)\nMate: \(response.text)"
+            history += [.init(isUser:true,text:prompt),.init(isUser:false,text:response.text)]
         }
     }
 }

@@ -1,0 +1,122 @@
+{
+  "model": "SystemLanguageModel.default",
+  "os": "Version 26.6.2 (Build 25G83)",
+  "platform": "Mac (not iPhone)",
+  "results": [
+    {
+      "firstTextSeconds": 1.6003752919999998,
+      "input": "覚えてね。私のマグカップは青色です。",
+      "output": "覚えてます。あなたのマグカップは青色です。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "recall",
+      "totalSeconds": 1.769795458
+    },
+    {
+      "firstTextSeconds": 1.015582209,
+      "input": "マグカップは何色だった？",
+      "output": "あなたのマグカップは青色です。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "recall",
+      "totalSeconds": 1.08910575
+    },
+    {
+      "firstTextSeconds": 1.132674875,
+      "input": "訂正です。マグカップは青ではなく赤でした。",
+      "output": "訂正しました。あなたのマグカップは赤色です。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "correction",
+      "totalSeconds": 1.26334675
+    },
+    {
+      "firstTextSeconds": 1.026712292,
+      "input": "正しいマグカップの色は？",
+      "output": "あなたのマグカップは赤色です。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "correction",
+      "totalSeconds": 1.101579125
+    },
+    {
+      "firstTextSeconds": 0.984542375,
+      "input": "今日は会議が長くて疲れた。",
+      "output": "会議が長くて疲れたんですね。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "topic-change",
+      "totalSeconds": 1.030789167
+    },
+    {
+      "firstTextSeconds": 0.857573583,
+      "input": "何で疲れたって言ったか覚えてる？",
+      "output": "会議が長くて疲れたんですね。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "follow-up",
+      "totalSeconds": 0.902495
+    },
+    {
+      "firstTextSeconds": 0.001933791,
+      "input": "さっき何を買ってって頼んだ？",
+      "output": "「Mac miniをAmazonで買って」と頼まれました。",
+      "passed": true,
+      "responseSource": "quoted-request",
+      "scenario": "routed-context",
+      "totalSeconds": 0.001978625
+    },
+    {
+      "firstTextSeconds": 1.675125917,
+      "input": "Let's speak English. I named my telescope Nimbus.",
+      "output": "Nice telescope!",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "language-switch",
+      "totalSeconds": 1.744464667
+    },
+    {
+      "firstTextSeconds": 1.801779,
+      "input": "望遠鏡の名前、何にしたか覚えてる？",
+      "output": "望遠鏡の名前は「Nimbus」です。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "language-switch-recall",
+      "totalSeconds": 1.95853
+    },
+    {
+      "firstTextSeconds": 1.7046969170000001,
+      "input": "Get some rest, Mate.",
+      "output": "Rest is important.",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "ordinary-idiom",
+      "totalSeconds": 1.773564
+    },
+    {
+      "firstTextSeconds": 1.330696916,
+      "input": "覚えて。私の犬の名前はポチです。",
+      "output": "ポチは元気ですか？",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "clear-context",
+      "totalSeconds": 1.4069110409999999
+    },
+    {
+      "firstTextSeconds": 0.876838958,
+      "input": "犬の名前は何だった？",
+      "output": "ポチです。",
+      "passed": true,
+      "responseSource": "local-model",
+      "scenario": "clear-context",
+      "totalSeconds": 0.94451275
+    }
+  ],
+  "status": "passed",
+  "syntheticOnly": true,
+  "sources": {
+    "apps/ios/ZeroKeyMate/LocalConversationSession.swift": "97b0e3fd6ae83f360f9315b37101a57bf75a5aa7e3ee9a9551f45aba99ac49a9",
+    "apps/ios/ZeroKeyMate/PurchaseConversation.swift": "2d8d2cfb9e5e825959ab278d64393e49ba6761270c1366e104f3dc7422c6e616",
+    "scripts/evaluate-conversation.swift": "f45a56ff8594b87e6475522194bc7cd105223152eb2119223a902f7510e89178"
+  }
+}

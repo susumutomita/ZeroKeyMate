@@ -122,6 +122,7 @@ final class CompanionModel:ObservableObject {
     var voiceSessionActive:Bool{listeningSession.isActive}
     @Published private(set) var awaitingGreeting=false
     private var recognitionLocale:String?
+    private var conversationLanguage:AppLanguage?
     private var lastPurchaseWasExternal:Bool {
         get { UserDefaults.standard.bool(forKey:"last-purchase-external") }
         set { UserDefaults.standard.set(newValue,forKey:"last-purchase-external") }
@@ -336,7 +337,7 @@ final class CompanionModel:ObservableObject {
         guard localNotes.utf8.count<=2_000 else{errorMessage="Keep notes within 2,000 bytes.";return}
         do{try LocalSecrets.write(localNotes,key:"local-notes")}catch{errorMessage=error.localizedDescription}
     }
-    func clearConversation(){requestGeneration=UUID();cancelConversation();stopVoice();messages=[];draft=nil}
+    func clearConversation(){requestGeneration=UUID();cancelConversation();stopVoice();messages=[];conversationLanguage=nil;draft=nil}
     func send(_ text:String) {
         let input=text.trimmingCharacters(in:.whitespacesAndNewlines)
         guard !thinking,!financialBusy,!input.isEmpty,foreground else{return}
@@ -345,10 +346,11 @@ final class CompanionModel:ObservableObject {
         sleeping=false;voice.stop();thinking=true;streamingReply=""
         conversationGeneration &+= 1
         let generation=conversationGeneration
-        let history=messages.suffix(8).map{($0.isUser ? "User: ":"Mate: ")+$0.text}.joined(separator:"\n")
+        let history=messages.map{ConversationTurn(isUser:$0.isUser,text:$0.text)}
         messages.append(ConversationMessage(isUser:true,text:input));messages=Array(messages.suffix(40))
         let notes=localNotes
-        let replyLanguage=ConversationLanguage.detect(input,fallback:L10n.speechLanguage)
+        let replyLanguage=ConversationLanguage.detect(input,fallback:conversationLanguage ?? L10n.speechLanguage)
+        conversationLanguage=replyLanguage
         recognitionLocale=replyLanguage.speechLocale
         conversationTask=Task{[weak self] in
             guard let self else{return}
@@ -569,6 +571,8 @@ final class CompanionModel:ObservableObject {
         sheet = .externalServices
     }
     func languagePreferencesChanged() {
+        conversationLanguage=nil
+        recognitionLocale=nil
         if sheet == .shop {
             // A language choice changes narration, never the current order,
             // its authorization or the card/proof operation in progress.
