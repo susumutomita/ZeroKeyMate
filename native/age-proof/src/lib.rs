@@ -154,3 +154,84 @@ fn g2(out: &mut Vec<u8>, point: &G2Affine) -> Result<(), i32> {
     let (x, y) = point.xy().ok_or(6)?;
     fq(out, &x.c1)?; fq(out, &x.c0)?; fq(out, &y.c1)?; fq(out, &y.c0)
 }
+
+
+/// Synthetic-only comparison. There is deliberately no input or proof-output
+/// argument: an actual card credential cannot enter this experimental path.
+#[repr(C)]
+#[derive(Default, Clone, Copy)]
+pub struct MateAgeBenchmark {
+    timing: MateAgeMetrics,
+    serialized_proof_bytes: u64,
+    changed_order_rejected: u64,
+    changed_order_verify_us: u64,
+}
+
+/// # Safety
+/// Paths must be readable NUL-terminated UTF-8 strings, and result must be a
+/// disjoint aligned writable MateAgeBenchmark. Caller pins both public setup
+/// hashes. Backend 0 = masked Groth16, 1 = experimental WHIR; others fail.
+#[no_mangle]
+pub unsafe extern "C" fn mate_age_benchmark(
+    prover_path: *const c_char, verifier_path: *const c_char,
+    backend: u32, result: *mut MateAgeBenchmark,
+) -> i32 {
+    if result.is_null() { return 1; }
+    result.write(MateAgeBenchmark::default());
+    if prover_path.is_null() || verifier_path.is_null() || backend > 1 { return 1; }
+    // Use the same private-call guard as the purchase prover. No concurrent
+    // proving, file output, witness logging, network or wallet capability.
+    PANIC_HOOK.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            if !ACTIVE.load(Ordering::SeqCst) { previous(info); }
+        }));
+    });
+    if ACTIVE.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() { return 8; }
+    let _private_call = PrivateCall;
+    let attempt = catch_unwind(AssertUnwindSafe(|| -> Result<MateAgeBenchmark, i32> {
+        let pkp = CStr::from_ptr(prover_path).to_str().map_err(|_| 1)?;
+        let pkv = CStr::from_ptr(verifier_path).to_str().map_err(|_| 1)?;
+        if pkp.len() > 4096 || pkv.len() > 4096 { return Err(1); }
+        let start = Instant::now();
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().map_err(|_| 4)?;
+        pool.install(|| {
+            let mut record = MateAgeBenchmark::default();
+            let m = &mut record.timing;
+            m.version = 1; m.worker_threads = 2;
+            let prover = measure(&mut m.prover_load_us, || read_pkp(Path::new(pkp))).map_err(|_| 2)?;
+            match (&prover, backend) {
+                (Prover::Groth16(p), 0) if p.commitment_info.len() == 1
+                    && p.commitment_info[0].private_committed.last() == Some(&p.blinding_wire) => {},
+                (Prover::Noir(_), 1) => {},
+                _ => return Err(2),
+            }
+            let inputs = measure(&mut m.input_parse_us, || Format::from_ext("json").ok_or(3)?
+                .parse(include_str!("benchmark-input.json"), prover.abi()).map_err(|_| 3))?;
+            let proof = measure(&mut m.witness_and_proof_us, || prover.prove(inputs)).map_err(|_| 4)?;
+            if proof.public_inputs().0.len() != 8 { return Err(6); }
+            match (&proof, backend) {
+                (NoirProof::Groth16 { .. }, 0) | (NoirProof::Whir { .. }, 1) => {},
+                _ => return Err(6),
+            }
+            let mut verifier: Verifier = measure(&mut m.verifier_load_us, || file::read(Path::new(pkv))).map_err(|_| 2)?;
+            measure(&mut m.verify_us, || verifier.verify(&proof)).map_err(|_| 5)?;
+            let bytes = measure(&mut m.encode_us, || file::serialize(&proof)).map_err(|_| 6)?;
+            record.serialized_proof_bytes = bytes.len() as u64;
+            m.total_us = micros(start);
+            // public input 0 is order_high in this pinned circuit. This tests the
+            // statement binding, not zero-knowledge or certificate revocation.
+            let mut changed = proof;
+            changed.public_inputs_mut().0[0] += provekit_common::FieldElement::from(1u64);
+            let rejected = measure(&mut record.changed_order_verify_us, || verifier.verify(&changed)).is_err();
+            if !rejected { return Err(5); }
+            record.changed_order_rejected = 1;
+            Ok(record)
+        })
+    }));
+    match attempt {
+        Ok(Ok(record)) => { result.write(record); 0 },
+        Ok(Err(code)) => code,
+        Err(_) => 7,
+    }
+}

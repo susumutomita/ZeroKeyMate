@@ -1,7 +1,8 @@
 # Local age-proof timing
 
-The current checkout uses the pinned, masked Groth16 backend. It does not use
-WHIR or a recursive wrapper. A previous iPhone 16 Pro result of about 12 seconds
+The purchase checkout uses the pinned, masked Groth16 backend. It does not use
+WHIR or a recursive wrapper. A separate [synthetic native benchmark](age-proof-benchmark.md)
+compares Groth16 and WHIR without accepting a card credential. A previous iPhone 16 Pro result of about 12 seconds
 measured `AgeProofService.prove`, not an isolated Groth16 primitive. NFC and
 store/network time are outside that interval; the native call includes key
 loading, input parsing, witness construction, proving, local verification and

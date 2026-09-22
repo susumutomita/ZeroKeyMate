@@ -184,3 +184,11 @@ The older specialist translation/private-policy vault is a separate local protot
 The human directed the product, privacy constraints, physical-card testing and deployment approvals. Codex assisted with implementation, debugging, tests and documentation; ChatGPT assisted with public technical research. [Development and AI attribution](docs/development-history.md) records known history and reused work. The public MIT-licensed [CircuitBreaker NFC module](https://github.com/knocks-public/2024-CircuitBreaker) is an attributed source, not a new invention. No event eligibility is inferred from a dependency license.
 
 Original project code is [Apache-2.0](LICENSE); retain [third-party notices](docs/THIRD_PARTY_NOTICES.txt). The human-narrated 3:27 submission film, English technical slides, pitch PDF and public visual assets are included. The entrant reported successful ETHOnline submission on September 13, 2026.
+
+### On-device age-proof comparison
+
+The optional [native benchmark](docs/age-proof-benchmark.md) compares Groth16
+and experimental WHIR using the same age circuit and a fixed synthetic
+credential. Settings exposes separate proving, verification, preparation and
+proof-size measurements. This does not switch checkout to WHIR or implement
+a wrapped on-chain verifier. Real-card WHIR remains unavailable.

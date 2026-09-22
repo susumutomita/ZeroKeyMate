@@ -37,3 +37,7 @@ services/shop/worker-configuration.d.ts
 # Public age setup is staged locally and must match AgeProofPins and the shop verifier.
 apps/ios/ZeroKeyMate/Resources/age.pkp
 apps/ios/ZeroKeyMate/Resources/age.pkv
+
+# Synthetic age benchmark setup, checked before use.
+apps/ios/ZeroKeyMate/Resources/age-benchmark-whir.pkp
+apps/ios/ZeroKeyMate/Resources/age-benchmark-whir.pkv
