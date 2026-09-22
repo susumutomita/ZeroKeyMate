@@ -125,7 +125,8 @@ final class LiveSpeechTests: XCTestCase {
         XCTAssertGreaterThan(samples, 0)
         XCTAssertLessThanOrEqual(samples, 160)
         let overflow = try SpeechAudioBridge(source: source, target: target)
-        for _ in 0..<100 { overflow.append(buffer) }
+        for _ in 0..<5_000 { overflow.append(buffer) }
+        overflow.finish()
         do {
             for try await _ in overflow.inputs {}
             XCTFail("Missing audio must fail closed")
