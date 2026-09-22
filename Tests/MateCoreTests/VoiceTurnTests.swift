@@ -2,6 +2,28 @@ import XCTest
 @testable import MateCore
 
 final class VoiceTurnTests: XCTestCase {
+    func testAudioActivityProtectsAnUnchangedTranscriptAndQuietCanSubmitSooner() {
+        var turn=VoiceTurn(now:0,usesAudioActivity:true)
+        XCTAssertEqual(turn.update("I'd like",now:1),.waiting)
+        turn.noteAudioActivity(now:2)
+        XCTAssertEqual(turn.poll(now:2.5),.waiting)
+        XCTAssertEqual(turn.update("I'd like water",now:2.5),.waiting)
+        XCTAssertEqual(turn.poll(now:2.89),.waiting)
+        XCTAssertEqual(turn.poll(now:2.91),.submit("I'd like water"))
+        turn.noteAudioActivity(now:3)
+        XCTAssertEqual(turn.update("late",now:3.1,final:true),.waiting)
+    }
+    func testAudioActivityDoesNotRemoveMaximumTurnOrQuietInputBounds() {
+        var noisy=VoiceTurn(now:0,usesAudioActivity:true)
+        for second in 1..<60 {
+            noisy.noteAudioActivity(now:Double(second))
+            XCTAssertEqual(noisy.update("Hello",now:Double(second)),.waiting)
+        }
+        noisy.noteAudioActivity(now:60)
+        XCTAssertEqual(noisy.poll(now:60),.submit("Hello"))
+        var quiet=VoiceTurn(now:0,usesAudioActivity:true)
+        XCTAssertEqual(quiet.poll(now:15),.silence)
+    }
     func testReplyCanStartAfterShortPauseButContinuingSpeechResetsDeadline() {
         var turn=VoiceTurn(now:0)
         XCTAssertEqual(turn.update("Hello",now:1),.waiting)

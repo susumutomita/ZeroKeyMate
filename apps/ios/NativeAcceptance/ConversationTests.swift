@@ -47,6 +47,14 @@ private actor BlockedThenSuccessfulConversation:ConversationResponding {
 
 @MainActor
 final class ConversationTests:XCTestCase {
+    #if compiler(>=6.4)
+    func testIOS27GuardrailErrorUsesTheSameRecovery() throws {
+        guard #available(iOS 27.0, *) else { throw XCTSkip("Requires iOS 27 error types") }
+        let context=LanguageModelError.GuardrailViolation(debugDescription:"Synthetic test context")
+        XCTAssertEqual(ConversationFailure(modelError:LanguageModelError.guardrailViolation(context)),.responseBlocked)
+        XCTAssertNil(ConversationFailure(modelError:LanguageModelError.contextSizeExceeded(.init(contextSize:4096,tokenCount:4097,debugDescription:"Synthetic overflow"))))
+    }
+    #endif
     func testOnlyTheGuardrailErrorGetsTheRephraseRecovery() {
         let context=LanguageModelSession.GenerationError.Context(debugDescription:"Synthetic test context")
         XCTAssertEqual(ConversationFailure(modelError:LanguageModelSession.GenerationError.guardrailViolation(context)),.responseBlocked)
@@ -196,6 +204,7 @@ final class ConversationTests:XCTestCase {
         }
     }
     func testRealConversationSwitchesReplyLanguage() async throws {
+        try requirePhysicalModel()
         let service=ConversationService()
         if let reason=await service.availability(){throw XCTSkip(reason)}
         var history=""
@@ -208,6 +217,11 @@ final class ConversationTests:XCTestCase {
             XCTAssertEqual(ConversationLanguage.detect(response.text,fallback:expected == .english ? .japanese:.english),expected,response.text)
             history += "\nUser: \(prompt)\nMate: \(response.text)"
         }
+    }
+    private func requirePhysicalModel() throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Run model-quality fixtures on the phone; simulator availability can report ready without inference assets")
+        #endif
     }
     private func waitUntil(_ predicate:@escaping () async -> Bool) async throws {
         for _ in 0..<100 {
@@ -266,6 +280,7 @@ final class ConversationTests:XCTestCase {
         }
     }
     func testRealJapaneseConversationRecallsContextAndDeclinesAmazonPurchase() async throws {
+        try requirePhysicalModel()
         let service=ConversationService()
         if let reason=await service.availability(){throw XCTSkip(reason)}
         var history=""

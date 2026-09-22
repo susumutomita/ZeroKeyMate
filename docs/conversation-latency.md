@@ -46,3 +46,49 @@ the pending generation and queued speech before starting another turn.
 Automated checks cover sentence buffering, task candidate routing, turn timing,
 progressive UI state and late callbacks after stop/background/settings. Physical
 microphone, speaker, newer OS/model readiness and DockKit remain separate checks.
+
+## Build 15: current Apple models and live speech
+
+`SystemLanguageModel.default` continues to select Apple's **on-device** model.
+There is no app-controlled model-version switch. Apple documents a rebuilt model
+with iOS 27; building with Xcode 27 does not install that model on an iOS 26 phone.
+The device probe on September 22, 2026 still reported iOS 26.7 (23H24).
+
+- SpeechAnalyzer + SpeechTranscriber now supply progressive/fast results when the
+  selected language's model is installed. Initial preparation downloads only
+  Apple's speech model assets; no microphone data is sent. While unavailable,
+  the existing `requiresOnDeviceRecognition` path remains usable for that turn.
+- Revised volatile text replaces its old audio range. A finalized **range** does
+  not end a conversational turn. After endpointing, Mate stops microphone input
+  and waits for corrected final text before routing a request. Finalization
+  failure, overflow or a three-second timeout submits nothing.
+- The new input path combines acoustic activity (PCM RMS >= 0.008) with text
+  stability: 900 ms without detected activity and 300 ms without a text change.
+  Without an acoustic activity signal, the previous 1.2-second text bound is
+  retained. Quiet and noisy rooms still require device tuning; this is a
+  conservative energy heuristic, not speaker identification or semantic VAD.
+  Empty-input (15 s) and total-turn (60 s) bounds remain.
+- Completed user/assistant roles remain native Transcript entries. Up to eight
+  recent turns can survive session rotation. On iOS 26.4+ with the newer SDK,
+  actual token counts and context capacity govern trimming, reserving space for
+  the response. The older SDK path retains a conservative byte bound.
+- Listening resumption prewarms the next conversation session. The prompt asks
+  for a short, useful first sentence; TTS still queues complete sentences, not
+  speculative fragments. iOS 27's new guardrail error receives the same
+  no-retry recovery as iOS 26.
+
+This is still alternating listening/generation/speech, with explicit interruption,
+not full-duplex voice or an independently upgraded LLM. Camera permission,
+background/Rest behavior and purchase authorization are unchanged.
+
+`LiveSpeechTests` exercise finalized corrections, cancellation during preparation,
+start and finalization, timeout, owned audio buffers and queue overflow, without
+capturing audio. `ConversationPerformanceTests` uses fixed synthetic Japanese
+text on the phone, recording first text, first speakable sentence and completion
+separately; it checks recall at the seventh turn. It does not measure
+microphone-to-speaker latency. No private conversation content is logged.
+
+Sources: [Apple's Foundation Models updates](https://developer.apple.com/documentation/Updates/FoundationModels),
+[SpeechAnalyzer introduction](https://developer.apple.com/videos/play/wwdc2025/277/),
+[SpeechTranscriber fast results](https://developer.apple.com/documentation/speech/speechtranscriber/reportingoption/fastresults),
+[SystemLanguageModel](https://developer.apple.com/documentation/foundationmodels/systemlanguagemodel).
