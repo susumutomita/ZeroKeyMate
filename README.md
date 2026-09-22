@@ -23,12 +23,15 @@ The [atomic catalogue budget](docs/catalogue-budget.md) is separate local-chain
 research with real synthetic-credential ZK acceptance, not unattended payments
 enabled in the app. All of this is pre-Tokyo work.
 
-[External x402 infrastructure](docs/external-x402.md) now validates a restricted
-Arc/USDC profile and preserves unresolved signatures across network failure.
-Its read-only settlement checker corroborates receipts through two fixed RPC
-endpoints. A durable approval coordinator blocks overlapping signature attempts
-before owner approval. Concrete wallet/approval adapters, journal release and service-delivery recovery are
-not connected, so external purchases remain disabled.
+**Connected x402 services (current source):** add a supported HTTPS resource in
+Settings → Connected services, review its recipient/limit and give it a name.
+“Use Weather” opens a fresh quote for a service named Weather. Each payment
+requires exact approval and Face ID/passcode; the Privy signature is recovered
+and checked locally before transmission. This supports a restricted **Arc
+Testnet USDC** profile, not arbitrary websites or mainnet payments. Interrupted
+payments can be checked/retried without a new signature; confirmed payments have
+transaction links. External-service physical purchase acceptance is still
+pending. [Supported conditions, recovery and test evidence](docs/external-x402.md).
 
 ## The experience
 
@@ -48,7 +51,7 @@ No real money is charged and no beer is delivered. The app supports the **physic
 
 An age check usually asks a person to reveal an identity document or personal details. Mate separates the fact the shop needs — **age 20 or over** — from the underlying identity data. The companion stays conversational while code controls the sensitive steps.
 
-The local model handles conversation and proposes actions. It never receives the card password, certificate, date of birth, order capability or signing interface. A request to buy does not authorize arbitrary browsing or arbitrary spending: checkout supports one configured shop, two canonical products and one to five bottles of a single product per order. Code resolves the exact amount before the owner approves payment.
+The local model handles conversation and proposes actions. It never receives the card password, certificate, date of birth, order capability or signing interface. A request to buy does not authorize arbitrary browsing or arbitrary spending: the age-aware shop supports two canonical products and one to five bottles of a single product per order. Registered external x402 resources use the separate profile described above. Code resolves the exact amount before the owner approves payment.
 
 ## How it works
 

@@ -15,6 +15,15 @@ public struct PaymentService: Codable, Equatable, Sendable {
         _ = try validate()
     }
     public func validate() throws -> URL {
+        let url = try Self.validateResource(resource)
+        guard maximumAmount>0,maximumAmount<=500_000,
+              (try? CanonicalBytes.hex(recipient,count:20).contains(where:{$0 != 0}))==true
+        else {throw ExternalPaymentError.invalidService}
+        return url
+    }
+    /// Validates only the URL shape. Registration still needs explicit user
+    /// review; this is not a promise of DNS-level private-network isolation.
+    public static func validateResource(_ resource:String) throws -> URL {
         guard resource.utf8.count<=2048,resource.unicodeScalars.allSatisfy({$0.isASCII}),
               let url=URL(string:resource),url.absoluteString==resource,url.scheme=="https",
               let host=url.host,host==host.lowercased(),host.contains("."),
@@ -29,9 +38,7 @@ public struct PaymentService: Codable, Equatable, Sendable {
                     && label.allSatisfy({$0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-")})
               }),url.user==nil,url.password==nil,url.port==nil,url.query==nil,url.fragment==nil,
               !url.path.isEmpty,!resource.contains("%"),!resource.contains("\\"),
-              !url.pathComponents.contains(".."),!url.pathComponents.contains("."),
-              maximumAmount>0,maximumAmount<=500_000,
-              (try? CanonicalBytes.hex(recipient,count:20).contains(where:{$0 != 0}))==true
+              !url.pathComponents.contains(".."),!url.pathComponents.contains(".")
         else {throw ExternalPaymentError.invalidService}
         return url
     }
@@ -84,6 +91,24 @@ public struct PaymentRequest: Codable, Equatable, Sendable {
         let accepted=challenge.accepts.filter{(try? $0.validate(service:service)) != nil}
         guard accepted.count==1 else{throw ExternalPaymentError.unsupportedPayment}
         return PaymentRequest(service:service,accepted:accepted[0],now:now)
+    }
+    /// A quote for the registration review screen, not an authorized service.
+    /// The owner must accept the returned recipient and ceiling before storing it.
+    public static func discover(header:String,resource:String,maximumAmount:UInt64,now:UInt64) throws -> PaymentRequest {
+        struct Challenge:Decodable {let accepts:[PaymentRequirements]}
+        _ = try PaymentService.validateResource(resource)
+        guard header.utf8.count<=16_384,let data=Data(base64Encoded:header) else {
+            throw ExternalPaymentError.invalidChallenge
+        }
+        let candidates=try JSONDecoder().decode(Challenge.self,from:data)
+        guard (1...8).contains(candidates.accepts.count) else{throw ExternalPaymentError.invalidChallenge}
+        let services=candidates.accepts.compactMap{offer -> PaymentService? in
+            guard let service=try? PaymentService(resource:resource,recipient:offer.payTo,maximumAmount:maximumAmount),
+                  (try? offer.validate(service:service)) != nil else{return nil}
+            return service
+        }
+        guard services.count==1,let service=services.first else{throw ExternalPaymentError.unsupportedPayment}
+        return try parse(header:header,service:service,now:now)
     }
     public func validate(now:UInt64,allowExpired:Bool=false) throws {
         try accepted.validate(service:service)
@@ -154,6 +179,13 @@ public struct PaymentReceipt: Codable, Equatable, Sendable {
     public let network:String
     public let payer:String?
     public let errorReason:String?
+    /// An untrusted user-provided transaction locator; never settlement evidence.
+    public static func unverifiedLocator(_ transaction:String,pending:PendingPayment,now:UInt64) throws -> PaymentReceipt {
+        let value=PaymentReceipt(success:true,transaction:transaction,network:AgeShopProtocol.network,
+            payer:pending.authorization.from,errorReason:nil)
+        try value.validate(pending:pending,now:now)
+        return value
+    }
     public static func parse(header:String,pending:PendingPayment,now:UInt64) throws -> PaymentReceipt {
         try pending.validate(now:now,allowExpired:true)
         guard header.utf8.count<=16_384,let data=Data(base64Encoded:header) else{throw ExternalPaymentError.invalidReceipt}

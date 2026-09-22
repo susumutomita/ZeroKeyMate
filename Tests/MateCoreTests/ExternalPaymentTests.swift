@@ -23,6 +23,15 @@ final class ExternalPaymentTests:XCTestCase {
         let r=try request(),a=try PaymentAuthorization(request:r,payer:payer,nonce:nonce,now:1_001)
         return try PendingPayment(request:r,authorization:a,signature:signature,now:1_001)
     }
+    func testDiscoveryRequiresExactlyOneSupportedOfferAndNeverFollowsResourceChanges() throws {
+        let quote = try PaymentRequest.discover(header: header(challenge()), resource: service().resource, maximumAmount: 100_000, now: 1000)
+        XCTAssertEqual(quote.service, try service())
+        XCTAssertThrowsError(try PaymentRequest.discover(header: header(challenge()), resource: "https://other.example/data", maximumAmount: 100_000, now: 1000))
+        XCTAssertThrowsError(try PaymentRequest.discover(header: header(challenge()), resource: service().resource, maximumAmount: 49_999, now: 1000))
+        var wire = challenge()
+        wire["accepts"] = (wire["accepts"] as! [[String: Any]]) + (wire["accepts"] as! [[String: Any]])
+        XCTAssertThrowsError(try PaymentRequest.discover(header: header(wire), resource: service().resource, maximumAmount: 100_000, now: 1000))
+    }
     func testStandardV2QuoteAndEIP3009PayloadRoundTrip() throws {
         let r=try request();XCTAssertEqual(r.accepted.amount,"50000");XCTAssertEqual(r.expiresAt,1060)
         let p=try pending(),wire=try p.header(now:1_002)

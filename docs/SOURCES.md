@@ -93,3 +93,8 @@ Privy lifecycle: [Swift setup](https://docs.privy.io/basics/swift/setup) and [2.
 - Apple [AVCaptureConnection.isVideoMirrored](https://developer.apple.com/documentation/avfoundation/avcaptureconnection/isvideomirrored): video data output physically mirrors delivered buffers.
 - Apple [DockAccessory](https://developer.apple.com/documentation/dockkit/dockaccessory) and [system tracking](https://developer.apple.com/documentation/dockkit/dockaccessorymanager/setsystemtrackingenabled(_:)): retain system motor tracking and read tracked-subject telemetry. The local Xcode SDK interfaces were checked. No external dependency or copied private implementation was added.
 - The age verifier's independent RPC check uses [Base's public Sepolia endpoint](https://docs.base.org/base-chain/quickstart/connecting-to-base) and [Allnodes/PublicNode's Base service](https://base.publicnode.com/). This is explicitly a two-provider trust assumption, not a light client or an on-chain age transaction. Only public proof/order inputs reach these providers; no card credential or DOB is sent.
+
+## External payment signature verification
+
+- [swift-secp256k1 0.23.2](https://github.com/21-DOT-DEV/swift-secp256k1/tree/e70a10e036a55fffea31568f0af92d69b6d449cd), MIT. Only the Bitcoin Core libsecp256k1 C product is linked; no build plugin or private-key signing is invoked by the adapter.
+- [CryptoSwift 1.9.0](https://github.com/krzyzanowskim/CryptoSwift/tree/e45a26384239e028ec87fbcc788f513b67e10d8f), custom permissive attribution license, retained in the source and bundled notices. This product includes software developed by the "Marcin Krzyzanowski" (http://krzyzanowskim.com/). Used for Ethereum Keccak-256, not SHA3-256.

@@ -47,6 +47,7 @@ struct MateView:View {
                         case .connection:ConnectionSheet(model:model)
                         case .cardAge:CardAgeSheet()
                         case .shop:ShopPurchaseSheet(model:model,wallet:model.wallet)
+                        case .externalServices:ExternalServicesSheet(wallet:model.wallet,requestedService:model.requestedExternalService,onCompletion:model.finishExternalConversation)
                         }
                     }
                     .toolbar{
@@ -228,6 +229,7 @@ private struct ControlsSheet:View {
                     .accessibilityIdentifier("speak-now")
                 Button("Read or type a message"){model.sheet = .conversation}.accessibilityIdentifier("open-conversation")
                 Button("Mate's beer order"){model.openShop()}.accessibilityIdentifier("open-shop")
+                Button("Connected services"){model.openExternalServices()}.accessibilityIdentifier("open-external-services")
                 Button("Rest and stop camera and microphone"){model.rest();model.sheet=nil}
                     .accessibilityIdentifier("rest-button")
             }
@@ -443,6 +445,7 @@ private struct SettingsSheet:View {
             }
             Section("Requests and evidence") {
                 Button("Mate's beer order"){model.openShop()}.accessibilityIdentifier("open-shop")
+                Button("Connected services"){model.openExternalServices()}.accessibilityIdentifier("open-external-services")
                 Button(L10n.text(UserDefaults.standard.string(forKey:model.setupCheckpointKey) == nil ? "Set up external requests":"Resume external request setup")){model.sheet = .setup}.accessibilityIdentifier("open-setup")
                 Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
                 Button { model.sheet = .cardAge } label: {

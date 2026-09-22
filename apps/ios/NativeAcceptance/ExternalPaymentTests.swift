@@ -62,6 +62,18 @@ final class ExternalPaymentTransportTests:XCTestCase {
         let a=try PaymentAuthorization(request:r,payer:"0x"+String(repeating:"11",count:20),nonce:"0x"+nonce,now:1001)
         return try PendingPayment(request:r,authorization:a,signature:"0x"+String(repeating:"44",count:65),now:1001)
     }
+    func testDiscoveryClientCanReadButCannotTransmitASignature() async throws {
+        let configuration=URLSessionConfiguration.ephemeral;configuration.protocolClasses=[PaymentHTTPFixture.self]
+        let reader=try ExternalPaymentClient(resource:service("quote").resource,configuration:configuration)
+        let quote=try await reader.discover(maximumAmount:100_000,now:1000)
+        XCTAssertEqual(quote.service,try service("quote"))
+        do {
+            _ = try await ExternalPaymentRecovery(journal:MemoryPaymentJournal()).submit(payment("quote"),through:reader,now:1002)
+            XCTFail("An unregistered discovery client transmitted a signature")
+        } catch { XCTAssertEqual(error as? ExternalPaymentError,.invalidAuthorization) }
+        let requests=PaymentHTTPFixture.trace.snapshot()
+        XCTAssertEqual(requests.count,1);XCTAssertNil(requests[0].value(forHTTPHeaderField:"PAYMENT-SIGNATURE"))
+    }
     func testQuoteIsARegisteredGETWithoutCookiesCredentialsOrSignature() async throws {
         let c=try client("quote"),quote=try await c.quote(now:1000)
         XCTAssertEqual(quote.accepted.amount,"50000")

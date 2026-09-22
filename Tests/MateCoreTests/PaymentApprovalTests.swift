@@ -70,6 +70,27 @@ final class PaymentApprovalTests: XCTestCase {
                 SignerFixture { _ in calls.add("sign"); return signature },
                 VerifierFixture { _, _ in calls.add("verify") })
     }
+    func testExpiredUnusedEvidenceIsBoundToTheExactInterruptedEntry() throws {
+        let a = try terms(), p = try pending(a)
+        let hash = "0x" + String(repeating: "77", count: 32)
+        XCTAssertThrowsError(try ExpiredPaymentEvidence(authorization: a.authorization, blockHash: hash, blockNumber: 9, timestamp: 1060))
+        let evidence = try ExpiredPaymentEvidence(authorization: a.authorization, blockHash: hash, blockNumber: 9, timestamp: 1061)
+        for signed in [false, true] {
+            var state = PaymentJournalState()
+            try state.beginApproval(a); try state.beginSigning(a)
+            if signed { try state.finishSigning(p, approval: a) }
+            let entry = try XCTUnwrap(state.entry)
+            XCTAssertThrowsError(try state.expire(.approving(a), evidence: evidence))
+            try state.expire(entry, evidence: evidence)
+            XCTAssertNil(state.entry); XCTAssertEqual(state.expired, [evidence])
+            XCTAssertThrowsError(try state.beginApproval(a), "Old nonce cannot be reused")
+            let fresh = try PaymentApproval(request: a.request, payer: a.authorization.from,
+                nonce: "0x" + String(repeating: "55", count: 32), now: 1001)
+            try state.beginApproval(fresh)
+            XCTAssertThrowsError(try state.expire(entry, evidence: evidence), "Late cleanup cannot clear a newer approval")
+            XCTAssertEqual(try JSONDecoder().decode(PaymentJournalState.self, from: JSONEncoder().encode(state)), state)
+        }
+    }
     func testApprovalSignsAndPersistsOnlyTheOriginalTerms() async throws {
         let a = try terms(), journal = ApprovalJournalFixture(), calls = ApprovalCalls()
         let coordinator = PaymentApprovalCoordinator(journal: journal, now: { 1001 })
@@ -206,5 +227,38 @@ final class PaymentApprovalTests: XCTestCase {
             let sequence = calls.all(); XCTAssertTrue(sequence.isEmpty)
         }
         XCTAssertThrowsError(try a.validate(now: 1000))
+    }
+    func testConfirmedPaymentArchivesAndUnlocksOnlyItsOwnEntry() throws {
+        let a = try terms(), p = try pending(a)
+        let done = try PaymentCompletion(payment: p, transaction: "0x" + String(repeating: "77", count: 32),
+            blockHash: "0x" + String(repeating: "88", count: 32), blockNumber: 42, now: 1200,
+            response: Data("result".utf8), httpStatus: 200)
+        var state = PaymentJournalState()
+        try state.beginApproval(a); try state.beginSigning(a)
+        XCTAssertThrowsError(try state.complete(p, completion: done))
+        try state.finishSigning(p, approval: a)
+        try state.complete(p, completion: done)
+        XCTAssertNil(state.entry); XCTAssertEqual(state.history, [done]); XCTAssertTrue(done.receivedResult)
+        XCTAssertThrowsError(try state.reserve(p))
+        XCTAssertThrowsError(try state.beginApproval(a))
+        let next = try PaymentApproval(request: a.request, payer: a.authorization.from,
+            nonce: "0x" + String(repeating: "55", count: 32), now: 1002)
+        try state.beginApproval(next)
+        try state.complete(p, completion: done) // Late old completion must not clear next approval.
+        XCTAssertEqual(state.entry, .approving(next)); XCTAssertEqual(state.history.count, 1)
+        let restored = try JSONDecoder().decode(PaymentJournalState.self, from: JSONEncoder().encode(state))
+        XCTAssertEqual(restored, state)
+    }
+    func testReceivedResponseSurvivesRestartAndDoesNotProveSettlement() throws {
+        let p = try pending(terms())
+        var state = PaymentJournalState(); try state.reserve(p)
+        let response = try PaymentObservation(status: 200, body: Data("service result".utf8), claim: nil)
+        try state.observe(p, response: response)
+        try state.observe(p, response: PaymentObservation(status: 500, body: Data(), claim: nil))
+        XCTAssertEqual(state.observation, response)
+        XCTAssertEqual(state.entry, .signed(p)); XCTAssertTrue(state.history.isEmpty)
+        let restored = try JSONDecoder().decode(PaymentJournalState.self, from: JSONEncoder().encode(state))
+        XCTAssertEqual(restored.observation, response)
+        XCTAssertThrowsError(try PaymentObservation(status: 200, body: Data(repeating: 1, count: 65_537), claim: nil))
     }
 }

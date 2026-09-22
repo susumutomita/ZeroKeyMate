@@ -96,7 +96,37 @@ private final class ReconciliationHTTP:URLProtocol,@unchecked Sendable {
                 if mode=="wrong-number" && number=="0xa"{block["number"]="0x9"}
                 if mode=="malformed-quantity"{block["number"]="0x0b"}
                 if mode=="future-receipt" && tag=="finalized"{block=ReconciliationFixture.block("0x9")}
+                if mode.hasPrefix("expiry-"){block["timestamp"]="0x425"}
+                if mode=="expiry-before-deadline"{block["timestamp"]="0x424"}
+                if mode=="expiry-checkpoint-change" && reads>2 && number=="0xb"{block["hash"]=ReconciliationFixture.blockHash}
                 result=block
+            case "eth_call":
+                let call=params[0] as! [String:Any],at=params[1] as! [String:Any]
+                if (call["data"] as? String)?.hasPrefix("0x70a08231")==true {
+                    let expected="0x70a08231"+String(repeating:"0",count:24)+String(ReconciliationFixture.payer.dropFirst(2))
+                    guard call["to"] as? String==AgeShopProtocol.token,call["data"] as? String==expected,
+                          at["blockHash"] as? String==ReconciliationFixture.checkpointHash,at["requireCanonical"] as? Bool==true else{throw ExternalPaymentError.invalidReceipt}
+                    result="0x"+String(repeating:"0",count:60)+"c350"
+                    if mode=="funds-low" || (mode=="funds-disagrees" && secondary){result="0x"+String(repeating:"0",count:64)}
+                    if mode=="funds-empty"{result="0x"}
+                    break
+                }
+                let expected="0xe94a0102"+String(repeating:"0",count:24)+String(ReconciliationFixture.payer.dropFirst(2))+String(ReconciliationFixture.nonce.dropFirst(2))
+                guard call["to"] as? String==AgeShopProtocol.token,call["data"] as? String==expected,
+                      at["blockHash"] as? String==ReconciliationFixture.checkpointHash,at["requireCanonical"] as? Bool==true else {
+                    throw ExternalPaymentError.invalidReceipt
+                }
+                result="0x"+String(repeating:"0",count:64)
+                if mode=="expiry-used" || (mode=="expiry-disagrees" && secondary){result="0x"+String(repeating:"0",count:63)+"1"}
+                if mode=="expiry-empty"{result="0x"}
+                if mode=="expiry-malformed"{result="false"}
+                if mode=="expiry-null"{result=NSNull()}
+            case "eth_getLogs":
+                var log=(ReconciliationFixture.receipt()["logs"] as! [[String:Any]])[0]
+                if mode=="locator-wrong-nonce"{var topics=log["topics"] as! [String];topics[2]=ReconciliationFixture.blockHash;log["topics"]=topics}
+                if mode=="locator-removed"{log["removed"]=true}
+                if mode=="locator-outside-range"{log["blockNumber"]="0xff"}
+                result=mode=="locator-ambiguous" ? [log,log]:mode=="locator-absent" ? []:[log]
             case "eth_getTransactionReceipt":
                 var receipt=ReconciliationFixture.receipt()
                 if mode=="reverted"{receipt["status"]="0x0"}
@@ -133,12 +163,91 @@ private actor ReconciliationJournal:PaymentJournal {
     }
 }
 
+private actor RecoverableReconciliationJournal: RecoverablePaymentJournal {
+    private var state=PaymentJournalState()
+    init(_ payment:PendingPayment) throws { try state.reserve(payment) }
+    init(signing approval:PaymentApproval) throws { try state.beginApproval(approval);try state.beginSigning(approval) }
+    func snapshot()->PaymentJournalState { state }
+    func load() throws -> PendingPayment? { try state.pending() }
+    func reserve(_ payment:PendingPayment) throws { try state.reserve(payment) }
+    func beginApproval(_ approval:PaymentApproval) throws { try state.beginApproval(approval) }
+    func beginSigning(_ approval:PaymentApproval) throws { try state.beginSigning(approval) }
+    func finishSigning(_ payment:PendingPayment,approval:PaymentApproval) throws { try state.finishSigning(payment,approval:approval) }
+    func cancelApproval(_ approval:PaymentApproval) throws { try state.cancelApproval(approval) }
+    func observe(_ payment:PendingPayment,response:PaymentObservation) throws { try state.observe(payment,response:response) }
+    func complete(_ payment:PendingPayment,completion:PaymentCompletion) throws { try state.complete(payment,completion:completion) }
+    func expire(_ entry:PaymentJournalState.Entry,evidence:ExpiredPaymentEvidence) throws { try state.expire(entry,evidence:evidence) }
+}
+
 final class PaymentReconciliationTests:XCTestCase {
     private func checker(_ mode:String="")->ExternalPaymentReconciliation {
         ReconciliationHTTP.trace.reset(mode)
         let c=URLSessionConfiguration.ephemeral;c.protocolClasses=[ReconciliationHTTP.self]
         c.httpAdditionalHeaders=["Authorization":"must-not-send","Cookie":"must-not-send","PAYMENT-SIGNATURE":"must-not-send"]
         return ExternalPaymentReconciliation(configuration:c)
+    }
+    func testFundingPreflightUsesExactSixDecimalUnitsAndBothProviders() async throws {
+        let payer=ReconciliationFixture.payer
+        let enough=try await checker().funds(payer:payer,amount:50_000)
+        XCTAssertEqual(enough,.sufficient)
+        let short=try await checker("funds-low").funds(payer:payer,amount:50_000)
+        XCTAssertEqual(short,.insufficient)
+        for mode in ["funds-disagrees","funds-empty","wrong-chain","checkpoint-disagreement"] {
+            let status=try await checker(mode).funds(payer:payer,amount:50_000)
+            XCTAssertEqual(status,.unavailable,mode)
+        }
+    }
+    func testCompletionArchivesResultAndAllowsTheNextDistinctPayment() async throws {
+        let p=try ReconciliationFixture.payment(),journal=try RecoverableReconciliationJournal(p)
+        try await journal.observe(p,response:PaymentObservation(status:200,body:Data("paid result".utf8),claim:nil))
+        let result=try await ExternalPaymentRecovery(journal:journal).complete(using:checker(),claim:nil,now:2000)
+        XCTAssertEqual(result?.transaction,ReconciliationFixture.transaction)
+        XCTAssertEqual(result?.response,Data("paid result".utf8))
+        XCTAssertTrue(result?.receivedResult == true)
+        let saved=await journal.snapshot()
+        XCTAssertNil(saved.entry);XCTAssertEqual(saved.history.count,1)
+        let next=try PaymentApproval(request:p.request,payer:p.authorization.from,
+            nonce:"0x"+String(repeating:"99",count:32),now:1001)
+        try await journal.beginApproval(next)
+        let after=await journal.snapshot();XCTAssertEqual(after.entry,.approving(next))
+    }
+    func testExpiryRecoveryUnlocksInterruptedSigningOnlyAfterCorroboratedUnusedState() async throws {
+        let p=try ReconciliationFixture.payment()
+        let a=try PaymentApproval(request:p.request,payer:p.authorization.from,nonce:p.authorization.nonce,now:1001)
+        let journal=try RecoverableReconciliationJournal(signing:a),recovery=ExternalPaymentRecovery(journal:journal)
+        let denied=try await recovery.releaseExpired(using:checker("expiry-disagrees"))
+        XCTAssertFalse(denied)
+        let retained=await journal.snapshot();XCTAssertEqual(retained.entry,.signing(a))
+        let released=try await recovery.releaseExpired(using:checker("expiry-unused"))
+        XCTAssertTrue(released)
+        let cleared=await journal.snapshot();XCTAssertNil(cleared.entry);XCTAssertEqual(cleared.expired.count,1)
+    }
+    func testExpiredUnusedRequiresCanonicalFalseAfterDeadlineOnBothRPCs() async throws {
+        let payment=try ReconciliationFixture.payment()
+        let accepted=try await checker("expiry-unused").expiredUnused(request:payment.request,authorization:payment.authorization)
+        XCTAssertEqual(accepted?.authorization,payment.authorization)
+        XCTAssertEqual(accepted?.timestamp,1061)
+        XCTAssertEqual(accepted?.blockHash,ReconciliationFixture.checkpointHash)
+        for mode in ["", "expiry-before-deadline", "expiry-used", "expiry-disagrees", "expiry-empty", "expiry-malformed", "expiry-null", "expiry-checkpoint-change", "timeout", "wrong-chain", "checkpoint-disagreement", "finalized-hash-disagreement"] {
+            let evidence=try await checker(mode).expiredUnused(request:payment.request,authorization:payment.authorization)
+            XCTAssertNil(evidence,mode)
+        }
+    }
+    func testMissingReceiptLocatorIsOnlyAHintAndMustPassFullReconciliation() async throws {
+        let pending=try ReconciliationFixture.payment(),reader=checker()
+        let locator=try await reader.locate(pending,now:2000)
+        XCTAssertEqual(locator?.transaction,ReconciliationFixture.transaction)
+        let result=try await reader.reconcile(pending,claim:locator,now:2000)
+        guard case .confirmed=result else{return XCTFail("Canonical fixture transfer should reconcile")}
+        for mode in ["locator-wrong-nonce", "locator-removed", "locator-outside-range", "locator-ambiguous", "locator-absent"] {
+            let claim=try await checker(mode).locate(pending,now:2000)
+            XCTAssertNil(claim,mode)
+        }
+        let untrusted=checker("wrong-amount")
+        let hint=try await untrusted.locate(pending,now:2000)
+        XCTAssertNotNil(hint)
+        let bad=try await untrusted.reconcile(pending,claim:hint,now:2000)
+        XCTAssertEqual(bad,.unresolved,"A real nonce event cannot bless the wrong transfer")
     }
     func testConfirmedTransferAfterExpiryUsesTheCommonFinalizedBlock() async throws {
         let pending=try ReconciliationFixture.payment(),journal=ReconciliationJournal(pending)
