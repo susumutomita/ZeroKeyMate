@@ -29,12 +29,11 @@ actor WebSearchConversation {
             catch {try Task.checkCancellation()}
             try Task.checkCancellation()
             if let answer {return .init(text:answer,result:result)}
-            // Read an explicitly labelled excerpt when the local model is unavailable
-            // or cannot substantiate its summary. Never fall through to free chat.
-            let first=result.sources[0], excerpt=String(first.snippets[0].prefix(300))
+            // If evidence cannot support an answer, expose the links without
+            // speaking unverified page text (including embedded instructions).
             let text=japanese
-                ? "検索結果は見つかりましたが、回答として確認できませんでした。参考に、\(first.title)の抜粋です。「\(excerpt)」 [1]"
-                : "I found search results, but couldn't confirm an answer. An excerpt from \(first.title): “\(excerpt)” [1]"
+                ? "検索結果は見つかりましたが、答えを確認できませんでした。会話画面の出典をご確認ください。"
+                : "I found sources, but couldn't confirm an answer. You can check the source links in Conversation."
             return .init(text:text,result:result)
         } catch is CancellationError {throw CancellationError()}
         catch {

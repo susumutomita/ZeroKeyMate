@@ -44,11 +44,12 @@ final class WebSearchConversationTests:XCTestCase {
         XCTAssertTrue(result?.text.contains("見つかりません") == true)
         XCTAssertTrue(result?.result?.sources.isEmpty == true)
     }
-    func testUnavailableLocalSummaryUsesLabelledExcerpt() async throws {
+    func testUnavailableLocalSummaryShowsSourcesWithoutReadingUnverifiedText() async throws {
         let web=WebSearchConversation(provider:SearchStub(),summarizer:MissingSummary())
         let reply=try await web.reply(to:"Search for space news",japanese:false)
-        XCTAssertTrue(reply?.text.contains("excerpt") == true)
-        XCTAssertTrue(reply?.text.contains("The launch is scheduled for Friday.") == true)
+        XCTAssertTrue(reply?.text.contains("couldn't confirm an answer") == true)
+        XCTAssertFalse(reply?.text.contains("The launch is scheduled for Friday.") == true)
+        XCTAssertEqual(reply?.result?.sources.first?.url.host,"example.org")
     }
     func testUnrelatedAndPrivateMessagesNeverCallSearch() async throws {
         let stub=SearchStub()

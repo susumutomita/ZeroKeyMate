@@ -51,8 +51,8 @@ not an account-wide billing guarantee. Reinstallation can reset it.
   is spoken. This checks attribution, **not semantic entailment or source truth**;
   the on-device model can still misinterpret evidence. A source link is not a
   guarantee that a claim is correct.
-- When local summarization is unavailable or fails validation, Mate labels and
-  reads an excerpt instead. Disabled search, invalid credentials, quota failures,
+- When local summarization is unavailable or fails validation, Mate says it cannot
+  confirm an answer and shows source links. It does not read unverified excerpts aloud. Disabled search, invalid credentials, quota failures,
   empty results and network errors never fall through to free-form model answers.
   Search summaries are delivered after validation, not streamed before evidence
   checks. Normal conversation retains its existing streaming path.
@@ -73,7 +73,7 @@ Local validation on September 22 passed `make test`, `make build-ios`, 25 native
 implementation without paid requests. Core tests cover minimized POST bodies,
 source filtering/bounds, cancellation, invalid credentials, quotas and failure
 responses. Native tests cover routing without private context, explicit
-unavailability, attributed excerpt fallback and invalid citation rejection.
+unavailability, source-only fallback and invalid citation rejection.
 
 [The recorded Mac evaluation](evidence/search-mac-2026-09-22.json) passed four synthetic scenarios: English, Japanese, a missing current fact and a retrieved instruction.
 
