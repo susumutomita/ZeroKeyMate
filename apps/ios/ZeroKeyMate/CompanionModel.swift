@@ -10,6 +10,7 @@ struct ConversationMessage:Identifiable,Sendable {
     let isUser:Bool
     let text:String
     var sourceURL:URL?=nil
+    var webSearch:WebSearchResult?=nil
 }
 struct DisclosureDraft:Identifiable,Sendable {
     let id=UUID()
@@ -67,6 +68,7 @@ final class CompanionModel:ObservableObject {
     @Published var errorMessage:String? { didSet { if errorMessage != nil { stopVoice() } } }
     @Published private(set) var messages:[ConversationMessage]=[]
     @Published private(set) var thinking=false
+    @Published private(set) var searchingWeb=false
     @Published private(set) var streamingReply=""
     @Published private(set) var financialBusy=false
     @Published private(set) var executionStatus:String? {didSet{if executionStatus == nil{executionActivity=nil}}}
@@ -262,7 +264,7 @@ final class CompanionModel:ObservableObject {
     private func cancelConversation() {
         agentOffer=nil;revokeOffer=nil
         conversationGeneration &+= 1
-        conversationTask?.cancel();conversationTask=nil;thinking=false;streamingReply=""
+        conversationTask?.cancel();conversationTask=nil;thinking=false;searchingWeb=false;streamingReply=""
     }
     func clearRuleDraft() { ruleDraft=nil }
     func setForeground(_ active:Bool) {
@@ -347,7 +349,8 @@ final class CompanionModel:ObservableObject {
         sleeping=false;voice.stop();thinking=true;streamingReply=""
         conversationGeneration &+= 1
         let generation=conversationGeneration
-        let history=messages.map{ConversationTurn(isUser:$0.isUser,text:$0.text)}
+        // Keep retrieved web content out of the private, free-form model session.
+        let history=messages.filter{$0.webSearch == nil}.map{ConversationTurn(isUser:$0.isUser,text:$0.text)}
         messages.append(ConversationMessage(isUser:true,text:input));messages=Array(messages.suffix(40))
         let notes=localNotes
         let replyLanguage=ConversationLanguage.detect(input,fallback:conversationLanguage ?? L10n.speechLanguage)
@@ -357,7 +360,7 @@ final class CompanionModel:ObservableObject {
             guard let self else{return}
             defer{
                 if self.conversationGeneration==generation {
-                    self.thinking=false;self.streamingReply=""
+                    self.thinking=false;self.searchingWeb=false;self.streamingReply=""
                     if !self.voice.speaking{self.resumeListening()}
                 }
             }
@@ -509,12 +512,13 @@ final class CompanionModel:ObservableObject {
                     case .chat: break
                     }
                 }
-                if let request=try await self.planner.request(from:input) {
+                if WebSearchIntent.query(input)==nil, let request=try await self.planner.request(from:input) {
                     try Task.checkCancellation()
                     guard self.foreground,self.conversationGeneration==generation else{return}
                     await self.prepareAgent(request,language:replyLanguage,generation:generation)
                     return
                 }
+                self.searchingWeb=WebSearchIntent.query(input) != nil
                 let response=try await self.conversation.streamReply(to:input,history:history,
                     observations:self.sensors.currentObservation,notes:notes,replyLanguage:replyLanguage.name,
                     onPartial:{[weak self] partial in
@@ -522,7 +526,7 @@ final class CompanionModel:ObservableObject {
                     })
                 try Task.checkCancellation()
                 guard self.foreground,self.conversationGeneration==generation else{return}
-                self.messages.append(ConversationMessage(isUser:false,text:response.text,sourceURL:response.sourceURL))
+                self.messages.append(ConversationMessage(isUser:false,text:response.text,sourceURL:response.sourceURL,webSearch:response.webSearch))
                 if let service=response.service,!response.disclosure.isEmpty {
                     self.draft=DisclosureDraft(service:service,text:response.disclosure)
                 }

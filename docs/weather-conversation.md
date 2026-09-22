@@ -18,7 +18,7 @@ Weather questions now use a read-only Open-Meteo client before local generation.
 - Missing, stale, malformed or unavailable forecasts produce an unavailable
   answer. There is no cached-sunny or generated-weather fallback.
 
-This is **weather lookup, not a general web-search engine**. The local model's
+Weather lookup remains a separate service. Build 20 adds [optional general Web search](web-search.md). The local model's
 instructions also prohibit claiming current news or prices without evidence;
 that instruction alone does not establish general hallucination prevention.
 
