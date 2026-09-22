@@ -1,0 +1,26 @@
+{
+  "build": 18,
+  "sourceCommit": "2ce10a9108dabea5e193d4b570614eb4063fe164",
+  "platform": "iPhone 16 Pro",
+  "os": "iOS 27.0 (24A437)",
+  "syntheticTextOnly": true,
+  "microphoneOrCameraUsed": false,
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "skipped": 0
+  },
+  "findings": [
+    "Unrelated telescope details were repeated after topic changes.",
+    "Greetings introduced an unrequested order topic.",
+    "Japanese recall and language switching passed their original assertions."
+  ],
+  "attachments": [
+    "OS: Version 27.0 (Build 24A437)\n\nThermal state: 1\n\nModel: SystemLanguageModel.default; fixed synthetic text only; no audio or payment\n\nTurn 1: 覚えてね。私の望遠鏡の名前はクモです。\nクモですね。覚えてます。\nfirst text: 4.836054540999999 seconds; first speakable sentence: 4.877936624999999 seconds; complete: 4.878215041 seconds\n\nTurn 2: 今日は空が晴れています。\n晴れていますね。望遠鏡の名前をクモにしましたね。\nfirst text: 1.582083 seconds; first speakable sentence: 1.582119709 seconds; complete: 1.9460755 seconds\n\nTurn 3: 散歩は夕方に行く予定です。\n夕方に散歩ですね。望遠鏡の名前をクモにしましたね。\nfirst text: 1.048152 seconds; first speakable sentence: 1.048247625 seconds; complete: 1.221984667 seconds\n\nTurn 4: 帰ったら紅茶を飲みます。\n紅茶を飲む予定ですね。望遠鏡の名前をクモにしましたね。\nfirst text: 1.046481125 seconds; first speakable sentence: 1.046964083 seconds; complete: 1.198345875 seconds\n\nTurn 5: 明日は本を読みたいです。\n本を読みたいですね。望遠鏡の名前をクモにしましたね。\nfirst text: 0.856642584 seconds; first speakable sentence: 0.85666575 seconds; complete: 1.033950584 seconds\n\nTurn 6: 今は少しだけ休憩しています。\n休憩中ですね。望遠鏡の名前をクモにしましたね。\nfirst text: 1.968210208 seconds; first speakable sentence: 1.968229416 seconds; complete: 2.0863845 seconds\n\nTurn 7: 私の望遠鏡の名前を覚えてる？\nクモです。\nfirst text: 0.978507583 seconds; first speakable sentence: 1.02598 seconds; complete: 1.026004541 seconds",
+    "User: 今日は会議が長くて疲れた。\nMate: 大丈夫です。疲れたときはゆっくり休んでくださいね。何かお手伝いできることがあれば教えてください。",
+    "User: Can you answer in English now?\nMate: Sure. I’m fine. How can I help with your order?",
+    "User: Hello, how are you?\nMate: Hey, I’m good. How can I help with your order?",
+    "OS: Version 27.0 (Build 24A437)\nSpeechTranscriber available: true\nInstalled locales: en_AU, en_CA, en_GB, en_IE, en_IN, en_NZ, en_SG, en_US, en_ZA, ja_JP",
+    "User: 覚えておいて。机の上のマグカップは青色です。\nMate: 机の上のマグカップは青色です。\nElapsed ms: 1803\n\nUser: さっきのマグカップは何色だった？\nMate: 青色です。\nElapsed ms: 1384\n\nUser: Mac miniをAmazonで買って\nMate: その購入はこの会話から実行できません。予算はどれくらいですか？\nElapsed ms: 3\n\nUser: 今日は会議が長くて、ちょっと疲れた。\nMate: 疲れたなら、休憩をしっかり取ってください。他に何かあれば教えてください。\nElapsed ms: 1689\n\nUser: どうして疲れたって言ったか覚えてる？\nMate: 今日は会議が長かったからです。\nElapsed ms: 1003"
+  ]
+}

@@ -368,7 +368,7 @@ private struct ConversationSheet:View {
                         if model.messages.isEmpty {
                             VStack(alignment:.leading,spacing:12){
                                 Text("Where shall we start?").font(.system(size:28,weight:.regular)).tracking(-0.7)
-                                SectionNote(text:"This conversation stays on your iPhone. Before asking an external service, review the text and price.")
+                                SectionNote(text:"Conversation runs on your iPhone. Weather questions share the city you provide with Open-Meteo. Paid services still require your review.")
                                 Button("Try a beer purchase") {
                                     input=L10n.text("Buy me one beer.")
                                 }.accessibilityIdentifier("try-agent-request")
@@ -379,6 +379,13 @@ private struct ConversationSheet:View {
                             VStack(alignment:.leading,spacing:8){
                                 Text(L10n.text(message.isUser ? "You":"Mate")).font(.system(size:11,weight:.semibold)).foregroundStyle(Finish.secondary)
                                 Text(message.text).font(.system(size:17)).lineSpacing(5).textSelection(.enabled)
+                                if let source=message.sourceURL {
+                                    HStack(spacing:12) {
+                                        Link("Open-Meteo",destination:URL(string:"https://open-meteo.com/")!)
+                                        Link("Forecast source",destination:source).accessibilityIdentifier("weather-source")
+                                        Link("CC BY 4.0",destination:URL(string:"https://creativecommons.org/licenses/by/4.0/")!)
+                                    }.font(.footnote)
+                                }
                             }.frame(maxWidth:.infinity,alignment:.leading).id(message.id)
                         }
                         if !model.streamingReply.isEmpty {

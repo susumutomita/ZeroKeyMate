@@ -1,0 +1,171 @@
+{
+  "model" : "SystemLanguageModel.default",
+  "os" : "Version 26.6.2 (Build 25G83)",
+  "platform" : "Mac (not iPhone)",
+  "results" : [
+    {
+      "firstTextSeconds" : 1.6984249999999999,
+      "input" : "覚えてね。私のマグカップは青色です。",
+      "output" : "覚えてます。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "recall",
+      "totalSeconds" : 1.976131333
+    },
+    {
+      "firstTextSeconds" : 1.377399083,
+      "input" : "マグカップは何色だった？",
+      "output" : "青色です。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "recall",
+      "totalSeconds" : 1.4986950829999999
+    },
+    {
+      "firstTextSeconds" : 1.005357084,
+      "input" : "訂正です。マグカップは青ではなく赤でした。",
+      "output" : "訂正しました。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "correction",
+      "totalSeconds" : 1.0922575
+    },
+    {
+      "firstTextSeconds" : 1.216788417,
+      "input" : "正しいマグカップの色は？",
+      "output" : "マグカップは赤です。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "correction",
+      "totalSeconds" : 1.283750625
+    },
+    {
+      "firstTextSeconds" : 1.005303791,
+      "input" : "今日は会議が長くて疲れた。",
+      "output" : "私も会議が長かった。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "topic-change",
+      "totalSeconds" : 1.276434458
+    },
+    {
+      "firstTextSeconds" : 1.493398334,
+      "input" : "何で疲れたって言ったか覚えてる？",
+      "output" : "会議が長かったからです。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "follow-up",
+      "totalSeconds" : 1.588619459
+    },
+    {
+      "firstTextSeconds" : 0.023515,
+      "input" : "さっき何を買ってって頼んだ？",
+      "output" : "「Mac miniをAmazonで買って」と頼まれました。",
+      "passed" : true,
+      "responseSource" : "quoted-request",
+      "scenario" : "routed-context",
+      "totalSeconds" : 0.023570041
+    },
+    {
+      "firstTextSeconds" : 1.9399797090000002,
+      "input" : "Let's speak English. I named my telescope Nimbus.",
+      "output" : "Nice telescope!",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "language-switch",
+      "totalSeconds" : 2.013330834
+    },
+    {
+      "firstTextSeconds" : 1.853998833,
+      "input" : "望遠鏡の名前、何にしたか覚えてる？",
+      "output" : "望遠鏡の名前は「Nimbus」です。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "language-switch-recall",
+      "totalSeconds" : 2.161560667
+    },
+    {
+      "firstTextSeconds" : 2.0146545,
+      "input" : "Get some rest, Mate.",
+      "output" : "Rest is important.",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "ordinary-idiom",
+      "totalSeconds" : 2.088966875
+    },
+    {
+      "firstTextSeconds" : 1.614884792,
+      "input" : "覚えて。私の犬の名前はポチです。",
+      "output" : "ポチはかわいいね！",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "clear-context",
+      "totalSeconds" : 1.887953917
+    },
+    {
+      "firstTextSeconds" : 0.936676542,
+      "input" : "犬の名前は何だった？",
+      "output" : "ポチだよ。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "clear-context",
+      "totalSeconds" : 1.221489333
+    },
+    {
+      "firstTextSeconds" : 0.000132667,
+      "input" : "私の名前はアキラです。この会話の間だけ覚えてね。",
+      "output" : "アキラさんですね。",
+      "passed" : true,
+      "responseSource" : "literal-memory",
+      "scenario" : "name",
+      "totalSeconds" : 0.000165
+    },
+    {
+      "firstTextSeconds" : 0.003299,
+      "input" : "私の名前、覚えてる？",
+      "output" : "アキラさんです。",
+      "passed" : true,
+      "responseSource" : "literal-memory",
+      "scenario" : "name-follow-up",
+      "totalSeconds" : 0.003360209
+    },
+    {
+      "firstTextSeconds" : 0.000723875,
+      "input" : "コーヒーは苦手なので紅茶が好きです。",
+      "output" : "紅茶が好きで、コーヒーは苦手なんですね。",
+      "passed" : true,
+      "responseSource" : "literal-memory",
+      "scenario" : "preference",
+      "totalSeconds" : 0.000800417
+    },
+    {
+      "firstTextSeconds" : 0.004924875,
+      "input" : "私にはコーヒーと紅茶のどっちがいい？",
+      "output" : "紅茶が好きと話していたので、紅茶がよさそうです。",
+      "passed" : true,
+      "responseSource" : "literal-memory",
+      "scenario" : "preference-follow-up",
+      "totalSeconds" : 0.004993958
+    },
+    {
+      "firstTextSeconds" : 1.964402875,
+      "input" : "週末に家でできる楽しいことを二つ教えて。",
+      "output" : "1. ゲームをする。\n2. 読書をする。",
+      "passed" : true,
+      "responseSource" : "local-model",
+      "scenario" : "new-topic",
+      "totalSeconds" : 2.107481292
+    },
+    {
+      "firstTextSeconds" : 0.002332083,
+      "input" : "私の名前、覚えてる？",
+      "output" : "最近の会話には、あなたの名前がまだ残っていません。",
+      "passed" : true,
+      "responseSource" : "literal-memory",
+      "scenario" : "forget-name",
+      "totalSeconds" : 0.002399708
+    }
+  ],
+  "status" : "passed",
+  "syntheticOnly" : true
+}

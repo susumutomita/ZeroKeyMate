@@ -280,6 +280,7 @@ final class ConversationTests:XCTestCase {
             let evidence=XCTAttachment(string:"User: \(prompt)\nMate: \(response.text)")
             evidence.name="real-language-switch";evidence.lifetime = .keepAlways;add(evidence)
             XCTAssertEqual(ConversationLanguage.detect(response.text,fallback:expected == .english ? .japanese:.english),expected,response.text)
+            XCTAssertFalse(["order","purchase","注文","購入"].contains(where:response.text.lowercased().contains),"An ordinary greeting or language switch must not become a shopping conversation: \(response.text)")
             history += [.init(isUser:true,text:prompt),.init(isUser:false,text:response.text)]
         }
     }

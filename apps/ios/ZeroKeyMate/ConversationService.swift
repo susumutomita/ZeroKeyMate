@@ -6,6 +6,7 @@ struct ConversationReply:Sendable {
     let text:String
     let service:MateService?
     let disclosure:String
+    var sourceURL:URL?=nil
 }
 
 enum ConversationFailure: Error, Sendable, Equatable {
@@ -42,6 +43,8 @@ extension ConversationResponding {
 
 actor ConversationService:ConversationResponding {
     private let local=LocalConversationSession()
+    private let weather:WeatherConversation
+    init(weather:any WeatherProviding=OpenMeteoWeather()) { self.weather=WeatherConversation(provider:weather) }
     func availability() -> String? {
         switch SystemLanguageModel.default.availability {
         case .available:return nil
@@ -63,6 +66,11 @@ actor ConversationService:ConversationResponding {
                      onPartial:@escaping @Sendable (String) async -> Void) async throws -> ConversationReply {
         try Task.checkCancellation()
         guard !text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,text.utf8.count<=8_000 else {throw ProductError.invalidResponse}
+        if let result=try await weather.reply(to:text,history:history,japanese:replyLanguage == "日本語") {
+            await onPartial(result.text)
+            try Task.checkCancellation()
+            return ConversationReply(text:result.text,service:nil,disclosure:"",sourceURL:result.source)
+        }
         if let remembered=ConversationMemory.reply(to:text,history:history,language:replyLanguage) {
             await onPartial(remembered)
             try Task.checkCancellation()
