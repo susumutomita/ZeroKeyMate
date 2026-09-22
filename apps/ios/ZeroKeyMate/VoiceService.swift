@@ -22,11 +22,31 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
     private var tapInstalled=false
     private var generation:UInt64=0
     private var turn:VoiceTurn?
+    private var modernInput:(any OnDeviceSpeechRecognizing)?
+    private var finalizationTask:Task<Void,Never>?
+    private var finalizationDeadline:Task<Void,Never>?
+    private(set) var recognitionBackend = "none"
     private var deadlineTask:Task<Void,Never>?
     private var pendingUtterances=Set<ObjectIdentifier>()
     private var receivingResponse=false
     private var spokenText=SpokenTextBuffer()
-    override init(){super.init();synthesizer.delegate=self}
+    private let authorize: @MainActor (@escaping @MainActor () -> Bool) async -> Bool
+    private let prepareInput: @MainActor (Locale) async -> (any OnDeviceSpeechRecognizing)?
+    init(authorize: @escaping @MainActor (@escaping @MainActor () -> Bool) async -> Bool = VoiceService.authorizeInput,
+         prepareInput: @escaping @MainActor (Locale) async -> (any OnDeviceSpeechRecognizing)? = { await OnDeviceSpeechInput.prepared(locale:$0) }) {
+        self.authorize=authorize;self.prepareInput=prepareInput
+        super.init();synthesizer.delegate=self
+    }
+    private static func authorizeInput(isCurrent: @escaping @MainActor () -> Bool) async -> Bool {
+        let microphone=await withCheckedContinuation{continuation in
+            AVAudioApplication.requestRecordPermission{continuation.resume(returning:$0)}
+        }
+        guard microphone,isCurrent() else{return false}
+        let speech=await withCheckedContinuation{continuation in
+            SFSpeechRecognizer.requestAuthorization{continuation.resume(returning:$0)}
+        }
+        return speech == .authorized
+    }
 
     func start(locale:String? = nil) async {
         guard !listening,!requestingPermission else {return}
@@ -34,18 +54,43 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
         let token=generation
         requestingPermission=true;errorMessage=nil;transcript=""
         defer {if generation==token{requestingPermission=false}}
-        let microphone=await withCheckedContinuation{continuation in
-            AVAudioApplication.requestRecordPermission{continuation.resume(returning:$0)}
-        }
+        let authorized=await authorize { [weak self] in self?.generation==token }
         guard generation==token else{return}
-        guard microphone else{errorMessage="Microphone access is not allowed. You can still type a message.";return}
-        let speech=await withCheckedContinuation{continuation in
-            SFSpeechRecognizer.requestAuthorization{continuation.resume(returning:$0)}
+        guard authorized else {errorMessage="Voice input requires microphone and speech recognition permissions. You can still use the keyboard.";return}
+        let inputLocale=Locale(identifier:locale ?? L10n.speechLanguage.speechLocale)
+        let modern=await prepareInput(inputLocale)
+        guard generation==token else{modern?.stop();return}
+        if let modern {
+            modernInput=modern
+            turn=VoiceTurn(now:ProcessInfo.processInfo.systemUptime,usesAudioActivity:true)
+            do {
+                try await modern.start(onPartial:{[weak self] text in
+                    guard let self,self.generation==token,self.finalizationTask==nil else{return}
+                    self.transcript=text
+                    self.complete(self.turn?.update(text,now:ProcessInfo.processInfo.systemUptime) ?? .waiting)
+                },onAudioActivity:{[weak self] in
+                    guard let self,self.generation==token else{return}
+                    self.turn?.noteAudioActivity(now:ProcessInfo.processInfo.systemUptime)
+                },onFailure:{[weak self] in
+                    guard let self,self.generation==token else{return}
+                    self.inputFailed()
+                })
+                guard generation==token else{modern.stop();return}
+                recognitionBackend="SpeechTranscriber"
+                beginTurn(token:token)
+                return
+            }catch{
+                modern.stop()
+                guard generation==token else{return}
+                guard !Task.isCancelled else{stopListening();return}
+                modernInput=nil;turn=nil;transcript=""
+                // Setup may fail before capture is usable. Try only the existing
+                // on-device recognizer, never an online transcription request.
+            }
         }
-        guard generation==token else{return}
-        guard microphone,speech == .authorized else {errorMessage="Voice input requires microphone and speech recognition permissions. You can still use the keyboard.";return}
-        guard let recognizer=SFSpeechRecognizer(locale:Locale(identifier:locale ?? L10n.speechLanguage.speechLocale)),recognizer.isAvailable,
+        guard let recognizer=SFSpeechRecognizer(locale:inputLocale),recognizer.isAvailable,
               recognizer.supportsOnDeviceRecognition else {
+            stopListening()
             errorMessage="On-device speech recognition is unavailable for the selected language. Continue with the keyboard; audio will not be sent to the cloud.";return
         }
         do {
@@ -58,7 +103,6 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
             guard format.sampleRate>0,format.channelCount>0 else {throw ProductError.unavailable("Could not read the microphone input format.")}
             input.installTap(onBus:0,bufferSize:1024,format:format){buffer,_ in request.append(buffer)}
             tapInstalled=true
-            turn=VoiceTurn(now:ProcessInfo.processInfo.systemUptime)
             recognition=recognizer.recognitionTask(with:request){[weak self] result,error in
                 let text=result?.bestTranscription.formattedString
                 let final=result?.isFinal ?? false
@@ -71,36 +115,70 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
                         self.complete(outcome)
                     }
                     if failed,self.generation==token {
-                        self.stopListening();self.errorMessage="Voice input was interrupted. You can continue with the keyboard."
-                        self.onInputInterrupted?()
+                        self.inputFailed()
                     }
                 }
             }
-            engine.prepare();try engine.start();listening=true
-            deadlineTask=Task{[weak self] in
-                while !Task.isCancelled {
-                    do{try await Task.sleep(for:.milliseconds(250))}catch{return}
-                    guard let self,self.generation==token,self.listening else{return}
-                    self.complete(self.turn?.poll(now:ProcessInfo.processInfo.systemUptime) ?? .waiting)
-                }
-            }
+            engine.prepare();try engine.start()
+            recognitionBackend="SFSpeechRecognizer (on device)"
+            beginTurn(token:token)
         }catch{stopListening();errorMessage=error.localizedDescription}
+    }
+    private func beginTurn(token:UInt64) {
+        if turn==nil{turn=VoiceTurn(now:ProcessInfo.processInfo.systemUptime)}
+        listening=true
+        deadlineTask=Task{[weak self] in
+            while !Task.isCancelled {
+                do{try await Task.sleep(for:.milliseconds(100))}catch{return}
+                guard let self,self.generation==token,self.listening else{return}
+                self.complete(self.turn?.poll(now:ProcessInfo.processInfo.systemUptime) ?? .waiting)
+            }
+        }
+    }
+    private func inputFailed() {
+        stopListening();errorMessage="Voice input was interrupted. You can continue with the keyboard."
+        onInputInterrupted?()
     }
     private func complete(_ outcome:VoiceTurn.Outcome) {
         switch outcome {
         case .waiting:break
-        case .submit(let text):stopListening();onFinal?(text)
+        case .submit(let text):
+            guard let modern=modernInput else{stopListening();onFinal?(text);return}
+            guard finalizationTask==nil else{return}
+            deadlineTask?.cancel();deadlineTask=nil
+            let token=generation
+            finalizationTask=Task{[weak self] in
+                do {
+                    let final=try await modern.finish().trimmingCharacters(in:.whitespacesAndNewlines)
+                    guard let self,self.generation==token,!Task.isCancelled else{return}
+                    self.transcript=final
+                    self.stopListening()
+                    if final.isEmpty{self.onInputIdle?()}else{self.onFinal?(final)}
+                }catch{
+                    guard let self,self.generation==token,!Task.isCancelled else{return}
+                    self.inputFailed()
+                }
+            }
+            finalizationDeadline=Task{[weak self] in
+                do{try await Task.sleep(for:.seconds(3))}catch{return}
+                guard let self,self.generation==token else{return}
+                self.inputFailed()
+            }
         case .silence:
             // Renew only inside the explicitly started session owned by CompanionModel.
             stopListening();onInputIdle?()
         }
     }
-    @discardableResult func finish() -> String {
-        let value=transcript;stopListening();return value
+    func finish() {
+        guard listening else{return}
+        complete(.submit(transcript))
     }
     private func stopListening(){
         generation &+= 1;requestingPermission=false
         deadlineTask?.cancel();deadlineTask=nil;turn=nil
+        finalizationDeadline?.cancel();finalizationDeadline=nil
+        finalizationTask?.cancel();finalizationTask=nil
+        modernInput?.stop();modernInput=nil
         if engine.isRunning{engine.stop()}
         if tapInstalled{engine.inputNode.removeTap(onBus:0);tapInstalled=false}
         request?.endAudio();recognition?.cancel();recognition=nil;request=nil;recognizer=nil

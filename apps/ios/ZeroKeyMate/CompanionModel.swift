@@ -289,6 +289,9 @@ final class CompanionModel:ObservableObject {
             guard let self,self.canResumeListening(generation) else{return}
             await Task.yield()
             guard self.canResumeListening(generation) else{return}
+            let language=self.recognitionLocale == "ja-JP" ? AppLanguage.japanese : self.recognitionLocale == "en-US" ? .english : L10n.speechLanguage
+            await self.conversation.prepare(replyLanguage:language.name,notes:self.localNotes)
+            guard self.canResumeListening(generation) else{return}
             await self.voice.start(locale:self.recognitionLocale)
             if self.voiceGeneration==generation,!self.voice.listening {
                 self.rest()
@@ -685,7 +688,7 @@ final class CompanionModel:ObservableObject {
     func toggleVoice() async {
         if voiceSessionActive{stopVoice();cancelConversation()}
         else if voice.requestingPermission{stopVoice()}
-        else if voice.listening{let text=voice.finish();send(text)}
+        else if voice.listening{voice.finish()}
         else{
             guard !thinking,!financialBusy,foreground else{return};sleeping=false
             listeningSession.stop()

@@ -26,3 +26,45 @@ accepts benign inputs or that live speech recognition/stand tracking passed.
 The default Apple guardrails remain enabled. Bilingual real-model behavior and
 spoken turn latency still need ongoing physical acceptance; the recovery does
 not claim to eliminate the underlying model rejection.
+
+## September 22: build 15
+
+The physical iPhone 16 Pro still reports **iOS 26.7 (23H24)**. The app was built
+with Xcode 27.0, but this does not install iOS 27's rebuilt Foundation Models
+model. It continues to use `SystemLanguageModel.default` with the default
+system guardrails. SpeechTranscriber reports available, with both `ja_JP` and
+`en_US` assets installed.
+
+Fixed-text physical acceptance passed:
+
+- Japanese short-term recall and refusal to claim an unsupported Amazon purchase.
+- English → Japanese → English response language switching.
+- Seven-turn recall of an object name, while responding to unrelated reading and
+  rest messages without bringing that name into those replies.
+- Conversion of synthetic PCM buffers, retention across buffer reuse, and bounded
+  queue overflow. These checks capture no microphone input.
+
+The first prompt revisions overused an earlier telescope topic. Making the
+assistant's role and latest-message response explicit corrected the two tested
+unrelated-topic cases. This is a small observed improvement, not evidence of
+reliable general reasoning or elimination of every repetitive answer.
+
+For the final seven Japanese turns, after calling `prepare()` before each turn:
+
+| Measurement | First turn | Subsequent six turns |
+| --- | --- | --- |
+| Request → first text | 1.01 s | 0.49–0.78 s (median 0.72 s) |
+| Request → first complete speakable sentence | 1.11 s | 0.49–0.82 s |
+| Request → complete response | 1.26 s | 0.52–0.85 s |
+
+Conditions: Debug build, thermal state nominal, fixed synthetic text, no camera,
+microphone, actual speech playback, card read or payment. The model had also run
+earlier fixtures; these are not controlled cold-start results or a before/after
+speedup benchmark. Actual speech-end → audible-reply latency, Bluetooth/HFP,
+quiet/noisy-room endpoint behavior, full-duplex interruption and the iOS 27 model
+still require separate physical acceptance.
+
+The deterministic iOS 27 simulator regression passed 19 tests; three physical
+model checks were explicitly skipped there. The physical model fixtures ran on
+the phone rather than inferring success from simulator model availability.
+See [the live-speech implementation and compatibility boundaries](conversation-latency.md).
