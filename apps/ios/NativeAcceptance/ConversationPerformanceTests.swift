@@ -34,7 +34,7 @@ final class ConversationPerformanceTests:XCTestCase {
             "今は少しだけ休憩しています。",
             "私の望遠鏡の名前を覚えてる？"
         ]
-        var history=""
+        var history:[ConversationTurn]=[]
         var lines=["OS: \(ProcessInfo.processInfo.operatingSystemVersionString)",
                    "Thermal state: \(ProcessInfo.processInfo.thermalState.rawValue)",
                    "Model: SystemLanguageModel.default; fixed synthetic text only; no audio or payment"]
@@ -48,7 +48,7 @@ final class ConversationPerformanceTests:XCTestCase {
             let reply=try await service.streamReply(to:prompt,history:history,observations:"",notes:"",replyLanguage:"日本語",
                 onPartial:{await timing.receive($0)})
             lines.append("Turn \(index+1): \(prompt)\n\(reply.text)\n\(await timing.report())")
-            history += "\nUser: \(prompt)\nMate: \(reply.text)"
+            history += [.init(isUser:true,text:prompt),.init(isUser:false,text:reply.text)]
             XCTAssertNil(reply.service)
             XCTAssertTrue(reply.disclosure.isEmpty)
             if index==4 || index==5 {XCTAssertFalse(reply.text.contains("クモ"),"An unrelated new topic must not be redirected to the telescope: \(reply.text)")}

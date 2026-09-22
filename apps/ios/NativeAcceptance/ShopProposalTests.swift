@@ -52,6 +52,14 @@ final class ShopProposalTests: XCTestCase {
             XCTAssertNotEqual(L10n.text(explanation, language: .japanese), explanation)
         }
     }
+    func testOrdinaryAcquisitionIdiomsAreNotPurchases() {
+        for text in ["Get some rest.", "Can you get to the point?", "Please bring me up to speed.", "I want you to get better soon.", "Could you please fetch the meaning of that word?"] {
+            XCTAssertFalse(ShopPlanner.isCurrentPurchaseRequest(text),text)
+        }
+        for text in ["Get me a beer", "Please bring two waters", "Buy me a Mac mini"] {
+            XCTAssertTrue(ShopPlanner.isCurrentPurchaseRequest(text),text)
+        }
+    }
     func testPastHypotheticalQuotedAndNegatedSpeechCannotProposeShopping() {
         for text in ["I bought a beer yesterday.","If I asked you to buy beer, what would happen?", "Could Mate buy beer someday?", "昨日ビールを買いました。", "ビールは買わないで。"] {
             XCTAssertFalse(ShopPlanner.isCurrentPurchaseRequest(text), text)

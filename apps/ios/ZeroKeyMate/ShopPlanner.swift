@@ -75,20 +75,6 @@ actor ShopPlanner {
         default: throw AgeShopError.invalidOrder
         }
     }
-    static func isLanguageTask(_ text: String) -> Bool {
-        let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        let english = #"^(?:please\s+)?(?:translate|summari[sz]e|explain|define|what does|what is the meaning|how do (?:you|i) say)\b"#
-        return lower.range(of: english, options: .regularExpression) != nil ||
-            ["翻訳", "英訳", "和訳", "要約", "意味を", "どういう意味", "英語にして", "日本語にして", "に訳して"].contains { lower.contains($0) }
-    }
-    static func isCurrentPurchaseRequest(_ text: String) -> Bool {
-        let value = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        // A narrow proposal boundary complements model interpretation. Outside
-        // these present-tense request forms, stay in conversation. This does
-        // not authorize an order: the exact review and signing gates still apply.
-        let english = #"^(?:(?:hey\s+)?mate[,\s]+)?(?:please[,\s]+)?(?:(?:buy|order|purchase|get|bring|fetch)\b|(?:can|could|would|will)\s+you\s+(?:please\s+)?(?:buy|order|purchase|get|bring|fetch)\b|(?:i want|i would like|i'd like)\s+you\s+to\s+(?:buy|order|purchase|get|bring|fetch)\b)"#
-        let japanese = #"(?:買って(?:きて)?|購入して|注文して|買いたい|購入したい|注文したい)(?:ください|ほしい|くれる|くれない|くれませんか|もらえる|お願い|です|かな|な|よ|ね|[。！？.!?\s])*$"#
-        return value.range(of: english, options: .regularExpression) != nil ||
-            value.range(of: japanese, options: .regularExpression) != nil
-    }
+    static func isLanguageTask(_ text: String) -> Bool { PurchaseConversation.isLanguageTask(text) }
+    static func isCurrentPurchaseRequest(_ text: String) -> Bool { PurchaseConversation.isCurrentPurchaseRequest(text) }
 }
