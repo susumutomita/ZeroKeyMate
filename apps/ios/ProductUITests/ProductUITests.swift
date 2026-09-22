@@ -269,7 +269,12 @@ final class ProductUITests: XCTestCase {
         XCTAssertTrue(input.waitForExistence(timeout: 5))
         closeSheet(app)
         tapPadding(app.buttons["open-settings"])
-        XCTAssertTrue(app.buttons["toggle-camera"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        // Form creates rows lazily. The benchmark entry can place camera
+        // controls below the fold; verify they are reachable by scrolling.
+        let camera = app.buttons["toggle-camera"]
+        for _ in 0..<4 where !camera.isHittable { app.swipeUp() }
+        XCTAssertTrue(camera.isHittable)
         capture("04-settings")
         closeSheet(app)
         app.buttons["open-settings"].tap()
