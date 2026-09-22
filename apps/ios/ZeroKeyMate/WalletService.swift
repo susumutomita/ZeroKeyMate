@@ -116,6 +116,19 @@ final class WalletService: ObservableObject {
         .init(name: "ZeroKey Mate", version: "1", chainId: Int(configuration.chainID), verifyingContract: configuration.vault)
     }
     struct ShopSignature: Sendable { let header: String; let validBefore: UInt64 }
+    /// Exact, already owner-approved terms reserved by the durable coordinator.
+    /// This method signs only; it does not broadcast or fetch merchant content.
+    func signExternalPayment(_ approval: PaymentApproval) async throws -> String {
+        try approval.validate(now: UInt64(Date().timeIntervalSince1970))
+        guard let ownerWallet,
+              ownerWallet.address.lowercased() == approval.authorization.from.lowercased() else {
+            throw ExternalPaymentError.invalidAuthorization
+        }
+        let a = approval.authorization
+        let typed = Self.shopTypedData(authorization: ["from": a.from, "to": a.to, "value": a.value,
+            "validAfter": a.validAfter, "validBefore": a.validBefore, "nonce": a.nonce])
+        return try await ownerWallet.provider.request(.ethSignTypedDataV4(address: ownerWallet.address, typedData: typed))
+    }
     /// Called only by the deterministic, exact-order purchase approval screen.
     /// This signs one Arc Testnet USDC transfer, never a general allowance.
     func signShopPayment(order: AgeShopOrder, required: ShopPaymentRequirements,

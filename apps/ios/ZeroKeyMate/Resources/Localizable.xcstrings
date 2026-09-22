@@ -9481,6 +9481,854 @@
           }
         }
       }
+    },
+    "Connected services": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected services"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続サービス"
+          }
+        }
+      }
+    },
+    "Checking price": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking price"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "価格を確認中"
+          }
+        }
+      }
+    },
+    "Review this payment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review this payment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払い内容の確認"
+          }
+        }
+      }
+    },
+    "Approve this payment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve this payment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この支払いを承認"
+          }
+        }
+      }
+    },
+    "Requesting the service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requesting the service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスに依頼中"
+          }
+        }
+      }
+    },
+    "Checking the payment on Arc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking the payment on Arc"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arc上の支払いを確認中"
+          }
+        }
+      }
+    },
+    "Check the previous payment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the previous payment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の支払いを確認"
+          }
+        }
+      }
+    },
+    "An unfinished approval": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An unfinished approval"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了の承認"
+          }
+        }
+      }
+    },
+    "Previous payment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous payment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の支払い"
+          }
+        }
+      }
+    },
+    "Payment confirmed · Result received": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment confirmed · Result received"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いと結果の受け取りを確認しました"
+          }
+        }
+      }
+    },
+    "Payment confirmed · Result unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment confirmed · Result unavailable"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いを確認しました・結果は未受信です"
+          }
+        }
+      }
+    },
+    "View transaction": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View transaction"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トランザクションを見る"
+          }
+        }
+      }
+    },
+    "The service returned a binary result.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The service returned a binary result."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスからバイナリ形式の結果を受信しました。"
+          }
+        }
+      }
+    },
+    "The transfer is confirmed, but the service result was not received. A new purchase would be a separate payment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The transfer is confirmed, but the service result was not received. A new purchase would be a separate payment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送金は確認できましたが、サービスの結果は受信できていません。新しい購入は別の支払いになります。"
+          }
+        }
+      }
+    },
+    "Back to services": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to services"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスに戻る"
+          }
+        }
+      }
+    },
+    "Check payment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check payment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いを確認"
+          }
+        }
+      }
+    },
+    "Retry the same request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry the same request"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ依頼を再送"
+          }
+        }
+      }
+    },
+    "Transaction hash, if available": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transaction hash, if available"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トランザクションハッシュが分かる場合"
+          }
+        }
+      }
+    },
+    "Signing was interrupted. A signature may exist, so a new payment is blocked until its outcome is checked.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signing was interrupted. A signature may exist, so a new payment is blocked until its outcome is checked."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "署名の途中で中断されました。署名が存在する可能性があるため、結果を確認するまで新しい支払いは行いません。"
+          }
+        }
+      }
+    },
+    "Signing has not started. You can cancel this unfinished approval.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signing has not started. You can cancel this unfinished approval."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "署名はまだ開始していません。この承認をキャンセルできます。"
+          }
+        }
+      }
+    },
+    "Cancel unfinished approval": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel unfinished approval"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了の承認をキャンセル"
+          }
+        }
+      }
+    },
+    "Approve exact payment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve exact payment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この金額の支払いを承認"
+          }
+        }
+      }
+    },
+    "Add an x402 service, then ask Mate to use it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add an x402 service, then ask Mate to use it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "x402サービスを追加すると、名前を呼んでMateに依頼できます。"
+          }
+        }
+      }
+    },
+    "Add x402 service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add x402 service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "x402サービスを追加"
+          }
+        }
+      }
+    },
+    "Recent payments": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent payments"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近の支払い"
+          }
+        }
+      }
+    },
+    "Arc Testnet · Test USDC only": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arc Testnet · Test USDC only"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arc Testnet・テストUSDCのみ"
+          }
+        }
+      }
+    },
+    "Recipient": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recipient"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送金先"
+          }
+        }
+      }
+    },
+    "Review service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスの確認"
+          }
+        }
+      }
+    },
+    "Name used when speaking to Mate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name used when speaking to Mate"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mateに話しかけるときの名前"
+          }
+        }
+      }
+    },
+    "Maximum per purchase": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maximum per purchase"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1回の購入上限"
+          }
+        }
+      }
+    },
+    "Adding a service does not authorize payments. Review each exact payment before signing.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adding a service does not authorize payments. Review each exact payment before signing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加だけでは支払いを許可しません。毎回、金額と送金先を確認して署名します。"
+          }
+        }
+      }
+    },
+    "Add service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスを追加"
+          }
+        }
+      }
+    },
+    "Change URL": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change URL"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URLを変更"
+          }
+        }
+      }
+    },
+    "Maximum test USDC": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maximum test USDC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テストUSDCの上限"
+          }
+        }
+      }
+    },
+    "Check service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスを確認"
+          }
+        }
+      }
+    },
+    "The service could not be saved. Check its name and get a fresh quote.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The service could not be saved. Check its name and get a fresh quote."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存できませんでした。名前を確認し、価格を再取得してください。"
+          }
+        }
+      }
+    },
+    "This endpoint did not offer a supported Arc Testnet USDC payment within your limit.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This endpoint did not offer a supported Arc Testnet USDC payment within your limit."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限内で対応可能なArc Testnet USDCの支払いが見つかりませんでした。"
+          }
+        }
+      }
+    },
+    "Saved payment state could not be read. No new payment can be made.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved payment state could not be read. No new payment can be made."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存された支払いを読み込めません。新しい支払いは行いません。"
+          }
+        }
+      }
+    },
+    "The payment is not confirmed yet. Its original authorization is retained.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The payment is not confirmed yet. Its original authorization is retained."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いはまだ確認できません。元の支払い許可を保持しています。"
+          }
+        }
+      }
+    },
+    "This request could not finish. Any existing payment is retained; nothing is retried with a new signature.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This request could not finish. Any existing payment is retained; nothing is retried with a new signature."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依頼を完了できませんでした。元の支払いを保持し、新しい署名による再試行は行いません。"
+          }
+        }
+      }
+    },
+    "Approve %@ test USDC for %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve %@ test USDC for %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ テストUSDCの支払いを %@ に承認"
+          }
+        }
+      }
+    },
+    "Check expired authorization": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check expired authorization"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "期限切れの支払い許可を確認"
+          }
+        }
+      }
+    },
+    "The authorization expired unused. You can start a new purchase.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The authorization expired unused. You can start a new purchase."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この支払い許可は未使用のまま期限が切れました。新しく購入できます。"
+          }
+        }
+      }
+    },
+    "This authorization is still active, used, or could not be checked. No new payment was made.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This authorization is still active, used, or could not be checked. No new payment was made."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払い許可は有効・使用済み、または確認できない状態です。新しい支払いは行っていません。"
+          }
+        }
+      }
+    },
+    "Your buyer wallet needs more test USDC. Use the faucet below, then approve again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your buyer wallet needs more test USDC. Use the faucet below, then approve again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用ウォレットのテストUSDCが足りません。下のfaucetで受け取り、もう一度承認してください。"
+          }
+        }
+      }
+    },
+    "The wallet balance could not be checked. Nothing was signed. Please try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The wallet balance could not be checked. Nothing was signed. Please try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残高を確認できませんでした。署名は行っていません。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "Buyer wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buyer wallet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入用ウォレット"
+          }
+        }
+      }
+    },
+    "Get test USDC": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get test USDC"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テストUSDCを受け取る"
+          }
+        }
+      }
+    },
+    "Your service payment is waiting for approval. Nothing has been signed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your service payment is waiting for approval. Nothing has been signed."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスの支払いは承認待ちです。まだ署名していません。"
+          }
+        }
+      }
+    },
+    "Your service payment is not confirmed yet. Open Connected services to check the original payment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your service payment is not confirmed yet. Open Connected services to check the original payment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスの支払いはまだ確認できていません。接続したサービスを開いて、元の支払いを確認してください。"
+          }
+        }
+      }
+    },
+    "Your most recently completed service payment is confirmed on Arc. Its result is saved in Connected services.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your most recently completed service payment is confirmed on Arc. Its result is saved in Connected services."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直近に完了したサービスの支払いはArcで確認済みです。結果は接続したサービスに保存されています。"
+          }
+        }
+      }
+    },
+    "Your most recently completed service payment is confirmed on Arc, but its result is unavailable. No new payment was made.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your most recently completed service payment is confirmed on Arc, but its result is unavailable. No new payment was made."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直近に完了したサービスの支払いはArcで確認済みですが、結果を取得できていません。新たな支払いはしていません。"
+          }
+        }
+      }
+    },
+    "There is no confirmed service payment. Open Connected services to continue.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is no confirmed service payment. Open Connected services to continue."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認済みのサービスの支払いはありません。接続したサービスを開いて続けてください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

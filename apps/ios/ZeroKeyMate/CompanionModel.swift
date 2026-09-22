@@ -45,11 +45,12 @@ private struct PendingRevoke {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection,cardAge,shop;var id:String{rawValue}}
+    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection,cardAge,shop,externalServices;var id:String{rawValue}}
     @Published var sheet:Sheet? {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
-            if sheet == .shop {
+            if sheet == .shop || sheet == .externalServices {
+                lastPurchaseWasExternal = sheet == .externalServices
                 // Release capture before the card reader needs the phone's
                 // hardware. Checkout also awaits the actual stop before NFC.
                 stopVoice(); sensors.stopCapture(); cancelConversation(); requestGeneration = UUID(); sleeping = false
@@ -70,10 +71,10 @@ final class CompanionModel:ObservableObject {
     @Published private(set) var executionStatus:String? {didSet{if executionStatus == nil{executionActivity=nil}}}
     @Published private(set) var executionActivity:CompanionActivity? {didSet{updateStandApproval()}}
     private func updateStandApproval() {
-        sensors.setApprovalPending(executionActivity == .approval || agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules || sheet == .shop)
+        sensors.setApprovalPending(executionActivity == .approval || agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules || sheet == .shop || sheet == .externalServices)
     }
     var activity:CompanionActivity {
-        let approval=agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules || sheet == .shop
+        let approval=agentOffer != nil || revokeOffer != nil || sheet == .disclosure || sheet == .rules || sheet == .shop || sheet == .externalServices
         return .resolve(resting:sleeping || (isResting && !approval && pendingExecution == nil && executionStatus == nil),
             operation:executionActivity ?? (financialBusy || executionStatus != nil ? .thinking:nil),
             pending:pendingExecution != nil,outcome:lastOutcome,approval:approval,
@@ -121,6 +122,10 @@ final class CompanionModel:ObservableObject {
     var voiceSessionActive:Bool{listeningSession.isActive}
     @Published private(set) var awaitingGreeting=false
     private var recognitionLocale:String?
+    private var lastPurchaseWasExternal:Bool {
+        get { UserDefaults.standard.bool(forKey:"last-purchase-external") }
+        set { UserDefaults.standard.set(newValue,forKey:"last-purchase-external") }
+    }
     @Published var sleeping=true
     @Published private(set) var preparingCompanion=false
     var isResting:Bool {
@@ -137,6 +142,7 @@ final class CompanionModel:ObservableObject {
     private var shopReplyLanguage = AppLanguage.english
     private(set) var shopStartsFromVoice = false
     private(set) var shopSelection = ShopSelection.lager
+    private(set) var requestedExternalService: ConnectedPaymentService?
     private var agentOffer:AgentOffer? {didSet{updateStandApproval()}}
     private let conversation:any ConversationResponding
     // A single actor serializes native work across payment and offline screens.
@@ -353,13 +359,33 @@ final class CompanionModel:ObservableObject {
                 }
             }
             do {
+                if ConnectedServiceIntent.requestsList(input) {
+                    self.openExternalServices()
+                    return
+                }
+                // Service names are explicitly registered by the owner. Neither
+                // model output nor merchant content selects a signing target.
+                let services:[ConnectedPaymentService]
+                do {
+                    try ConnectedPaymentServices.shared.load()
+                    services=ConnectedPaymentServices.shared.services
+                } catch { services=[] } // A service-store failure must not disable ordinary conversation.
+                if let name = ConnectedServiceIntent.requestedName(input, names: services.map(\.name)),
+                   let service = services.first(where: { $0.name == name }) {
+                    self.openExternalServices(service)
+                    return
+                }
                 if ShopOrderQuestion.matches(input) {
                     self.agentOffer=nil;self.revokeOffer=nil
                     guard self.stateLoaded else {
                         self.agentSay(replyLanguage == .japanese ? "保存済みの注文を復元しています。ロックを解除してMateを開いてください。" : "I'm still restoring saved orders. Unlock the phone and reopen Mate before checking the result.",language:replyLanguage)
                         return
                     }
-                    if self.pendingExecution == nil && ShopCheckout.hasSavedOrder() {
+                    if self.lastPurchaseWasExternal {
+                        let answer = await ExternalCheckout.savedPaymentAnswer()
+                        guard self.foreground,self.conversationGeneration==generation else{return}
+                        self.agentSay(L10n.text(answer,language:replyLanguage),language:replyLanguage)
+                    } else if self.pendingExecution == nil && ShopCheckout.hasSavedOrder() {
                         let answer = await ShopCheckout.savedOrderAnswer()
                         guard self.foreground, self.conversationGeneration == generation else { return }
                         self.agentSay(L10n.text(answer, language: replyLanguage), language: replyLanguage)
@@ -525,11 +551,22 @@ final class CompanionModel:ObservableObject {
         let language = shopReplyLanguage
         agentSay(language == .japanese ? "テスト購入が完了しました。Arc Testnetで支払いが確認できました。" : "Your test purchase is complete. The payment is confirmed on Arc Testnet.", language: language)
     }
+    func finishExternalConversation(_ completion:PaymentCompletion) {
+        let language=recognitionLocale == "ja-JP" ? AppLanguage.japanese:L10n.speechLanguage
+        let text=completion.receivedResult
+            ? (language == .japanese ? "テスト支払いとサービスの結果を確認できました。結果は画面に表示しています。":"The test payment is confirmed and the service result is on screen.")
+            : (language == .japanese ? "支払いは確認できましたが、サービスの結果は届いていません。新しい支払いは行いません。":"The payment is confirmed, but the service result hasn't arrived. I won't make a new payment.")
+        agentSay(text,language:language)
+    }
     func openShop(language: AppLanguage? = nil, startsFromVoice: Bool = false, selection: ShopSelection = .lager) {
         shopReplyLanguage = language ?? L10n.language
         shopStartsFromVoice = startsFromVoice
         shopSelection = selection
         sheet = .shop
+    }
+    func openExternalServices(_ service: ConnectedPaymentService? = nil) {
+        requestedExternalService = service
+        sheet = .externalServices
     }
     func languagePreferencesChanged() {
         if sheet == .shop {

@@ -71,6 +71,25 @@ final class ProductUITests: XCTestCase {
         closeSheet(app)
         XCTAssertTrue(app.staticTexts["Camera off"].exists)
     }
+    func testExternalServiceRegistrationIsReachableAndNeverStartsPayment() {
+        let app=launch()
+        app.buttons["open-settings"].tap()
+        let services=app.buttons["open-external-services"]
+        XCTAssertTrue(services.waitForExistence(timeout:5));services.tap()
+        XCTAssertTrue(app.navigationBars["Connected services"].waitForExistence(timeout:5))
+        XCTAssertFalse(app.buttons["external-approve"].exists)
+        app.buttons["external-add-service"].tap()
+        XCTAssertTrue(app.navigationBars["Add x402 service"].waitForExistence(timeout:5))
+        let amount=app.textFields["Maximum test USDC"]
+        XCTAssertTrue(amount.isHittable);amount.tap()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout:3));app.buttons["Done"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout:3))
+        capture("external-service-registration")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Connected services"].waitForExistence(timeout:5))
+        closeSheet(app)
+        XCTAssertTrue(app.staticTexts["Camera off"].exists)
+    }
     func testSetupCanBeDeferredAndResumedWithoutStartingSensors() {
         let app=launch()
         XCTAssertTrue(app.staticTexts["Camera off"].exists)

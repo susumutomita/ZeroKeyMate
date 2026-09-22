@@ -248,7 +248,7 @@ struct ShopPurchaseSheet: View {
 
 /// Purchase-specific onboarding keeps the user in the order and does not
 /// require a specialist API, policy vault, deposit approval or execution key.
-private struct ShopWalletConnection: View {
+struct ShopWalletConnection: View {
     @ObservedObject var wallet: WalletService
     @Binding var email: String
     @State private var code = ""
