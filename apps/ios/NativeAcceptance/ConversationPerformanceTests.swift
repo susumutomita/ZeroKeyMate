@@ -51,6 +51,7 @@ final class ConversationPerformanceTests:XCTestCase {
             history += "\nUser: \(prompt)\nMate: \(reply.text)"
             XCTAssertNil(reply.service)
             XCTAssertTrue(reply.disclosure.isEmpty)
+            if index==4 || index==5 {XCTAssertFalse(reply.text.contains("クモ"),"An unrelated new topic must not be redirected to the telescope: \(reply.text)")}
             if index==prompts.count-1 {XCTAssertTrue(reply.text.contains("クモ") || reply.text.contains("くも"),reply.text)}
         }
         #endif

@@ -104,7 +104,7 @@ The age prover uses a pinned **experimental ProveKit Groth16 branch**, an EVM ex
 | Privy | Embedded buyer wallet and exact EIP-712 signing are wired into the completed purchase |
 | Arc / x402 | Live testnet settlement, receipt and explorer link; no mainnet deployment |
 | Two-product catalogue | Public Worker and iPhone build 14 updated; canonical amounts and receipt checks cover both products at quantities 1–5. Fresh physical purchase acceptance remains pending. |
-| Conversation recovery | [Physical model evidence and scope](docs/conversation-device-status.md): short Japanese recall passed; a benign language-switch turn hit a guardrail. Build 14 contains recovery without retrying or putting Mate to sleep. |
+| On-device conversation | [Build 15 physical evidence](docs/conversation-device-status.md): English/Japanese switching, seven-turn recall and tested topic changes passed on iOS 26.7. Prepared first-text latency was 0.49–0.78 s across six fixed-text turns; microphone-to-speaker latency is not claimed. [New live-speech path and iOS 27 compatibility](docs/conversation-latency.md); the OS supplies the LLM. |
 | External x402 services | [Unconnected infrastructure](docs/external-x402.md): restricted challenge/receipt validation and persistent retries tested with fixtures. No external purchase, wallet integration or settlement reconciliation is claimed. |
 | Atomic spending permissions | [Local-only contract](docs/catalogue-budget.md): real ZK, canonical SKU/age, shared budget/count, replay, revocation and transfer rollback tested. Not deployed or connected to x402/native delegation. |
 | The Graph | Arc purchase-history Subgraph source is merged; Studio deployment and a live data-driven purchase decision remain incomplete |
