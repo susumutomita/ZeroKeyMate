@@ -11,7 +11,7 @@ public struct MateAgeNativeResult: Sendable {
     public let publicInputs: [Data]
     public let timing: MateAgeNativeTiming
 }
-/// Local-only durations. Witness construction and Groth16 are one upstream
+/// Local-only durations. Witness construction and proving are one upstream
 /// call, so this does not claim an isolated cryptographic primitive benchmark.
 public struct MateAgeNativeTiming: Sendable, Codable, Equatable {
     public let version: UInt64
@@ -73,6 +73,49 @@ public enum MateAgeNative {
                 inputParseMicroseconds: metrics.input_parse_us, witnessAndProofMicroseconds: metrics.witness_and_proof_us,
                 verifierLoadMicroseconds: metrics.verifier_load_us, verificationMicroseconds: metrics.verify_us,
                 encodingMicroseconds: metrics.encode_us))
+        #else
+        throw MateAgeNativeError.unavailable
+        #endif
+    }
+}
+
+
+/// No credential input and no proof export: this ABI only accepts the fixed,
+/// public synthetic credential compiled into the benchmark runtime.
+public enum MateAgeBenchmarkBackend: UInt32, Sendable { case groth16 = 0, whir = 1 }
+public struct MateAgeNativeBenchmark: Sendable, Codable {
+    public let timing: MateAgeNativeTiming
+    public let serializedProofBytes: UInt64
+    public let changedOrderRejected: Bool
+    public let changedOrderVerificationMicroseconds: UInt64
+}
+public extension MateAgeNative {
+    static func benchmark(proverPath: String, verifierPath: String,
+                          backend: MateAgeBenchmarkBackend) throws -> MateAgeNativeBenchmark {
+        #if canImport(MateAgeRuntime)
+        guard !proverPath.utf8.contains(0), !verifierPath.utf8.contains(0) else {
+            throw MateAgeNativeError.invalidOutput
+        }
+        var result = MateAgeBenchmark()
+        let code = proverPath.withCString { prover in verifierPath.withCString { verifier in
+            mate_age_benchmark(prover, verifier, backend.rawValue, &result)
+        } }
+        guard code == 0 else { throw MateAgeNativeError.rejected(code) }
+        let m = result.timing
+        let durations = [m.prover_load_us, m.input_parse_us, m.witness_and_proof_us,
+                         m.verifier_load_us, m.verify_us, m.encode_us]
+        guard m.version == 1, m.worker_threads == 2, m.total_us > 0,
+              durations.allSatisfy({ $0 <= m.total_us }),
+              durations.reduce(UInt64(0), { $0.addingReportingOverflow($1).overflow ? UInt64.max : $0 + $1 }) <= m.total_us,
+              result.serialized_proof_bytes > 0, result.changed_order_rejected == 1 else {
+            throw MateAgeNativeError.invalidOutput
+        }
+        return MateAgeNativeBenchmark(timing: MateAgeNativeTiming(version: m.version, workerThreads: m.worker_threads,
+            totalMicroseconds: m.total_us, proverLoadMicroseconds: m.prover_load_us,
+            inputParseMicroseconds: m.input_parse_us, witnessAndProofMicroseconds: m.witness_and_proof_us,
+            verifierLoadMicroseconds: m.verifier_load_us, verificationMicroseconds: m.verify_us,
+            encodingMicroseconds: m.encode_us), serializedProofBytes: result.serialized_proof_bytes,
+            changedOrderRejected: true, changedOrderVerificationMicroseconds: result.changed_order_verify_us)
         #else
         throw MateAgeNativeError.unavailable
         #endif

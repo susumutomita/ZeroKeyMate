@@ -108,7 +108,7 @@ The age prover uses a pinned **experimental ProveKit Groth16 branch**, an EVM ex
 | Arc / x402 | Live testnet settlement, receipt and explorer link; no mainnet deployment |
 | Two-product catalogue | Public Worker and iPhone build 14 updated; canonical amounts and receipt checks cover both products at quantities 1–5. Fresh physical purchase acceptance remains pending. |
 | On-device conversation | [Build 15 physical evidence](docs/conversation-device-status.md): English/Japanese switching, seven-turn recall and tested topic changes passed on iOS 26.7. Prepared first-text latency was 0.49–0.78 s across six fixed-text turns; microphone-to-speaker latency is not claimed. [New live-speech path and iOS 27 compatibility](docs/conversation-latency.md); the OS supplies the LLM. |
-| External x402 services | [Unconnected infrastructure](docs/external-x402.md): restricted challenge/receipt validation and persistent retries tested with fixtures. No external purchase, wallet integration or settlement reconciliation is claimed. |
+| External x402 services | [Connected native flow](docs/external-x402.md): owner registration, exact Privy signing adapter, persistent retries, RPC settlement reconciliation and receipt links are implemented. Core/native/UI tests use synthetic fixtures; physical approval and purchases at independent external services remain pending. |
 | Atomic spending permissions | [Local-only contract](docs/catalogue-budget.md): real ZK, canonical SKU/age, shared budget/count, replay, revocation and transfer rollback tested. Not deployed or connected to x402/native delegation. |
 | The Graph | Arc purchase-history Subgraph source is merged; Studio deployment and a live data-driven purchase decision remain incomplete |
 | Smartphone My Number card / World ID / delegated wallet | Not integrated into this checkout |
@@ -184,3 +184,11 @@ The older specialist translation/private-policy vault is a separate local protot
 The human directed the product, privacy constraints, physical-card testing and deployment approvals. Codex assisted with implementation, debugging, tests and documentation; ChatGPT assisted with public technical research. [Development and AI attribution](docs/development-history.md) records known history and reused work. The public MIT-licensed [CircuitBreaker NFC module](https://github.com/knocks-public/2024-CircuitBreaker) is an attributed source, not a new invention. No event eligibility is inferred from a dependency license.
 
 Original project code is [Apache-2.0](LICENSE); retain [third-party notices](docs/THIRD_PARTY_NOTICES.txt). The human-narrated 3:27 submission film, English technical slides, pitch PDF and public visual assets are included. The entrant reported successful ETHOnline submission on September 13, 2026.
+
+### On-device age-proof comparison
+
+The optional [native benchmark](docs/age-proof-benchmark.md) compares Groth16
+and experimental WHIR using the same age circuit and a fixed synthetic
+credential. Settings exposes separate proving, verification, preparation and
+proof-size measurements. This does not switch checkout to WHIR or implement
+a wrapped on-chain verifier. Real-card WHIR remains unavailable.

@@ -10329,6 +10329,310 @@
           }
         }
       }
+    },
+    "Compare age proof engines": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare age proof engines"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢証明エンジンを比較"
+          }
+        }
+      }
+    },
+    "The same age circuit and a fixed synthetic credential. No card scan, personal data, network request or payment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The same age circuit and a fixed synthetic credential. No card scan, personal data, network request or payment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ年齢回路と固定の架空証明書で比較します。カードの読み取り・個人情報・通信・支払いは使いません。"
+          }
+        }
+      }
+    },
+    "Proof engine": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proof engine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明エンジン"
+          }
+        }
+      }
+    },
+    "Run benchmark": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run benchmark"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "計測する"
+          }
+        }
+      }
+    },
+    "Witness + proof": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness + proof"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness作成＋証明生成"
+          }
+        }
+      }
+    },
+    "Verification": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verification"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検証"
+          }
+        }
+      }
+    },
+    "Native total": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Native total"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネイティブ処理全体"
+          }
+        }
+      }
+    },
+    "Resource check": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resource check"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リソースの確認"
+          }
+        }
+      }
+    },
+    "Serialized proof": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serialized proof"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリアライズした証明"
+          }
+        }
+      }
+    },
+    "Modified order rejected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modified order rejected"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更した注文を拒否"
+          }
+        }
+      }
+    },
+    "Thermal state: %lld → %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thermal state: %lld → %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "温度状態: %lld → %lld"
+          }
+        }
+      }
+    },
+    "Share timing report": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share timing report"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "計測結果を共有"
+          }
+        }
+      }
+    },
+    "Age proof benchmark": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age proof benchmark"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年齢証明の計測"
+          }
+        }
+      }
+    },
+    "This benchmark could not run. Install the matching public benchmark resources and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This benchmark could not run. Install the matching public benchmark resources and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "計測を実行できませんでした。対応する公開計測リソースをインストールしてから再実行してください。"
+          }
+        }
+      }
+    },
+    "Native total includes key loading, witness creation, proving, verification and serialization. Resource hashing and the modified-order check are separate. File caches are not controlled; repeat runs before comparing.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Native total includes key loading, witness creation, proving, verification and serialization. Resource hashing and the modified-order check are separate. File caches are not controlled; repeat runs before comparing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネイティブ処理全体にはキー読込・Witness作成・証明生成・検証・シリアライズを含みます。リソースのハッシュ確認と改変注文の検査は別です。ファイルキャッシュは制御していないため、複数回計測して比較してください。"
+          }
+        }
+      }
+    },
+    "WHIR is experimental here. Purchases still use the verified Groth16 path. Wrapped WHIR is unavailable because the upstream recursive verifier is not compatible with this proof format.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WHIR is experimental here. Purchases still use the verified Groth16 path. Wrapped WHIR is unavailable because the upstream recursive verifier is not compatible with this proof format."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WHIRは実験用です。購入には検証済みのGroth16経路を使用します。上流の再帰検証器がこの証明形式に対応していないため、ラップしたWHIRは利用できません。"
+          }
+        }
+      }
+    },
+    "Proof sizes use the native ProveKit file format, not EVM calldata. This benchmark does not establish zero-knowledge privacy, production security or on-chain compatibility.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proof sizes use the native ProveKit file format, not EVM calldata. This benchmark does not establish zero-knowledge privacy, production security or on-chain compatibility."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "証明サイズはEVM calldataではなくProveKitのネイティブ形式です。この計測はゼロ知識性・本番環境の安全性・オンチェーン互換性を保証しません。"
+          }
+        }
+      }
+    },
+    "Service URL": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service URL"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービスURL"
+          }
+        }
+      }
+    },
+    "Enter a limit from 0.000001 to 0.50 test USDC.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a limit from 0.000001 to 0.50 test USDC."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限を0.000001〜0.50 test USDCで入力してください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

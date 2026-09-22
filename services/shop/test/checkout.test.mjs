@@ -19,6 +19,8 @@ function harness(t) {
   db.exec(readFileSync(new URL('../migrations/0002_payment_expiry.sql',import.meta.url),'utf8'));
   db.exec(readFileSync(new URL('../migrations/0003_catalogue.sql',import.meta.url),'utf8'));
   const state={age:true,settles:0,receipt:null,logs:[],updateCount:0,failUpdate:0,now:Math.floor(Date.now()/1000)};
+  // One fixture block has immutable metadata even if wall time crosses a second.
+  const chainTime=state.now;
   const env={SHOP_CHAIN_ID:'5042002',AGE_GATE_ADDRESS:'0x'+'11'.repeat(20),AGE_GATE_CODE_HASH:keccak256('0x6000'),PAYMENT_RECIPIENT:'0x'+'22'.repeat(20),ORDERS:{
     prepare(sql){return {async first(){return db.prepare(sql).get()??null;},bind(...values){return {
       async first(){return db.prepare(sql).get(...values)??null;},
@@ -26,7 +28,7 @@ function harness(t) {
     };}};}
   },API_LIMIT:{async limit(){return {success:true};}},ORDER_CREATION_LIMIT:{async limit(){return {success:true};}}};
   const rpc={async getChainId(){return 5042002;},async getCode(){return '0x6000';},async readContract({args}){return args[2]===0n?false:state.age;},async getBlockNumber(){return 102n;},
-    async getBlock({blockNumber=102n}={}){return {number:blockNumber,hash:blockHash,timestamp:BigInt(Math.floor(Date.now()/1000))};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
+    async getBlock({blockNumber=102n}={}){return {number:blockNumber,hash:blockHash,timestamp:BigInt(chainTime)};},async getTransactionReceipt(){if(!state.receipt)throw new Error('not_found');return state.receipt;},
     async getLogs(){return state.logs;}};
   const facilitator={async verify(){return {isValid:true,payer:'0x'+'33'.repeat(20)};},async settle(){state.settles++;if(state.timeout)throw new Error('timeout');return {success:true,payer:'0x'+'33'.repeat(20),network:NETWORK,transaction};}};
   const supported=async()=>({kinds:[{x402Version:2,network:NETWORK,scheme:'exact'}]});
@@ -36,7 +38,7 @@ function harness(t) {
   const request=(path,method='GET',body,headers={})=>worker.fetch(new Request('https://shop.example/api'+path,{method,headers:{'X-Order-Key':key,...(body===undefined?{}:{'content-type':'application/json'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})}),env);
   async function order(selection={}){const res=await request('/orders','POST',{productId:'mate-lager',quantity:1,payer:'0x'+'33'.repeat(20),...selection});assert.equal(res.status,201);return (await res.json()).order;}
   async function approve(order){assert.equal((await request(`/orders/${order.id}/age`,'POST',{proof:'0x'+'55'.repeat(384),rootKeyHash:'0x'+'66'.repeat(32)})).status,200);}
-  function header(order){const now=Math.floor(Date.now()/1000);return encodePaymentSignatureHeader({x402Version:2,accepted:requirements(order),payload:{signature:'0x'+'44'.repeat(65),authorization:{from:order.payer,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+200),nonce:order.paymentNonce}}});}
+  function header(order){const now=chainTime;return encodePaymentSignatureHeader({x402Version:2,accepted:requirements(order),payload:{signature:'0x'+'44'.repeat(65),authorization:{from:order.payer,to:order.recipient,value:order.amount,validAfter:String(now-1),validBefore:String(now+200),nonce:order.paymentNonce}}});}
   const pay=order=>request(`/orders/${order.id}/pay`,'POST',undefined,{'PAYMENT-SIGNATURE':header(order)});
   function settleReceipt(order,nonce=order.paymentNonce){state.receipt={status:'success',blockNumber:100n,blockHash,logs:[
     {address:USDC,topics:encodeEventTopics({abi:events,eventName:'Transfer',args:{from:order.payer,to:order.recipient}}),data:encodeAbiParameters([{type:'uint256'}],[BigInt(order.amount)])},
@@ -67,6 +69,15 @@ test('water reaches a confirmed payment without submitting or verifying any age 
   assert.equal(paid.state,'complete');assert.equal(paid.paymentTransaction,transaction);
   assert.equal(paid.proof,undefined);assert.equal(h.state.settles,1);
   await h.pay(order);assert.equal(h.state.settles,1);
+});
+test('the checkout fixture keeps one block consistent across wall-clock second boundaries',async t=>{
+  let wallTime=Date.now();t.mock.method(Date,'now',()=>wallTime);
+  const h=harness(t),original=h.rpc.getBlock;
+  h.rpc.getBlock=h.secondary.getBlock=async args=>{wallTime+=1000;return original(args);};
+  const order=await h.order();
+  assert.equal(order.state,'awaiting_age');
+  const first=h.header(order);wallTime+=1000;
+  assert.equal(h.header(order),first,'A retry fixture must reuse the original authorization bytes');
 });
 test('quantity and age policy cannot be changed under an existing order capability',async t=>{
   const h=harness(t),order=await h.order({quantity:2});

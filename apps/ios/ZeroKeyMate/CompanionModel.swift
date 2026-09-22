@@ -45,7 +45,7 @@ private struct PendingRevoke {
 
 @MainActor
 final class CompanionModel:ObservableObject {
-    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection,cardAge,shop,externalServices;var id:String{rawValue}}
+    enum Sheet:String,Identifiable {case welcome,controls,conversation,settings,setup,rules,wallet,identity,activity,disclosure,localProof,connection,cardAge,shop,externalServices,ageBenchmark;var id:String{rawValue}}
     @Published var sheet:Sheet? {
         didSet {
             if financialBusy && oldValue != nil && oldValue != sheet { requestGeneration=UUID() }
@@ -58,7 +58,7 @@ final class CompanionModel:ObservableObject {
                 rest()
                 // Opening an explicit request screen is a new user interaction, not
                 // sensor consent. Existing approval guards still require an awake app.
-                if [.setup,.rules,.wallet,.identity,.disclosure,.localProof,.connection].contains(sheet){sleeping=false}
+                if [.setup,.rules,.wallet,.identity,.disclosure,.localProof,.connection,.ageBenchmark].contains(sheet){sleeping=false}
             }
             updateStandApproval()
         }

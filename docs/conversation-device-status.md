@@ -68,3 +68,19 @@ The deterministic iOS 27 simulator regression passed 19 tests; three physical
 model checks were explicitly skipped there. The physical model fixtures ran on
 the phone rather than inferring success from simulator model availability.
 See [the live-speech implementation and compatibility boundaries](conversation-latency.md).
+
+## September 22: iOS 27 update
+
+A fresh CoreDevice query confirms the physical iPhone 16 Pro has been updated
+to **iOS 27.0 (24A437)**. The app continues to select
+`SystemLanguageModel.default`; it does not pin the previous OS model or route
+conversation to a cloud model. This establishes the OS version, not the new
+model's local availability or response quality.
+
+The updated app passed a signed Xcode 27.0 build and bundle checks. Transfer
+and physical acceptance could not complete because CoreDevice stopped
+establishing its RSD connection to the paired phone. Therefore the timings
+above remain **iOS 26.7 build 15 measurements**. No iOS 27 first-token, spoken
+response or quality result is claimed. Resume the fixed synthetic conversation
+and PCM checks after restoring the device connection, then measure actual
+speech-end to audible-reply latency separately.

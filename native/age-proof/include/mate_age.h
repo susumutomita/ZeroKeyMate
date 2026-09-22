@@ -27,4 +27,14 @@ int32_t mate_age_prove_measured(const char *prover_path, const char *verifier_pa
     MateAgeMetrics *metrics);
 // Ethereum Keccak-256 for local order-material verification. Not SHA3-256.
 int32_t mate_age_keccak256(const uint8_t *input, size_t input_len, uint8_t *out, size_t out_len);
+// Fixed synthetic credential only. No caller-supplied identity or proof output.
+// Both modes run exactly the same statement/input. Serialized size is the native
+// ProveKit file format, not EVM calldata. Changed-order verification is timed
+// separately and excluded from timing.total_us.
+typedef struct {
+    MateAgeMetrics timing;
+    uint64_t serialized_proof_bytes, changed_order_rejected, changed_order_verify_us;
+} MateAgeBenchmark;
+int32_t mate_age_benchmark(const char *prover_path, const char *verifier_path,
+    uint32_t backend, MateAgeBenchmark *result);
 #endif

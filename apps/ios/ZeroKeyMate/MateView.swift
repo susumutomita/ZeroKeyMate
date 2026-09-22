@@ -43,6 +43,7 @@ struct MateView:View {
                         case .identity:IdentitySheet(model:model)
                         case .activity:ActivitySheet(model:model)
                         case .disclosure:DisclosureSheet(model:model)
+                        case .ageBenchmark:AgeBenchmarkSheet()
                         case .localProof:LocalProofSheet(proofs:model.proofs) { model.makeDraft(service:.translation) }
                         case .connection:ConnectionSheet(model:model)
                         case .cardAge:CardAgeSheet()
@@ -447,6 +448,7 @@ private struct SettingsSheet:View {
                 Button("Mate's beer order"){model.openShop()}.accessibilityIdentifier("open-shop")
                 Button("Connected services"){model.openExternalServices()}.accessibilityIdentifier("open-external-services")
                 Button(L10n.text(UserDefaults.standard.string(forKey:model.setupCheckpointKey) == nil ? "Set up external requests":"Resume external request setup")){model.sheet = .setup}.accessibilityIdentifier("open-setup")
+                Button("Age proof benchmark"){model.sheet = .ageBenchmark}.accessibilityIdentifier("open-age-benchmark")
                 Button("Try private rules on this device"){model.sheet = .localProof}.accessibilityIdentifier("open-local-proof")
                 Button { model.sheet = .cardAge } label: {
                     Text("Age verification").frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
