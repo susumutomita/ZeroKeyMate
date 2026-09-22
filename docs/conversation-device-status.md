@@ -92,3 +92,37 @@ implementation now includes typed visible history and the continuity fixes
 described in [the conversation quality report](conversation-quality.md). That
 report includes an actual Mac local-model run, clearly separated from phone
 acceptance. No newer iPhone speech or model-quality result is claimed here.
+
+## September 22: build 18 installed on iOS 27
+
+After the owner connected the phone to the same Wi-Fi, a live CoreDevice probe
+confirmed the local-network connection. Build 18 from main `2ce10a9` was signed,
+installed and launched with the existing native prover and shop configuration.
+
+Four fixed-text/model-availability tests ran on iPhone 16 Pro / iOS 27.0
+(24A437): three passed and one failed. The failure repeatedly brought up the
+old telescope name in unrelated reading/rest replies. Manual inspection also
+found greetings asking about an order without a purchase request. Language
+switching and Japanese recall passed their original checks. These results
+expose remaining quality problems rather than establish acceptance.
+
+The [raw synthetic replies](evidence/conversation-ios27-build18-2026-09-22.json)
+include the failed case. No microphone, camera, card or payment was used.
+SpeechTranscriber was available, including installed Japanese and US English
+models. Audible-response latency and DockKit are not covered by these tests.
+
+## Build 19: grounded weather, general conversation still needs acceptance
+
+Weather now uses a separate live-data path described in
+[weather conversation](weather-conversation.md). The local-model instruction
+removes order-specific priming and says it cannot check current external facts.
+The greeting fixture now also rejects unsolicited order/purchase language.
+This instruction is not a general factuality guarantee.
+
+Two broader instruction revisions failed Mac recall checks and were discarded.
+The retained, smaller revision passed all 18 existing assertions on the Mac;
+[raw synthetic replies](evidence/conversation-weather-build19-mac-2026-09-22.json)
+are included. Manual review nevertheless found an invented first-person meeting
+experience ("私も会議が長かった。") that those assertions do not measure. This
+run is therefore **not a general conversation-quality pass**, nor phone evidence.
+The build 18 physical failures above remain unresolved until a new phone run.

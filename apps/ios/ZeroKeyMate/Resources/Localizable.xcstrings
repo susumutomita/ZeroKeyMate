@@ -10633,6 +10633,38 @@
           }
         }
       }
+    },
+    "Conversation runs on your iPhone. Weather questions share the city you provide with Open-Meteo. Paid services still require your review.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation runs on your iPhone. Weather questions share the city you provide with Open-Meteo. Paid services still require your review."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話はiPhone内で処理します。天気を聞くと、指定した都市名をOpen-Meteoに送ります。有料サービスは内容を確認してから利用します。"
+          }
+        }
+      }
+    },
+    "Forecast source": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forecast source"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予報の出典"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

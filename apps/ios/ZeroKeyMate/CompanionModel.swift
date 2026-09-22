@@ -9,6 +9,7 @@ struct ConversationMessage:Identifiable,Sendable {
     let id=UUID()
     let isUser:Bool
     let text:String
+    var sourceURL:URL?=nil
 }
 struct DisclosureDraft:Identifiable,Sendable {
     let id=UUID()
@@ -521,7 +522,7 @@ final class CompanionModel:ObservableObject {
                     })
                 try Task.checkCancellation()
                 guard self.foreground,self.conversationGeneration==generation else{return}
-                self.messages.append(ConversationMessage(isUser:false,text:response.text))
+                self.messages.append(ConversationMessage(isUser:false,text:response.text,sourceURL:response.sourceURL))
                 if let service=response.service,!response.disclosure.isEmpty {
                     self.draft=DisclosureDraft(service:service,text:response.disclosure)
                 }

@@ -84,7 +84,7 @@ private actor FirstChunk {
             try await turn("language-switch-recall", "望遠鏡の名前、何にしたか覚えてる？",
                            check: { ($0.lowercased().contains("nimbus") || $0.contains("ニンバス")) && !$0.contains("Amazon") })
             try await turn("ordinary-idiom", "Get some rest, Mate.", language: "English",
-                           check: { !$0.lowercased().contains("purchase") && !$0.lowercased().contains("budget") && $0 != "Get some rest, Mate." })
+                           check: { isEnglish($0) && !$0.lowercased().contains("purchase") && !$0.lowercased().contains("budget") && !$0.lowercased().contains("get some rest") })
 
             history = []
             try await turn("clear-context", "覚えて。私の犬の名前はポチです。")

@@ -1,0 +1,11 @@
+{
+  "forecastDate" : "2026-09-22",
+  "physicalLocationUsed" : false,
+  "place" : "横浜市, 神奈川県, 日本",
+  "replyEnglish" : "Open-Meteo forecasts partly cloudy skies in 横浜市, 神奈川県, 日本 on 2026-09-22, with a low of 24°C and a high of 30°C. Chance of precipitation: 36%.",
+  "replyJapanese" : "Open-Meteoの予報では、横浜市, 神奈川県, 日本の2026-09-22は晴れ時々くもり。最低24度、最高30度です。降水確率は36%です。",
+  "retrievedAt" : "2026-09-22T08:46:21Z",
+  "sourceURL" : "https:\/\/api.open-meteo.com\/v1\/forecast?current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=3&latitude=35.43333&longitude=139.65&temperature_unit=celsius&timezone=Asia\/Tokyo",
+  "syntheticCityQuery" : "横浜",
+  "weatherCode" : 2
+}
