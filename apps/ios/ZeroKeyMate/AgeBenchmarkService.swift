@@ -19,6 +19,8 @@ actor AgeBenchmarkService {
         let preparationMicroseconds: UInt64
         let native: MateAgeNativeBenchmark
         let syntheticOnly: Bool
+        let physicalDevice: Bool
+        let appBuild: String
         let sourceRevision: String
         let statementSHA256: String
         let fixtureSHA256: String
@@ -45,10 +47,16 @@ actor AgeBenchmarkService {
         let device = withUnsafeBytes(of: &machine.machine) { raw in
             String(decoding: raw.prefix(while: { $0 != 0 }), as: UTF8.self)
         }
+        #if targetEnvironment(simulator)
+        let physical = false
+        #else
+        let physical = true
+        #endif
         return Report(id: UUID(), backend: backend,
             operatingSystem: ProcessInfo.processInfo.operatingSystemVersionString, device: device,
             thermalBefore: before, thermalAfter: ProcessInfo.processInfo.thermalState.rawValue,
             preparationMicroseconds: preparation, native: result, syntheticOnly: true,
+            physicalDevice: physical, appBuild: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown",
             sourceRevision: Self.sourceRevision, statementSHA256: AgeProofPins.statementSHA256,
             fixtureSHA256: Self.fixtureSHA256)
     }
