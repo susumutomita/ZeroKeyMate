@@ -61,7 +61,9 @@ The device probe on September 22, 2026 still reported iOS 26.7 (23H24).
 - Revised volatile text replaces its old audio range. A finalized **range** does
   not end a conversational turn. After endpointing, Mate stops microphone input
   and waits for corrected final text before routing a request. Finalization
-  failure, overflow or a three-second timeout submits nothing.
+  failure, overflow or a three-second timeout submits nothing. The tap only
+  copies into a bounded raw queue; a serial worker converts and flushes into a
+  second bounded analyzer queue. It never waits for conversion in the tap.
 - The new input path combines acoustic activity (PCM RMS >= 0.008) with text
   stability: 900 ms without detected activity and 300 ms without a text change.
   Without an acoustic activity signal, the previous 1.2-second text bound is
@@ -78,7 +80,9 @@ The device probe on September 22, 2026 still reported iOS 26.7 (23H24).
   no-retry recovery as iOS 26.
 
 This is still alternating listening/generation/speech, with explicit interruption,
-not full-duplex voice or an independently upgraded LLM. Camera permission,
+not full-duplex voice or an independently upgraded LLM. The compatibility
+SFSpeechRecognizer path retains its previous stable-text endpoint; final-text
+correction protection above applies to the new SpeechTranscriber path. Camera permission,
 background/Rest behavior and purchase authorization are unchanged.
 
 `LiveSpeechTests` exercise finalized corrections, cancellation during preparation,

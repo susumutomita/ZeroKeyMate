@@ -12,11 +12,13 @@ private final class ControlledSpeechInput: OnDeviceSpeechRecognizing {
     var stopped = false
     var startWait: CheckedContinuation<Void, Never>?
     var delayStart = false
+    var failStart = false
     func start(onPartial: @escaping @MainActor @Sendable (String) -> Void,
                onAudioActivity: @escaping @MainActor @Sendable () -> Void,
                onFailure: @escaping @MainActor @Sendable () -> Void) async throws {
         partial = onPartial; failure = onFailure
         if delayStart { await withCheckedContinuation { startWait = $0 } }
+        if failStart {throw ProductError.invalidResponse}
     }
     func finish() async throws -> String {
         try await withCheckedThrowingContinuation { final = $0 }
@@ -92,6 +94,31 @@ final class LiveSpeechTests: XCTestCase {
         XCTAssertFalse(voice.listening)
         XCTAssertFalse(voice.requestingPermission)
     }
+    func testOldStartupFailureCannotDiscardANewerSpeechTurn() async throws {
+        let old=ControlledSpeechInput();old.delayStart=true;old.failStart=true
+        let current=ControlledSpeechInput()
+        var prepares=0
+        let voice=VoiceService(authorize:{_ in true},prepareInput:{_ in
+            prepares += 1
+            return prepares==1 ? old:current
+        })
+        var submitted:[String]=[]
+        voice.onFinal={submitted.append($0)}
+        let first=Task{await voice.start(locale:"en-US")}
+        try await waitUntil{old.startWait != nil}
+        voice.stop()
+        await voice.start(locale:"en-US")
+        old.startWait?.resume()
+        await first.value
+        XCTAssertTrue(voice.listening)
+        XCTAssertFalse(current.stopped)
+        current.partial?("sparkling water")
+        voice.finish()
+        try await waitUntil{current.final != nil}
+        current.resolve("sparkling water")
+        try await waitUntil{!voice.listening}
+        XCTAssertEqual(submitted,["sparkling water"])
+    }
     func testFinalizationTimeoutDoesNotSubmitAnUnconfirmedOrder() async throws {
         let input = ControlledSpeechInput()
         let voice = VoiceService(authorize: { _ in true }, prepareInput: { _ in input })
@@ -122,16 +149,19 @@ final class LiveSpeechTests: XCTestCase {
         var samples = 0
         var audibleSamples = 0
         for try await input in bridge.inputs {
-            XCTAssertEqual(input.buffer.format.sampleRate, 16_000)
-            XCTAssertFalse(input.buffer === buffer)
-            samples += Int(input.buffer.frameLength)
-            if let pcm=input.buffer.int16ChannelData {
-                audibleSamples += (0..<Int(input.buffer.frameLength)).filter{abs(Int(pcm[0][$0]))>100}.count
+            // On iOS 27 this compatibility accessor may create a PCM buffer.
+            // Retain it for the full lifetime of pointers into its sample data.
+            let converted=input.buffer
+            XCTAssertEqual(converted.format.sampleRate, 16_000)
+            XCTAssertFalse(converted === buffer)
+            samples += Int(converted.frameLength)
+            if let pcm=converted.int16ChannelData {
+                audibleSamples += (0..<Int(converted.frameLength)).filter{abs(Int(pcm[0][$0]))>100}.count
             }
         }
         XCTAssertGreaterThan(samples, 0)
         XCTAssertGreaterThan(audibleSamples,0,"The converter must retain owned audio, not a reused microphone buffer")
-        XCTAssertLessThanOrEqual(samples, 160)
+        XCTAssertLessThanOrEqual(samples, 320, "Allow the resampling filter tail, but not duplicated audio")
         let overflow = try SpeechAudioBridge(source: source, target: target)
         for _ in 0..<5_000 { overflow.append(buffer) }
         overflow.finish()

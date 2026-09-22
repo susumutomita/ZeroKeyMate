@@ -80,14 +80,17 @@ final class VoiceService:NSObject,ObservableObject,AVSpeechSynthesizerDelegate {
                 beginTurn(token:token)
                 return
             }catch{
-                modern.stop();modernInput=nil;turn=nil
-                guard generation==token,!Task.isCancelled else{return}
+                modern.stop()
+                guard generation==token else{return}
+                guard !Task.isCancelled else{stopListening();return}
+                modernInput=nil;turn=nil;transcript=""
                 // Setup may fail before capture is usable. Try only the existing
                 // on-device recognizer, never an online transcription request.
             }
         }
         guard let recognizer=SFSpeechRecognizer(locale:inputLocale),recognizer.isAvailable,
               recognizer.supportsOnDeviceRecognition else {
+            stopListening()
             errorMessage="On-device speech recognition is unavailable for the selected language. Continue with the keyboard; audio will not be sent to the cloud.";return
         }
         do {

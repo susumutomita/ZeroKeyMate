@@ -128,25 +128,29 @@ final class OnDeviceSpeechInput: OnDeviceSpeechRecognizing {
         guard !stopped else { return }
         stopped = true
         stopCapture()
+        bridge?.cancel()
         resultTask?.cancel(); resultTask = nil
         analysisTask?.cancel(); analysisTask = nil
         Task { [analyzer] in await analyzer.cancelAndFinishNow() }
     }
 }
 
-/// The audio tap is its sole producer; AVAudioConverter never crosses onto the
-/// main actor. Only converted, owned PCM buffers enter a bounded in-memory queue.
+/// The tap only copies reusable microphone memory into a bounded raw queue.
+/// One detached worker owns both converters, acoustic analysis and flushing.
+/// The second bounded queue supplies owned converted input to SpeechAnalyzer.
 final class SpeechAudioBridge: @unchecked Sendable {
     let inputs: AsyncThrowingStream<AnalyzerInput, Error>
     private let continuation: AsyncThrowingStream<AnalyzerInput, Error>.Continuation
+    private struct OwnedAudio: @unchecked Sendable { let buffer:AVAudioPCMBuffer }
+    private let raw:AsyncThrowingStream<OwnedAudio,Error>
+    private let rawContinuation:AsyncThrowingStream<OwnedAudio,Error>.Continuation
+    private var worker:Task<Void,Never>?
     private let converter: AVAudioConverter
     private let target: AVAudioFormat
     private let modernConvert: ((AVAudioPCMBuffer) throws -> [AnalyzerInput])?
     private let modernFlush: (() throws -> [AnalyzerInput])?
     private let onAudioActivity: @Sendable () -> Void
     private var framesSinceActivity: Double = 0
-    private let lock=NSLock()
-    private var finished=false
     init(source: AVAudioFormat, target: AVAudioFormat, onAudioActivity: @escaping @Sendable () -> Void = {}) throws {
         guard let converter = AVAudioConverter(from: source, to: target) else { throw ProductError.invalidResponse }
         self.converter = converter; self.target = target; self.onAudioActivity = onAudioActivity
@@ -162,10 +166,40 @@ final class SpeechAudioBridge: @unchecked Sendable {
         #endif
         let pair = AsyncThrowingStream<AnalyzerInput, Error>.makeStream(bufferingPolicy: .bufferingOldest(64))
         inputs = pair.stream; continuation = pair.continuation
+        let rawPair=AsyncThrowingStream<OwnedAudio,Error>.makeStream(bufferingPolicy:.bufferingOldest(64))
+        raw=rawPair.stream;rawContinuation=rawPair.continuation
+        worker=Task.detached(priority:.userInitiated){[self] in
+            do {
+                for try await audio in raw {
+                    try Task.checkCancellation()
+                    try convert(audio.buffer)
+                }
+                try Task.checkCancellation()
+                try flush()
+                continuation.finish()
+            }catch{
+                rawContinuation.finish(throwing:error)
+                continuation.finish(throwing:error)
+            }
+        }
     }
-    func append(_ buffer: AVAudioPCMBuffer) {
-        lock.lock();defer{lock.unlock()}
-        guard !finished else{return}
+    func append(_ buffer:AVAudioPCMBuffer) {
+        do {
+            // Apple's converter may retain this storage across calls. Never
+            // enqueue the engine's reusable tap buffer itself.
+            let owned=OwnedAudio(buffer:try Self.ownedCopy(of:buffer))
+            if case .dropped = rawContinuation.yield(owned) {
+                rawContinuation.finish(throwing:ProductError.invalidResponse)
+            }
+        }catch{rawContinuation.finish(throwing:error)}
+    }
+    func finish(){rawContinuation.finish()}
+    func cancel(){
+        worker?.cancel()
+        rawContinuation.finish(throwing:CancellationError())
+        continuation.finish(throwing:CancellationError())
+    }
+    private func convert(_ buffer:AVAudioPCMBuffer) throws {
         framesSinceActivity += Double(buffer.frameLength)
         if framesSinceActivity >= buffer.format.sampleRate * 0.1,
            let channels = buffer.floatChannelData, buffer.frameLength > 0 {
@@ -176,15 +210,12 @@ final class SpeechAudioBridge: @unchecked Sendable {
             }
         }
         if let modernConvert {
-            // AVAudioEngine may reuse tap memory after this callback. The
-            // iOS 27 converter can retain its input until a later convert/flush.
-            do {for input in try modernConvert(Self.ownedCopy(of:buffer)) {yield(input)}}
-            catch {continuation.finish(throwing:ProductError.invalidResponse)}
+            for input in try modernConvert(buffer) {try yield(input)}
             return
         }
         let capacity = AVAudioFrameCount(ceil(Double(buffer.frameLength) * target.sampleRate / buffer.format.sampleRate)) + 32
         guard let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else {
-            continuation.finish(throwing: ProductError.invalidResponse); return
+            throw ProductError.invalidResponse
         }
         var supplied = false
         var error: NSError?
@@ -193,9 +224,9 @@ final class SpeechAudioBridge: @unchecked Sendable {
             supplied = true; inputStatus.pointee = .haveData; return buffer
         }
         guard error == nil, status != .error else {
-            continuation.finish(throwing: ProductError.invalidResponse); return
+            throw ProductError.invalidResponse
         }
-        if output.frameLength > 0 {yield(AnalyzerInput(buffer: output))}
+        if output.frameLength > 0 {try yield(AnalyzerInput(buffer: output))}
     }
     static func ownedCopy(of buffer:AVAudioPCMBuffer) throws -> AVAudioPCMBuffer {
         guard let copy=AVAudioPCMBuffer(pcmFormat:buffer.format,frameCapacity:buffer.frameLength) else {
@@ -212,30 +243,25 @@ final class SpeechAudioBridge: @unchecked Sendable {
         }
         return copy
     }
-    private func yield(_ input: AnalyzerInput) {
+    private func yield(_ input: AnalyzerInput) throws {
         if case .dropped = continuation.yield(input) {
             // Never silently lose words and submit a different order.
-            continuation.finish(throwing: ProductError.invalidResponse)
+            throw ProductError.invalidResponse
         }
     }
-    // Called only after the tap has been removed, so conversion is no longer
-    // running. Flush iOS 27's native converter before closing the sequence.
-    func finish() {
-        lock.lock();defer{lock.unlock()}
-        guard !finished else{return};finished=true
+    // The conversion worker drains raw input before flushing, in the same task.
+    private func flush() throws {
         if let modernFlush {
-            do {for input in try modernFlush() {yield(input)}}
-            catch {continuation.finish(throwing:ProductError.invalidResponse);return}
+            for input in try modernFlush() {try yield(input)}
         } else {
             for _ in 0..<8 {
                 guard let output=AVAudioPCMBuffer(pcmFormat:target,frameCapacity:1024) else{break}
                 var error:NSError?
                 let status=converter.convert(to:output,error:&error){_,state in state.pointee = .endOfStream;return nil}
-                guard error==nil,status != .error else{continuation.finish(throwing:ProductError.invalidResponse);return}
-                if output.frameLength>0{yield(AnalyzerInput(buffer:output))}
+                guard error==nil,status != .error else{throw ProductError.invalidResponse}
+                if output.frameLength>0{try yield(AnalyzerInput(buffer:output))}
                 if status == .endOfStream || output.frameLength==0{break}
             }
         }
-        continuation.finish()
     }
 }
