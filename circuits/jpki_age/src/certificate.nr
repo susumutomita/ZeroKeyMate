@@ -78,11 +78,16 @@ pub fn fields(bytes: [u8; 2048], length: u32, reference_time: u64, expires_at: u
 // J-LIS profile 3.2, physical signing certificate, printed page 10.
 // Process the mandatory critical extension; never ignore unknown critical OIDs
 // or accept the mobile/authentication certificate policy in its place.
+// The JPKI test environment (O=JPKI-TEST) issues test cards under
+// 1.2.392.200149.8.5.1.0.20 instead of 1.2.392.200149.8.5.1.1.20; the rest of
+// the profile is identical. Both are accepted here. Which environment a proof
+// comes from is decided by the root key pinned in the gate, not by this OID.
 fn signing_policy(bytes: [u8;2048], extension: Node) {
     let policies = expect(bytes,extension.content,extension.end,48); assert(policies.end == extension.end);
     let policy = expect(bytes,policies.content,policies.end,48); assert(policy.end == policies.end);
     let oid = expect(bytes,policy.content,policy.end,6);
-    assert(same(bytes,oid,[42,131,8,140,155,85,8,5,1,1,20]), "Physical signing policy required");
+    assert(same(bytes,oid,[42,131,8,140,155,85,8,5,1,1,20]) | same(bytes,oid,[42,131,8,140,155,85,8,5,1,0,20]),
+           "Physical signing policy required");
     let qualifiers = expect(bytes,oid.end,policy.end,48); assert(qualifiers.end == policy.end);
     let qualifier = expect(bytes,qualifiers.content,qualifiers.end,48); assert(qualifier.end == qualifiers.end);
     let kind = expect(bytes,qualifier.content,qualifier.end,6);
