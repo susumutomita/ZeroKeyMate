@@ -27,8 +27,8 @@ case "${1:-project}" in
     if [[ "${MATE_NESTED_SANDBOX:-0}" == 1 ]]; then
       extra=(-IDEPackageSupportDisableManifestSandbox=YES 'OTHER_SWIFT_FLAGS=$(inherited) -disable-sandbox')
     fi
-    destination='generic/platform=iOS Simulator';derived=DerivedData
-    if [[ "$1" == device ]]; then destination='generic/platform=iOS';derived=DerivedDataDevice;fi
+    destination='generic/platform=iOS Simulator';derived="${MATE_IOS_DERIVED_DATA:-DerivedData}"
+    if [[ "$1" == device ]]; then destination='generic/platform=iOS';derived="${MATE_IOS_DERIVED_DATA:-DerivedDataDevice}";fi
     action=(CODE_SIGNING_ALLOWED=NO build)
     if [[ "$1" == test ]]; then
       id="$(python3 scripts/select-simulator.py)"

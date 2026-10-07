@@ -66,7 +66,7 @@ final class CompanionModel:ObservableObject {
         }
     }
     @Published var errorMessage:String? { didSet { if errorMessage != nil { stopVoice() } } }
-    @Published private(set) var messages:[ConversationMessage]=[]
+    @Published private(set) var messages:[ConversationMessage]=[] {didSet {localMemorySearch.invalidateCorpus()}}
     @Published private(set) var thinking=false
     @Published private(set) var searchingWeb=false
     @Published private(set) var streamingReply=""
@@ -116,7 +116,7 @@ final class CompanionModel:ObservableObject {
         agentOffer=nil;draft=nil;providers=[];discoveryEvidence=nil
     }
     @Published private(set) var ruleDraft:RuleProposal?
-    @Published var localNotes=""
+    @Published var localNotes="" {didSet {localMemorySearch.invalidateCorpus()}}
     @Published var readAloud=true
     @Published var continuousConversation=false {
         didSet{if !continuousConversation{stopVoice()}}
@@ -149,6 +149,7 @@ final class CompanionModel:ObservableObject {
     private(set) var requestedExternalService: ConnectedPaymentService?
     private var agentOffer:AgentOffer? {didSet{updateStandApproval()}}
     private let conversation:any ConversationResponding
+    let localMemorySearch=LocalMemorySearch()
     // A single actor serializes native work across payment and offline screens.
     let proofs=ProofService()
     private var network:NetworkService
@@ -189,6 +190,8 @@ final class CompanionModel:ObservableObject {
             .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.rest()}.store(in:&notifications)
         NotificationCenter.default.publisher(for:AVAudioSession.mediaServicesWereResetNotification)
             .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.rest()}.store(in:&notifications)
+        NotificationCenter.default.publisher(for:UIApplication.didReceiveMemoryWarningNotification)
+            .receive(on:DispatchQueue.main).sink{[weak self] _ in self?.localMemorySearch.memoryWarning()}.store(in:&notifications)
     }
     func start() async {
         guard !started else{return};started=true
@@ -269,7 +272,7 @@ final class CompanionModel:ObservableObject {
     func clearRuleDraft() { ruleDraft=nil }
     func setForeground(_ active:Bool) {
         foreground=active;sensors.setForeground(active)
-        if !active{rest()}
+        if !active{rest();localMemorySearch.stop()}
         else if !stateLoaded {Task{await start()}}
     }
     func stopVoice(){listeningSession.stop();awaitingGreeting=false;preparingCompanion=false;voice.stop()}
