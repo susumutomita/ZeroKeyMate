@@ -1,10 +1,11 @@
 {
-  "date_utc": "2026-10-08",
+  "date_utc": "2026-10-07",
   "environment": {
     "macOS": "26.6.2 (25G83)",
     "Xcode": "27.0 (27A266a)",
     "iOS_simulator": "27.0 (24A434)",
-    "architecture": "arm64"
+    "architecture": "arm64",
+    "host_timezone": "Asia/Tokyo"
   },
   "model": {
     "revision": "9be6e8b90982095dc05c2bd162e4b954ee4dbac7",
@@ -62,7 +63,8 @@
       ]
     },
     "ios_lifecycle_probe": "passed actual download, cancellation after progress, partial cleanup, SHA256 and retrieval/deletion",
-    "mac_real_inference": "passed low-memory guard, four bilingual queries and corpus deletion"
+    "mac_real_inference": "passed low-memory guard, four bilingual queries and corpus deletion",
+    "make_build_device": "passed unsigned arm64 build; not installed or run on an iPhone"
   },
   "fixtures": "Public pinned weights and synthetic bicycle, tea and astronomy sentences only. No user or company private data.",
   "host_workaround": "DerivedData under /tmp; Documents framework test loading stopped in dyld. No privacy settings changed.",
