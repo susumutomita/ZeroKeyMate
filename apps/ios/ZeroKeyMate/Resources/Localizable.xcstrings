@@ -11498,18 +11498,18 @@
         }
       }
     },
-    "This is an early preview. The model uses about 165 MB of storage and requires at least 4 GB of device memory. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes.": {
+    "This is an early preview. The download is about 165 MB; preparing it uses additional storage for a model cache. At least 4 GB of device memory is required. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This is an early preview. The model uses about 165 MB of storage and requires at least 4 GB of device memory. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes."
+            "value": "This is an early preview. The download is about 165 MB; preparing it uses additional storage for a model cache. At least 4 GB of device memory is required. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "初期プレビュー版です。モデルには約165 MBの空き容量と4 GB以上の端末メモリが必要です。索引はメモリ内にのみ保持し、対象の変更、検索画面を閉じた時、バックグラウンド移行時に破棄します。会話を消去すると、そのメッセージは検索できなくなります。メモは別途内容を消して保存してください。"
+            "value": "初期プレビュー版です。ダウンロードは約165 MBで、準備には重みキャッシュ用の追加容量が必要です。4 GB以上の端末メモリが必要です。索引はメモリ内にのみ保持し、対象の変更、検索画面を閉じた時、バックグラウンド移行時に破棄します。会話を消去すると、そのメッセージは検索できなくなります。メモは別途内容を消して保存してください。"
           }
         }
       }
@@ -11562,18 +11562,18 @@
         }
       }
     },
-    "The iOS preview has not passed acceptance testing. Conversation and existing search are unchanged.": {
+    "This build does not include the local embedding runtime. Conversation and existing search remain available.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The iOS preview has not passed acceptance testing. Conversation and existing search are unchanged."
+            "value": "This build does not include the local embedding runtime. Conversation and existing search remain available."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOSプレビューは動作検証を完了していません。会話と既存の検索はこれまでどおり利用できます。"
+            "value": "このビルドには端末内埋め込みランタイムが含まれていません。会話と既存の検索は引き続き利用できます。"
           }
         }
       }

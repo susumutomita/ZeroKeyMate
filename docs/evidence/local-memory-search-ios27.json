@@ -1,0 +1,77 @@
+{
+  "date_utc": "2026-10-08",
+  "environment": {
+    "macOS": "26.6.2 (25G83)",
+    "Xcode": "27.0 (27A266a)",
+    "iOS_simulator": "27.0 (24A434)",
+    "architecture": "arm64"
+  },
+  "model": {
+    "revision": "9be6e8b90982095dc05c2bd162e4b954ee4dbac7",
+    "bytes": 164626432,
+    "sha256": "2d079ee2f6f066b1f368e8d7c819f55214eaef1d0513b312321901f30ab286fb",
+    "dimensions": 128
+  },
+  "runtime": {
+    "version": "0.18.0",
+    "revision": "b2f686e2ed4718fb84ec398a61dd59ca0f0aff27",
+    "backend": "CPU, two threads"
+  },
+  "checks": {
+    "make_test": {
+      "Swift": 150,
+      "Node": 68,
+      "Python": 25,
+      "result": "passed"
+    },
+    "make_build_ios": "passed, SDK linked, no application model weights",
+    "native_local_memory_search": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "real_model": true,
+      "covers": [
+        "English/Japanese/cross-language retrieval",
+        "memory eligibility guard",
+        "allowed local sources",
+        "URL redirect policy",
+        "default Off and saved missing-model choice",
+        "cancelled transfer finishing late followed by immediate retry",
+        "offline Off/on restore and retrieval",
+        "corpus invalidation",
+        "model and XNNPACK weight-cache deletion"
+      ]
+    },
+    "ui_default_missing_selection": {
+      "passed": 1,
+      "failed": 0,
+      "real_model_download": false
+    },
+    "ui_real_download_and_notes_retrieval": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "actual explicit public HTTPS download",
+        "real readiness inference",
+        "explicit notes consent",
+        "literal synthetic notes retrieval",
+        "source-toggle invalidation",
+        "restart and local model verification",
+        "disable/delete"
+      ]
+    },
+    "ios_lifecycle_probe": "passed actual download, cancellation after progress, partial cleanup, SHA256 and retrieval/deletion",
+    "mac_real_inference": "passed low-memory guard, four bilingual queries and corpus deletion"
+  },
+  "fixtures": "Public pinned weights and synthetic bicycle, tea and astronomy sentences only. No user or company private data.",
+  "host_workaround": "DerivedData under /tmp; Documents framework test loading stopped in dyld. No privacy settings changed.",
+  "not_verified": [
+    "physical iPhone",
+    "OS memory-pressure termination",
+    "thermal behavior",
+    "backgrounding during real transfer",
+    "VoiceOver",
+    "physical DockKit"
+  ]
+}

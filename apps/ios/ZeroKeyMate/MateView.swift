@@ -488,7 +488,8 @@ private struct SettingsSheet:View {
             }
             Section("Local notes"){
                 TextField("What should Mate remember?",text:$model.localNotes,axis:.vertical).lineLimit(3...8)
-                Button("Save notes"){model.saveNotes()}
+                    .accessibilityIdentifier("local-notes-editor")
+                Button("Save notes"){model.saveNotes()}.accessibilityIdentifier("save-local-notes")
                 NavigationLink("Local memory search") {LocalMemorySearchSettingsView(model:model,search:model.localMemorySearch)}
                     .accessibilityIdentifier("open-local-embedding-settings")
                 SectionNote(text:"Stored in this iPhone's Keychain. Never shared with external providers or published to ENS.")

@@ -13,15 +13,21 @@ final class LocalMemorySearch:ObservableObject {
     @Published private(set) var searchStatus:String?
     private let defaults:UserDefaults
     private let files:LocalModelFiles
+    private let transfer:LocalModelFiles.Download
     private let runtime=LocalEmbeddingRuntime()
     private let index=LocalSemanticIndex()
     private var operation:Task<Void,Never>?
+    private var cleanup:Task<Void,Never>?
     private var searchTask:Task<Void,Never>?
     private var generation:UInt64=0
     private var searchGeneration:UInt64=0
     private let model=LocalEmbeddingModel.embeddingGemma2
-    init(defaults:UserDefaults = .standard,directory:URL?=nil) {
+    init(defaults:UserDefaults = .standard,directory:URL?=nil,
+         transfer:@escaping LocalModelFiles.Download={url,destination,size,progress in
+             try await LocalWeightTransfer.download(url,to:destination,expectedBytes:size,progress:progress)
+         }) {
         self.defaults=defaults
+        self.transfer=transfer
         selection=LocalEmbeddingRuntime.isSupported ? LocalSearchSelection(savedValue:defaults.string(forKey:LocalSearchSelection.preferenceKey)):.off
         let root=directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
             .appendingPathComponent("LocalEmbeddingModels",isDirectory:true)
@@ -40,9 +46,13 @@ final class LocalMemorySearch:ObservableObject {
         guard !busy else {return}
         guard selection == .embeddingGemma2 else {state = .off;return}
         generation &+= 1;let current=generation
+        let waiting=cleanup
         state = .checking
         operation=Task { [self] in
             do {
+                await waiting?.value
+                try Task.checkCancellation()
+                guard current == generation else {return}
                 try await files.discardInterruptedDownloads()
                 let file=try await files.verifiedFile(for:model)
                 try Task.checkCancellation()
@@ -61,12 +71,14 @@ final class LocalMemorySearch:ObservableObject {
     func download() {
         guard LocalEmbeddingRuntime.isSupported,selection == .embeddingGemma2,!busy else {return}
         generation &+= 1;let current=generation
+        let waiting=cleanup
         progress=0;state = .downloading
         operation=Task { [self] in
             do {
-                let file=try await files.install(model,download:{url,destination,size,progress in
-                    try await LocalWeightTransfer.download(url,to:destination,expectedBytes:size,progress:progress)
-                },progress:{[weak self] value in
+                await waiting?.value
+                try Task.checkCancellation()
+                guard current == generation else {return}
+                let file=try await files.install(model,download:transfer,progress:{[weak self] value in
                     Task { @MainActor in
                         guard let self,self.generation == current else {return}
                         self.progress=value
@@ -86,20 +98,27 @@ final class LocalMemorySearch:ObservableObject {
         }
     }
     func stop() {
+        let pending=operation,previousCleanup=cleanup
         generation &+= 1;operation?.cancel();operation=nil
         invalidateCorpus()
         state = !LocalEmbeddingRuntime.isSupported ? .unavailable : selection == .off ? .off:.missing
-        Task {await runtime.close()}
+        // Snapshot dependencies before publishing the new cleanup task. A
+        // retry waits for the previous transfer and engine close, so it cannot
+        // race partial-file cleanup or close a newly prepared engine.
+        cleanup=Task { [runtime] in
+            await pending?.value
+            await previousCleanup?.value
+            await runtime.close()
+        }
     }
     func deleteModel() {
         guard LocalEmbeddingRuntime.isSupported else {state = .unavailable;return}
-        let pending=operation
         select(.off)
+        let waiting=cleanup
         let current=generation;state = .checking
         operation=Task {
-            await pending?.value
-            guard current == generation else {return}
-            await runtime.close()
+            await waiting?.value
+            guard current == generation,!Task.isCancelled else {return}
             do {try await files.remove(model);state = .off}
             catch {state = .failed("The model could not be deleted. Unlock your iPhone and retry.")}
         }

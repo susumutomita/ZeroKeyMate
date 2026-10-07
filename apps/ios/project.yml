@@ -15,6 +15,8 @@ packages:
     path: ../../.tools/verity
   MateAgeProof:
     path: ../../native/age-proof/swift
+  LiteRTLM:
+    path: ../../.tools/litertlm-sdk
 settings:
   base:
     SWIFT_VERSION: '5.0'
@@ -43,6 +45,7 @@ targets:
       - package: Privy
       - package: Verity
       - package: MateAgeProof
+      - package: LiteRTLM
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

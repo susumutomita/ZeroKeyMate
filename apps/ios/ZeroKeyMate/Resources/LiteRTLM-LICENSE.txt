@@ -1,6 +1,6 @@
 LiteRT-LM 0.18.0, Copyright Google LLC.
 Source: https://github.com/google-ai-edge/LiteRT-LM/tree/b2f686e2ed4718fb84ec398a61dd59ca0f0aff27
-Diagnostic builds embed CLiteRTLM.framework with its upstream LICENSE and third_party_licenses.bundle; normal builds exclude the framework.
+CLiteRTLM.framework retains its upstream LICENSE and complete third_party_licenses.bundle.
 
                                  Apache License
                            Version 2.0, January 2004

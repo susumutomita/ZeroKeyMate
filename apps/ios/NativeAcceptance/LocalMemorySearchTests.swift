@@ -43,7 +43,7 @@ final class LocalMemorySearchTests:XCTestCase {
     /// Optional, real inference acceptance. Stage the pinned public weights into
     /// this test bundle locally; absent weights skip honestly, never use a stub.
     func testRealOfflineEnglishJapaneseRetrieval() async throws {
-        guard LocalEmbeddingRuntime.isSupported else {throw XCTSkip("The iOS runtime is disabled pending acceptance.")}
+        guard LocalEmbeddingRuntime.isSupported else {throw XCTSkip("This build does not include the embedding runtime.")}
         guard let file=Bundle(for:Self.self).url(forResource:"EmbeddingQA",withExtension:"litertlm") else {
             throw XCTSkip("Stage the verified public model as NativeAcceptance/EmbeddingQA.litertlm to run real inference.")
         }
@@ -103,4 +103,60 @@ final class LocalMemorySearchTests:XCTestCase {
         XCTAssertEqual(defaults.string(forKey:LocalSearchSelection.preferenceKey),"off")
         XCTAssertEqual(restored.state,.off)
     }
+    @MainActor func testRealModelImmediateRetryWaitsForCancelledTransferAndOfflineRestore() async throws {
+        guard LocalEmbeddingRuntime.isSupported,
+              let fixture=Bundle(for:Self.self).url(forResource:"EmbeddingQA",withExtension:"litertlm") else {
+            throw XCTSkip("Stage the pinned public EmbeddingQA.litertlm for real coordinator acceptance.")
+        }
+        let name=UUID().uuidString,defaults=UserDefaults(suiteName:name)!
+        let directory=FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        defer {defaults.removePersistentDomain(forName:name);try? FileManager.default.removeItem(at:directory)}
+        let gate=FirstTransferGate()
+        let search=LocalMemorySearch(defaults:defaults,directory:directory,transfer:{_,destination,_,progress in
+            await gate.begin()
+            // The first transfer finishes late after cancellation. Real pinned
+            // bytes still pass through production integrity and readiness checks.
+            try FileManager.default.copyItem(at:fixture,to:destination)
+            progress(1)
+        })
+        search.select(.embeddingGemma2)
+        try await waitUntil {search.state == .missing}
+        search.download()
+        try await waitUntil {await gate.calls == 1}
+        search.stop();search.download()
+        await gate.release()
+        try await waitUntil {search.state == .ready}
+        let count=await gate.calls
+        XCTAssertEqual(count,2)
+        XCTAssertFalse(try FileManager.default.contentsOfDirectory(at:directory,includingPropertiesForKeys:nil).contains{$0.pathExtension == "partial"})
+        search.select(.off);search.select(.embeddingGemma2)
+        try await waitUntil {search.state == .ready}
+        let corpus:[LocalSearchDocument]=[.init(id:"bike",text:"自転車は庭の物置に置いています。")]
+        search.search(query:"Where is the bicycle stored?",documents:corpus)
+        try await waitUntil {!search.searching}
+        XCTAssertEqual(search.hits.first?.id,"bike")
+        search.invalidateCorpus()
+        XCTAssertTrue(search.hits.isEmpty)
+        search.deleteModel()
+        try await waitUntil {search.state == .off}
+        XCTAssertEqual(search.selection,.off)
+        let remaining=try FileManager.default.contentsOfDirectory(at:directory,includingPropertiesForKeys:nil).map(\.lastPathComponent)
+        XCTAssertTrue(remaining.isEmpty,"Model files remain: \(remaining)")
+    }
+    @MainActor private func waitUntil(_ condition:() async -> Bool) async throws {
+        let clock=ContinuousClock(),deadline=clock.now.advanced(by:.seconds(30))
+        while !(await condition()),clock.now<deadline {try await Task.sleep(for:.milliseconds(20))}
+        let passed=await condition()
+        XCTAssertTrue(passed,"Coordinator did not reach its expected state.")
+    }
+}
+
+private actor FirstTransferGate {
+    private(set) var calls=0
+    private var continuation:CheckedContinuation<Void,Never>?
+    func begin() async {
+        calls+=1
+        if calls == 1 {await withCheckedContinuation {continuation=$0}}
+    }
+    func release() {continuation?.resume();continuation=nil}
 }

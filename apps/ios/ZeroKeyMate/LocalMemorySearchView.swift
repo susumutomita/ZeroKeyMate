@@ -5,17 +5,17 @@ struct LocalMemorySearchSettingsView:View {
     @ObservedObject var model:CompanionModel
     @ObservedObject var search:LocalMemorySearch
     var body:some View {
-        if LocalEmbeddingRuntime.isSupported {preview}
+        if LocalEmbeddingRuntime.isSupported {settings}
         else {
             Form {
                 Section {
                     Text("EmbeddingGemma 2 is unavailable in this build.").accessibilityIdentifier("local-model-unavailable")
-                    Text("The iOS preview has not passed acceptance testing. Conversation and existing search are unchanged.")
+                    Text("This build does not include the local embedding runtime. Conversation and existing search remain available.")
                 }
             }.navigationTitle("Local memory search").navigationBarTitleDisplayMode(.inline)
         }
     }
-    private var preview:some View {
+    private var settings:some View {
         Form {
             Section("Embedding model") {
                 Picker("Embedding model",selection:Binding(get:{search.selection},set:{search.select($0)})) {
@@ -43,7 +43,7 @@ struct LocalMemorySearchSettingsView:View {
             }
             Section("Before downloading") {
                 Text("Downloading contacts Hugging Face and its file hosts, which can see your IP address. Queries, notes and conversations are never sent to them. Once installed, search works offline.")
-                Text("This is an early preview. The model uses about 165 MB of storage and requires at least 4 GB of device memory. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes.")
+                Text("This is an early preview. The download is about 165 MB; preparing it uses additional storage for a model cache. At least 4 GB of device memory is required. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes.")
                 Text("Model and runtime: Apache 2.0. No model weights are bundled. Search never approves payments, proves identity or signs requests.")
                 Link("Model details and license",destination:URL(string:"https://huggingface.co/litert-community/embeddinggemma-2-text-270m-litert-lm/tree/9be6e8b90982095dc05c2bd162e4b954ee4dbac7")!)
             }.font(.footnote)

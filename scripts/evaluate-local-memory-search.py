@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run real, offline Mac acceptance with explicitly supplied public artifacts.
 
-First run MATE_EMBEDDING_PREVIEW=1 make setup-ios. Supply the pinned model and official macOS v0.18.0
+First run make setup-ios. Supply the pinned model and official macOS v0.18.0
 ZIP yourself; this script performs no artifact download or app-data access.
 """
 import argparse
@@ -42,7 +42,7 @@ let package = Package(name: "LocalEmbeddingQA", platforms: [.macOS(.v14)],
     targets: [
         .binaryTarget(name: "CLiteRTLM", path: {json.dumps(frameworks[0].name)}),
         .target(name: "LiteRTLM", dependencies: ["CLiteRTLM"], path: "SDK"),
-        .executableTarget(name: "LocalEmbeddingQA", dependencies: ["LiteRTLM", .product(name: "MateCore", package: {json.dumps(root.name.lower())})], path: "Runner", swiftSettings: [.define("MATE_EMBEDDING_PREVIEW")])
+        .executableTarget(name: "LocalEmbeddingQA", dependencies: ["LiteRTLM", .product(name: "MateCore", package: {json.dumps(root.name.lower())})], path: "Runner")
     ])
 ''')
 subprocess.run(['swift', 'run', '--package-path', str(staged), '--cache-path', str(root / '.build/swift-cache'),

@@ -44,9 +44,16 @@ final class LocalSemanticSearchTests:XCTestCase {
         let verified=try await restored.verifiedFile(for:spec)
         XCTAssertEqual(verified,url)
         _ = try await restored.install(spec,download:{_,_,_,_ in XCTFail("Offline cache must not download")},progress:{_ in})
+        for timestamp in [1,2] {
+            let name=url.lastPathComponent + "_\(timestamp)_3.text_encoder.xnnpack_cache"
+            try Data("public-weight-cache-fixture".utf8).write(to:directory.appendingPathComponent(name))
+        }
+        let unrelated=directory.appendingPathComponent("other-model.litertlm_1_3.text_encoder.xnnpack_cache")
+        try Data("unrelated-fixture".utf8).write(to:unrelated)
         try await restored.remove(spec)
         let deleted=try await restored.verifiedFile(for:spec)
         XCTAssertNil(deleted)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:directory.path),[unrelated.lastPathComponent])
     }
     func testCorruptionWrongLengthAndInterruptedTransferNeverBecomeReady() async throws {
         for content in ["abd","ab","abcd"] {

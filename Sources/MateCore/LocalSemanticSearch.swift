@@ -72,6 +72,14 @@ public actor LocalModelFiles {
     public func remove(_ model: LocalEmbeddingModel) throws {
         let url=file(for:model)
         if FileManager.default.fileExists(atPath:url.path) { try FileManager.default.removeItem(at:url) }
+        // LiteRT-LM's CPU backend caches repacked public model weights beside
+        // the model by default. Remove every timestamp variant for this exact
+        // model, without touching other files or storing retrieval vectors.
+        guard FileManager.default.fileExists(atPath:directory.path) else {return}
+        for cache in try FileManager.default.contentsOfDirectory(at:directory,includingPropertiesForKeys:nil)
+            where cache.lastPathComponent.hasPrefix(url.lastPathComponent + "_") && cache.pathExtension == "xnnpack_cache" {
+            try FileManager.default.removeItem(at:cache)
+        }
     }
     public func discardInterruptedDownloads() throws {
         guard !installing, FileManager.default.fileExists(atPath:directory.path) else { return }

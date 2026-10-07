@@ -76,7 +76,6 @@ final class ProductUITests: XCTestCase {
         let entry=app.buttons["open-local-embedding-settings"]
         for _ in 0..<8 {if entry.isHittable {break};app.swipeUp()}
         XCTAssertTrue(entry.isHittable);entry.tap()
-        #if MATE_EMBEDDING_PREVIEW
         let picker=app.buttons["local-embedding-model"]
         XCTAssertTrue(picker.waitForExistence(timeout:5))
         // This test is run on a new QA simulator. Never start a model download.
@@ -94,14 +93,71 @@ final class ProductUITests: XCTestCase {
         entry.tap()
         XCTAssertTrue(app.staticTexts["Not downloaded or prepared"].waitForExistence(timeout:10))
         app.buttons["delete-local-model"].tap()
-        XCTAssertTrue(app.staticTexts["Off"].waitForExistence(timeout:10))
+        XCTAssertTrue(app.staticTexts["local-model-status"].waitForExistence(timeout:10))
+        XCTAssertEqual(app.staticTexts["local-model-status"].label,"Off")
         capture("local-embedding-off")
-        #else
-        XCTAssertTrue(app.staticTexts["local-model-unavailable"].waitForExistence(timeout:5))
-        XCTAssertFalse(app.buttons["local-embedding-model"].exists)
-        XCTAssertFalse(app.buttons["download-local-model"].exists)
-        capture("local-embedding-runtime-unavailable")
-        #endif
+    }
+    /// Opt-in only: contacts the public pinned model host, on a disposable QA
+    /// simulator. CI never downloads weights or substitutes fake readiness.
+    func testRealLocalEmbeddingDownloadAndNotesRetrieval() throws {
+        guard ProcessInfo.processInfo.environment["MATE_EMBEDDING_DOWNLOAD_QA"] == "1" else {
+            throw XCTSkip("Set MATE_EMBEDDING_DOWNLOAD_QA=1 in the test runner on a new QA simulator for real download acceptance.")
+        }
+        let app=launch()
+        app.buttons["open-settings"].tap()
+        let entry=app.buttons["open-local-embedding-settings"]
+        for _ in 0..<8 {if entry.isHittable {break};app.swipeUp()}
+        let notes=app.descendants(matching:.any).matching(identifier:"local-notes-editor").firstMatch
+        XCTAssertTrue(notes.isHittable)
+        notes.tap();notes.typeText("I keep my bicycle in the garden shed.")
+        if app.buttons["Done"].firstMatch.isHittable {app.buttons["Done"].firstMatch.tap()}
+        app.buttons["save-local-notes"].tap()
+        entry.tap()
+        // A retry after a failed QA run may still have the verified model.
+        // Delete it through the actual UI before exercising the download.
+        if app.staticTexts["local-model-status"].label != "Off" {
+            XCTAssertTrue(app.buttons["delete-local-model"].waitForExistence(timeout:10))
+            let ready=NSPredicate(format:"enabled == true")
+            expectation(for:ready,evaluatedWith:app.buttons["delete-local-model"])
+            waitForExpectations(timeout:30)
+            app.buttons["delete-local-model"].tap()
+        }
+        XCTAssertEqual(app.staticTexts["local-model-status"].label,"Off")
+        app.buttons["local-embedding-model"].tap()
+        app.buttons["EmbeddingGemma 2 · Text 270M"].tap()
+        XCTAssertTrue(app.staticTexts["Not downloaded or prepared"].waitForExistence(timeout:10))
+        app.buttons["download-local-model"].tap()
+        XCTAssertTrue(app.buttons["cancel-local-model"].waitForExistence(timeout:10))
+        XCTAssertTrue(app.staticTexts["Ready on this iPhone"].waitForExistence(timeout:180))
+        capture("local-embedding-real-ready")
+        app.buttons["open-local-memory-search"].tap()
+        let source=app.switches["Local notes"]
+        XCTAssertEqual(source.value as? String,"0")
+        // SwiftUI exposes the label and UISwitch as one wide AX element.
+        // Touch the visible switch thumb, then assert the consent changed.
+        source.coordinate(withNormalizedOffset:.init(dx:0.9,dy:0.5)).tap()
+        XCTAssertEqual(source.value as? String,"1")
+        let query=app.textFields["local-search-query"]
+        query.tap();query.typeText("Where is my bicycle stored?")
+        app.buttons["run-local-search"].tap()
+        let excerpt=app.staticTexts["local-search-excerpt"].firstMatch
+        XCTAssertTrue(excerpt.waitForExistence(timeout:30))
+        XCTAssertEqual(excerpt.label,"I keep my bicycle in the garden shed.")
+        capture("local-embedding-real-notes-result")
+        source.coordinate(withNormalizedOffset:.init(dx:0.9,dy:0.5)).tap()
+        XCTAssertEqual(source.value as? String,"0")
+        XCTAssertTrue(excerpt.waitForNonExistence(timeout:5))
+        app.terminate()
+        app.launch()
+        app.buttons["companion-face"].swipeUp()
+        app.buttons["open-settings"].tap()
+        for _ in 0..<8 {if entry.isHittable {break};app.swipeUp()}
+        entry.tap()
+        XCTAssertTrue(app.staticTexts["Ready on this iPhone"].waitForExistence(timeout:30))
+        app.buttons["delete-local-model"].tap()
+        XCTAssertTrue(app.staticTexts["local-model-status"].waitForExistence(timeout:15))
+        XCTAssertEqual(app.staticTexts["local-model-status"].label,"Off")
+        capture("local-embedding-real-deleted")
     }
     func testUnconfiguredBeerShopIsHonestAndCanRetryOrClose() {
         let app = launch()

@@ -19,13 +19,7 @@ if [[ -f apps/ios/ZeroKeyMate/Resources/Proofs/manifest.json ]]; then
   python3 scripts/validate-proof-resources.py
 fi
 case "${1:-project}" in
-  project)
-    cd apps/ios
-    if [[ "${MATE_EMBEDDING_PREVIEW:-0}" == 1 ]]; then
-      xcodegen generate --spec project-embedding-preview.yml
-    else
-      xcodegen generate
-    fi ;;
+  project) cd apps/ios; xcodegen generate ;;
   simulator|device|test)
     extra=(-IDEPackageSupportDisableManifestSandbox=NO)
     # SwiftPM's nested sandbox cannot be created in some managed build hosts.
@@ -33,8 +27,8 @@ case "${1:-project}" in
     if [[ "${MATE_NESTED_SANDBOX:-0}" == 1 ]]; then
       extra=(-IDEPackageSupportDisableManifestSandbox=YES 'OTHER_SWIFT_FLAGS=$(inherited) -disable-sandbox')
     fi
-    destination='generic/platform=iOS Simulator';derived=DerivedData
-    if [[ "$1" == device ]]; then destination='generic/platform=iOS';derived=DerivedDataDevice;fi
+    destination='generic/platform=iOS Simulator';derived="${MATE_IOS_DERIVED_DATA:-DerivedData}"
+    if [[ "$1" == device ]]; then destination='generic/platform=iOS';derived="${MATE_IOS_DERIVED_DATA:-DerivedDataDevice}";fi
     action=(CODE_SIGNING_ALLOWED=NO build)
     if [[ "$1" == test ]]; then
       id="$(python3 scripts/select-simulator.py)"

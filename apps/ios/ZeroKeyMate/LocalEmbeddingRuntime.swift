@@ -1,6 +1,6 @@
 import Foundation
 import MateCore
-#if MATE_EMBEDDING_PREVIEW
+#if canImport(LiteRTLM)
 import LiteRTLM
 
 /// Serial native work; no tools, network clients, or financial adapters.
@@ -46,8 +46,7 @@ actor LocalEmbeddingRuntime {
     }
 }
 #else
-/// The preview has not passed iOS acceptance. The
-/// normal build has no runtime dependency and never claims native readiness.
+/// Source-only consumers without the native SDK never claim readiness.
 actor LocalEmbeddingRuntime {
     nonisolated static let isSupported=false
     func initialize(file:URL,availableMemory:UInt64=UInt64(ProcessInfo.processInfo.physicalMemory)) throws {
