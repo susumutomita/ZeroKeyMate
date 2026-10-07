@@ -27,3 +27,24 @@ if [[ ! -d .tools/verity ]]; then
 fi
 [[ "$(git -C .tools/verity rev-parse HEAD)" == "$REV" ]] || { echo 'Unexpected Verity source revision.' >&2; exit 1; }
 git -C .tools/verity diff --exit-code --quiet
+
+# Xcode's remote resolver requires Git LFS for this repository. No LFS test
+# weights are needed by its Swift package. Keep pointer files and use only the
+# unmodified wrapper and checksum-pinned release binaries from Package.swift.
+if [[ "${MATE_EMBEDDING_PREVIEW:-0}" == 1 ]]; then
+  LITERT_REV=b2f686e2ed4718fb84ec398a61dd59ca0f0aff27
+  if [[ ! -d .tools/litertlm ]]; then
+    git init -q .tools/litertlm
+    git -C .tools/litertlm remote add origin https://github.com/google-ai-edge/LiteRT-LM.git
+    git -C .tools/litertlm fetch --depth=1 --filter=blob:none origin "$LITERT_REV"
+    git -C .tools/litertlm sparse-checkout set --no-cone /Package.swift /LICENSE /swift/
+    GIT_LFS_SKIP_SMUDGE=1 git -C .tools/litertlm -c filter.lfs.smudge= -c filter.lfs.required=false checkout --detach -q FETCH_HEAD
+  fi
+  [[ "$(git -C .tools/litertlm rev-parse HEAD)" == "$LITERT_REV" ]] || { echo 'Unexpected LiteRT-LM source revision.' >&2; exit 1; }
+  git -C .tools/litertlm diff --exit-code --quiet
+  if [[ ! -f .tools/downloads/CLiteRTLM-0.18.0.xcframework.zip ]]; then
+    curl -fLsS --max-time 180 https://github.com/google-ai-edge/LiteRT-LM/releases/download/v0.18.0/CLiteRTLM.xcframework.zip -o .tools/downloads/CLiteRTLM-0.18.0.xcframework.zip.partial
+    mv .tools/downloads/CLiteRTLM-0.18.0.xcframework.zip.partial .tools/downloads/CLiteRTLM-0.18.0.xcframework.zip
+  fi
+  python3 scripts/stage-embedding-sdk.py
+fi

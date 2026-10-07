@@ -70,6 +70,39 @@ final class ProductUITests: XCTestCase {
         capture("web-search-settings")
         // Do not save a fake API key or modify an existing user's configuration.
     }
+    func testLocalEmbeddingSelectionRequiresExplicitDownload() {
+        let app=launch()
+        app.buttons["open-settings"].tap()
+        let entry=app.buttons["open-local-embedding-settings"]
+        for _ in 0..<8 {if entry.isHittable {break};app.swipeUp()}
+        XCTAssertTrue(entry.isHittable);entry.tap()
+        #if MATE_EMBEDDING_PREVIEW
+        let picker=app.buttons["local-embedding-model"]
+        XCTAssertTrue(picker.waitForExistence(timeout:5))
+        // This test is run on a new QA simulator. Never start a model download.
+        XCTAssertEqual(app.staticTexts["local-model-status"].label,"Off")
+        picker.tap()
+        app.buttons["EmbeddingGemma 2 · Text 270M"].tap()
+        XCTAssertTrue(app.staticTexts["Not downloaded or prepared"].waitForExistence(timeout:10))
+        XCTAssertTrue(app.buttons["download-local-model"].isEnabled)
+        XCTAssertFalse(app.buttons["open-local-memory-search"].isEnabled)
+        capture("local-embedding-missing")
+        app.terminate();app.launch()
+        app.buttons["companion-face"].swipeUp()
+        app.buttons["open-settings"].tap()
+        for _ in 0..<8 {if entry.isHittable {break};app.swipeUp()}
+        entry.tap()
+        XCTAssertTrue(app.staticTexts["Not downloaded or prepared"].waitForExistence(timeout:10))
+        app.buttons["delete-local-model"].tap()
+        XCTAssertTrue(app.staticTexts["Off"].waitForExistence(timeout:10))
+        capture("local-embedding-off")
+        #else
+        XCTAssertTrue(app.staticTexts["local-model-unavailable"].waitForExistence(timeout:5))
+        XCTAssertFalse(app.buttons["local-embedding-model"].exists)
+        XCTAssertFalse(app.buttons["download-local-model"].exists)
+        capture("local-embedding-runtime-unavailable")
+        #endif
+    }
     func testUnconfiguredBeerShopIsHonestAndCanRetryOrClose() {
         let app = launch()
         XCTAssertTrue(app.buttons["open-shop"].waitForExistence(timeout: 5))

@@ -2,6 +2,8 @@
 .build/
 .tools/
 .data/
+*.litertlm
+*.partial
 .swiftpm/
 DerivedData/
 DerivedDataDevice/

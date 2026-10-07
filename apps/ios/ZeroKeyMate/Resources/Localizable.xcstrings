@@ -11017,6 +11017,566 @@
           }
         }
       }
+    },
+    "Local memory search": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local memory search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の記憶検索"
+          }
+        }
+      }
+    },
+    "Embedding model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Embedding model"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "埋め込みモデル"
+          }
+        }
+      }
+    },
+    "Search local memory": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search local memory"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記憶を端末内で検索"
+          }
+        }
+      }
+    },
+    "Not downloaded or prepared": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not downloaded or prepared"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未取得・未準備"
+          }
+        }
+      }
+    },
+    "Verifying and preparing model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying and preparing model"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルを検証・準備中"
+          }
+        }
+      }
+    },
+    "Downloading model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading model"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルをダウンロード中"
+          }
+        }
+      }
+    },
+    "Ready on this iPhone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready on this iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneで利用可能"
+          }
+        }
+      }
+    },
+    "Download and prepare model (165 MB)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download and prepare model (165 MB)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルを取得して準備（165 MB）"
+          }
+        }
+      }
+    },
+    "Check downloaded model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check downloaded model"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得済みモデルを確認"
+          }
+        }
+      }
+    },
+    "Disable and delete model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable and delete model"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無効化してモデルを削除"
+          }
+        }
+      }
+    },
+    "Before downloading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before downloading"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロード前に"
+          }
+        }
+      }
+    },
+    "Model details and license": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model details and license"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルの詳細とライセンス"
+          }
+        }
+      }
+    },
+    "Local sources": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local sources"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の検索対象"
+          }
+        }
+      }
+    },
+    "Completed user messages": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed user messages"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話が完了した自分のメッセージ"
+          }
+        }
+      }
+    },
+    "Search query": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search query"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索語"
+          }
+        }
+      }
+    },
+    "Search on this iPhone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search on this iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneで検索"
+          }
+        }
+      }
+    },
+    "Searching local memory": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching local memory"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の記憶を検索中"
+          }
+        }
+      }
+    },
+    "No completed messages or selected notes to search.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No completed messages or selected notes to search."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索対象の完了済みメッセージやメモがありません。"
+          }
+        }
+      }
+    },
+    "Local search is unavailable. Return to model settings to prepare it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local search is unavailable. Return to model settings to prepare it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内検索は利用できません。モデル設定で準備してください。"
+          }
+        }
+      }
+    },
+    "Your completed message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your completed message"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話が完了した自分のメッセージ"
+          }
+        }
+      }
+    },
+    "No matching text in the selected local sources.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching text in the selected local sources."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択した端末内情報に該当する文章がありません。"
+          }
+        }
+      }
+    },
+    "The model file failed verification. Delete it and download again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model file failed verification. Delete it and download again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルの整合性を確認できませんでした。削除して再取得してください。"
+          }
+        }
+      }
+    },
+    "The model could not be deleted. Unlock your iPhone and retry.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model could not be deleted. Unlock your iPhone and retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルを削除できませんでした。iPhoneのロックを解除して再試行してください。"
+          }
+        }
+      }
+    },
+    "Memory is limited. Close other apps, then retry local search.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memory is limited. Close other apps, then retry local search."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモリが不足しています。他のアプリを閉じてから再試行してください。"
+          }
+        }
+      }
+    },
+    "This preview requires an iPhone with at least 4 GB of memory.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This preview requires an iPhone with at least 4 GB of memory."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このプレビュー版にはメモリ4 GB以上のiPhoneが必要です。"
+          }
+        }
+      }
+    },
+    "Use a short query and the bounded local sources.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a short query and the bounded local sources."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "短い検索語と、制限内の端末内情報を使ってください。"
+          }
+        }
+      }
+    },
+    "Local search is unavailable. Retry when the model and device are ready.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local search is unavailable. Retry when the model and device are ready."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内検索は利用できません。モデルと端末の準備ができてから再試行してください。"
+          }
+        }
+      }
+    },
+    "Search local notes and completed messages on this iPhone. Conversation replies continue to use Apple Intelligence.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search local notes and completed messages on this iPhone. Conversation replies continue to use Apple Intelligence."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneでローカルメモと完了済み会話を検索します。会話の応答には引き続きApple Intelligenceを使います。"
+          }
+        }
+      }
+    },
+    "Search results are excerpts, not verified facts. Only the sources you select are indexed. Recent completed user messages are limited to the current conversation; notes are limited to the text visible in Settings. Older text may be omitted to fit memory limits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search results are excerpts, not verified facts. Only the sources you select are indexed. Recent completed user messages are limited to the current conversation; notes are limited to the text visible in Settings. Older text may be omitted to fit memory limits."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索結果は原文の抜粋で、事実確認済みの情報ではありません。選択した情報だけを索引化します。自分のメッセージは現在の会話の完了済みのもの、メモは設定画面に表示される内容に限ります。メモリ制限により古い内容を省く場合があります。"
+          }
+        }
+      }
+    },
+    "Downloading contacts Hugging Face and its file hosts, which can see your IP address. Queries, notes and conversations are never sent to them. Once installed, search works offline.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading contacts Hugging Face and its file hosts, which can see your IP address. Queries, notes and conversations are never sent to them. Once installed, search works offline."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロード時はHugging Faceと配信先に接続し、IPアドレスが伝わります。検索語、メモ、会話は送信しません。取得後の検索はオフラインで動作します。"
+          }
+        }
+      }
+    },
+    "This is an early preview. The model uses about 165 MB of storage and requires at least 4 GB of device memory. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is an early preview. The model uses about 165 MB of storage and requires at least 4 GB of device memory. Indexes stay in memory and are cleared when sources change, when you leave search, or when the app enters the background. Clearing conversation removes its searchable messages. Clear and save notes separately to remove notes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初期プレビュー版です。モデルには約165 MBの空き容量と4 GB以上の端末メモリが必要です。索引はメモリ内にのみ保持し、対象の変更、検索画面を閉じた時、バックグラウンド移行時に破棄します。会話を消去すると、そのメッセージは検索できなくなります。メモは別途内容を消して保存してください。"
+          }
+        }
+      }
+    },
+    "Model and runtime: Apache 2.0. No model weights are bundled. Search never approves payments, proves identity or signs requests.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model and runtime: Apache 2.0. No model weights are bundled. Search never approves payments, proves identity or signs requests."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルと実行環境のライセンスはApache 2.0です。モデルの重みは同梱しません。検索は支払いの承認、本人確認、署名には使いません。"
+          }
+        }
+      }
+    },
+    "Assistant replies and web results are excluded. Selecting notes includes only your current notes. Results never leave this iPhone or enter an action flow.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistant replies and web results are excluded. Selecting notes includes only your current notes. Results never leave this iPhone or enter an action flow."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アシスタントの応答とWeb検索結果は対象外です。メモを選ぶと現在のメモだけが対象になります。結果はこのiPhoneから出ず、操作の実行にも使いません。"
+          }
+        }
+      }
+    },
+    "EmbeddingGemma 2 is unavailable in this build.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EmbeddingGemma 2 is unavailable in this build."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このビルドではEmbeddingGemma 2を利用できません。"
+          }
+        }
+      }
+    },
+    "The iOS preview has not passed acceptance testing. Conversation and existing search are unchanged.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The iOS preview has not passed acceptance testing. Conversation and existing search are unchanged."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOSプレビューは動作検証を完了していません。会話と既存の検索はこれまでどおり利用できます。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
