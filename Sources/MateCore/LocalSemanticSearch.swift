@@ -156,9 +156,19 @@ public actor LocalSemanticIndex {
         let vector=try await embed("task: search query | text: " + query)
         try check(revision)
         let normalizedQuery=try normalized(vector,dimensions:model.dimensions)
-        return zip(documents,vectors).map { document,vector in
-            LocalSearchHit(document:document,score:zip(vector,normalizedQuery).reduce(0) { $0+$1.0*$1.1 })
-        }.filter { $0.score>=0.25 }.sorted { $0.score == $1.score ? $0.id<$1.id : $0.score>$1.score }.prefix(5).map { $0 }
+        var matches:[LocalSearchHit]=[]
+        for position in documents.indices {
+            var score:Float=0
+            for dimension in normalizedQuery.indices {
+                score += vectors[position][dimension]*normalizedQuery[dimension]
+            }
+            if score>=0.25 {matches.append(.init(document:documents[position],score:score))}
+        }
+        matches.sort {left,right in
+            if left.score == right.score {return left.id<right.id}
+            return left.score>right.score
+        }
+        return Array(matches.prefix(5))
     }
     private func check(_ revision: UInt64) throws {
         try Task.checkCancellation()
